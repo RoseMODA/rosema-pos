@@ -3,9 +3,11 @@
 ## Etapa 1: Configuración Base del Proyecto ✅
 
 ### Objetivo
+
 Configurar un proyecto de POS para la tienda Rosema en React con Vite y Firebase.
 
 ### Requisitos Técnicos
+
 - Firebase Authentication (email y contraseña)
 - Firestore
 - Firebase Hosting
@@ -14,6 +16,7 @@ Configurar un proyecto de POS para la tienda Rosema en React con Vite y Firebase
 - Componentes modulares y hooks
 
 ### Estructura de Carpetas
+
 ```
 /src
   /assets
@@ -29,6 +32,7 @@ style.css (TailwindCSS)
 ### Implementación Detallada
 
 #### 1. Inicialización del Proyecto
+
 - Crear nuevo proyecto Vite: `npm create vite@latest rosema-pos --template react`
 - Instalar dependencias:
   ```bash
@@ -38,21 +42,25 @@ style.css (TailwindCSS)
   ```
 
 #### 2. Configuración Firebase
+
 - **Archivo:** `/src/services/firebase.js`
 - Configurar Firebase con credenciales proporcionadas
 - Inicializar Auth y Firestore
 - Manejo de errores con try/catch
 
 #### 3. Componentes Base
+
 - **Login Page:** Formulario de autenticación con email/password
 - **Home Page:** Dashboard básico de bienvenida
 - **App.jsx:** Configuración de rutas con React Router
 
 #### 4. Configuración TailwindCSS
+
 - Importar directivas en `style.css`
 - Configurar `tailwind.config.js` para archivos fuente
 
 #### 5. Firebase Hosting
+
 - Crear `firebase.json` y `.firebaserc`
 - Configurar para SPA (Single Page Application)
 
@@ -61,10 +69,12 @@ style.css (TailwindCSS)
 ## Etapa 2: Dashboard y Navegación
 
 ### Objetivo
+
 Crear el Dashboard principal con navegación lateral y vista de resumen.
 
 ### Características
-- **Menú lateral rojo (#D62818)** con secciones:
+
+- **Menú lateral izquierdo fijo rojo (#D62818)** con secciones:
   - Inicio
   - Estadísticas
   - Ventas
@@ -79,6 +89,7 @@ Crear el Dashboard principal con navegación lateral y vista de resumen.
   - Fecha actual en la interfaz
 
 ### Paleta de Colores
+
 - Rojo principal: `#D62818`
 - Negro: `#222222`
 - Blanco: `#ffffff`
@@ -89,17 +100,20 @@ Crear el Dashboard principal con navegación lateral y vista de resumen.
 ## Etapa 3: Sistema de Ventas
 
 ### Objetivo
+
 Implementar sistema completo de ventas con carrito, pagos y gestión de stock.
 
 ### Funcionalidades
 
 #### Búsqueda y Carrito
+
 - Buscar productos por código o nombre (Firestore)
 - Carrito con modificación de cantidades
 - Cálculo automático de totales
 - Descuento general ($ o %)
 
 #### Métodos de Pago
+
 - Efectivo
 - Transferencia
 - Débito
@@ -107,6 +121,7 @@ Implementar sistema completo de ventas con carrito, pagos y gestión de stock.
 - QR
 
 #### Gestión de Ventas
+
 - Guardar venta en Firestore
 - Descontar stock automáticamente
 - Botón devolución (cambio de prenda) con actualización de stock
@@ -117,6 +132,7 @@ Implementar sistema completo de ventas con carrito, pagos y gestión de stock.
   - Cantidad
 
 #### Historial y Recibos
+
 - CRUD de historial de ventas
 - Imprimir recibo con:
   - Logo de Rosema
@@ -126,6 +142,7 @@ Implementar sistema completo de ventas con carrito, pagos y gestión de stock.
   - Aviso: "Cambios en 3 días hábiles"
 
 #### Ventas en Espera
+
 - Crear múltiples ventas abiertas
 - Identificadores: Cliente 1, Cliente 2, etc.
 - Cambiar entre ventas activas
@@ -136,9 +153,11 @@ Implementar sistema completo de ventas con carrito, pagos y gestión de stock.
 ## Etapa 4: Gestión de Productos
 
 ### Objetivo
+
 Sistema CRUD completo para gestión de inventario y productos.
 
 ### Campos de Producto
+
 - Nombre
 - Precio de compra
 - Precio de venta
@@ -150,6 +169,7 @@ Sistema CRUD completo para gestión de inventario y productos.
 - Proveedor asociado (crear si no existe)
 
 ### Funcionalidades Adicionales
+
 - Imprimir código de barras del artículo
 - Resumen estadístico:
   - Top productos más vendidos
@@ -160,13 +180,16 @@ Sistema CRUD completo para gestión de inventario y productos.
 ## Etapa 5: Gestión de Clientes
 
 ### Objetivo
+
 Sistema CRM básico para gestión de clientes.
 
 ### Funcionalidades CRUD
+
 - Ver, registrar, editar, eliminar clientes
 - Top clientes más frecuentes
 
 ### Perfil de Cliente
+
 - Cantidad de compras realizadas
 - Tallas más compradas
 - Categorías favoritas
@@ -177,15 +200,17 @@ Sistema CRM básico para gestión de clientes.
 ## Etapa 6: Gestión de Proveedores
 
 ### Objetivo
+
 Sistema completo de gestión de proveedores con información detallada.
 
 ### Campos de Proveedor
+
 - Nombre
 - WhatsApp
 - Sitio web
 - Área (zona de la ciudad)
 - Dirección
-- Galería  (opcional, es donde hay muchos vendedores juntos)
+- Galería (opcional, es donde hay muchos vendedores juntos)
 - Número de local (opcional)
 - Tags (descriptivos de lo que proveen (ej: jeans, mujer, talles especiales, fiesta, sastrero, etc))
 - Redes sociales (Instagram y TikTok)
@@ -194,6 +219,7 @@ Sistema completo de gestión de proveedores con información detallada.
 - Notas adicionales
 
 ### Funcionalidades
+
 - Ficha detallada mostrando:
   - Productos comprados del proveedor
   - Productos vendidos del proveedor
@@ -207,9 +233,11 @@ Sistema completo de gestión de proveedores con información detallada.
 ## Etapa 7: Estadísticas y Metas
 
 ### Objetivo
+
 Sistema de análisis financiero y establecimiento de objetivos comerciales.
 
 ### Estadísticas
+
 - Gráficos con Chart.js o Recharts:
   - Ventas diarias
   - Ventas semanales
@@ -218,6 +246,7 @@ Sistema de análisis financiero y establecimiento de objetivos comerciales.
 - Total en $ invertido en productos
 
 ### Sistema de Metas
+
 - Registro de gastos fijos:
   - Alquiler
   - Servicios (luz, agua, etc.)
@@ -238,9 +267,11 @@ Sistema de análisis financiero y establecimiento de objetivos comerciales.
 ## Etapa 8: Facturas ARCA
 
 ### Objetivo
+
 Sistema de facturación electrónica integrado con ARCA.
 
 ### Funcionalidades
+
 - CRUD de facturas
 - Almacenamiento de PDF en Firebase Storage
 - Registro automático para ventas con:
@@ -255,6 +286,7 @@ Sistema de facturación electrónica integrado con ARCA.
 ## Tecnologías y Herramientas
 
 ### Frontend
+
 - React 18+
 - Vite
 - TailwindCSS
@@ -262,14 +294,16 @@ Sistema de facturación electrónica integrado con ARCA.
 - Chart.js/Recharts (para gráficos)
 
 ### Backend
+
 - Firebase Authentication
 - Firestore Database
 - Firebase Storage
 - Firebase Hosting
 
 ### Desarrollo
+
 - Componentes modulares
-- **Changes:**  
+- **Changes:**
   - Link your Firebase project:
     ```json
     {
@@ -278,6 +312,7 @@ Sistema de facturación electrónica integrado con ARCA.
       }
     }
     ```
+- Responsive interface optimized for computers and tablets.
 
 ---
 

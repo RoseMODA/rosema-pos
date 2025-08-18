@@ -1,8 +1,16 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
+import Layout from './components/Layout';
 import Login from './pages/Login';
 import Home from './pages/Home';
+import Statistics from './pages/Statistics';
+import Sales from './pages/Sales';
+import Products from './pages/Products';
+import Customers from './pages/Customers';
+import Suppliers from './pages/Suppliers';
+import Goals from './pages/Goals';
+import Invoices from './pages/Invoices';
 
 /**
  * Componente principal de la aplicación Rosema POS
@@ -35,13 +43,21 @@ function App() {
           } 
         />
         
-        {/* Ruta principal (Home/Dashboard) - solo accesible si está autenticado */}
-        <Route 
-          path="/" 
-          element={
-            isAuthenticated ? <Home /> : <Navigate to="/login" replace />
-          } 
-        />
+        {/* Rutas protegidas - solo accesibles si está autenticado */}
+        {isAuthenticated ? (
+          <Route path="/" element={<Layout />}>
+            <Route index element={<Home />} />
+            <Route path="statistics" element={<Statistics />} />
+            <Route path="sales" element={<Sales />} />
+            <Route path="products" element={<Products />} />
+            <Route path="customers" element={<Customers />} />
+            <Route path="suppliers" element={<Suppliers />} />
+            <Route path="goals" element={<Goals />} />
+            <Route path="invoices" element={<Invoices />} />
+          </Route>
+        ) : (
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        )}
         
         {/* Ruta por defecto - redirige según el estado de autenticación */}
         <Route 
