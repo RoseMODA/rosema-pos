@@ -14,22 +14,24 @@ import {
 } from '../services/salesService';
 
 /**
- * Hook personalizado para gestión de ventas
- * Proporciona estado y funciones para manejar el carrito y ventas
+ * Hook personalizado para gestión de ventas con sesiones independientes
+ * Cada cliente mantiene su propia sesión completamente aislada
  */
 export const useSales = () => {
-  // Estado del carrito actual
-  const [cart, setCart] = useState([]);
-  const [paymentMethod, setPaymentMethod] = useState('Efectivo');
-  const [discountAmount, setDiscountAmount] = useState(0);
-  const [discountPercent, setDiscountPercent] = useState(0);
-  const [cashReceived, setCashReceived] = useState(0);
-  const [customerName, setCustomerName] = useState('');
-  
-  // Campos adicionales para crédito
-  const [cardName, setCardName] = useState('');
-  const [installments, setInstallments] = useState(0);
-  const [commission, setCommission] = useState(0);
+  // Estado de sesiones múltiples - cada cliente tiene su sesión independiente
+  const [clientSessions, setClientSessions] = useState({
+    1: {
+      cart: [],
+      paymentMethod: 'Efectivo',
+      discountAmount: 0,
+      discountPercent: 0,
+      cashReceived: 0,
+      customerName: '',
+      cardName: '',
+      installments: 0,
+      commission: 0
+    }
+  });
   
   // Estado de ventas
   const [salesHistory, setSalesHistory] = useState([]);
@@ -38,8 +40,68 @@ export const useSales = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Obtener sesión del cliente activo
+  const getCurrentSession = useCallback(() => {
+    return clientSessions[activeClient] || {
+      cart: [],
+      paymentMethod: 'Efectivo',
+      discountAmount: 0,
+      discountPercent: 0,
+      cashReceived: 0,
+      customerName: '',
+      cardName: '',
+      installments: 0,
+      commission: 0
+    };
+  }, [clientSessions, activeClient]);
+
+  // Estados derivados de la sesión actual
+  const currentSession = getCurrentSession();
+  const cart = currentSession.cart;
+  const paymentMethod = currentSession.paymentMethod;
+  const discountAmount = currentSession.discountAmount;
+  const discountPercent = currentSession.discountPercent;
+  const cashReceived = currentSession.cashReceived;
+  const customerName = currentSession.customerName;
+  const cardName = currentSession.cardName;
+  const installments = currentSession.installments;
+  const commission = currentSession.commission;
+
   /**
-   * Calcular totales del carrito
+   * Actualizar sesión del cliente activo
+   */
+  const updateCurrentSession = useCallback((updates) => {
+    setClientSessions(prev => ({
+      ...prev,
+      [activeClient]: {
+        ...prev[activeClient],
+        ...updates
+      }
+    }));
+  }, [activeClient]);
+
+  /**
+   * Crear nueva sesión para un cliente
+   */
+  const createClientSession = useCallback((clientId) => {
+    setClientSessions(prev => ({
+      ...prev,
+      [clientId]: {
+        cart: [],
+        paymentMethod: 'Efectivo',
+        discountAmount: 0,
+        discountPercent: 0,
+        cashReceived: 0,
+        customerName: '',
+        cardName: '',
+        installments: 0,
+        commission: 0
+      }
+    }));
+  }, []);
+
+  /**
+   * Calcular totales del carrito actual
    */
   const calculateTotals = useCallback(() => {
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -57,7 +119,7 @@ export const useSales = () => {
   }, [cart, discountAmount, discountPercent, cashReceived]);
 
   /**
-   * Agregar producto al carrito
+   * Agregar producto al carrito del cliente activo
    */
   const addToCart = useCallback((product, quantity = 1, size = null, color = null) => {
     const cartItem = {
@@ -74,65 +136,71 @@ export const useSales = () => {
       isQuickItem: !product.id
     };
 
-    setCart(prev => {
-      // Verificar si ya existe un item similar (mismo producto, talla y color)
-      const existingIndex = prev.findIndex(item => 
-        item.productId === cartItem.productId &&
-        item.size === cartItem.size &&
-        item.color === cartItem.color &&
-        !item.isReturn
-      );
+    const currentCart = cart;
+    
+    // Verificar si ya existe un item similar (mismo producto, talla y color)
+    const existingIndex = currentCart.findIndex(item => 
+      item.productId === cartItem.productId &&
+      item.size === cartItem.size &&
+      item.color === cartItem.color &&
+      !item.isReturn
+    );
 
-      if (existingIndex >= 0 && !cartItem.isReturn) {
-        // Actualizar cantidad del item existente
-        const updated = [...prev];
-        updated[existingIndex] = {
-          ...updated[existingIndex],
-          quantity: updated[existingIndex].quantity + quantity
-        };
-        return updated;
-      } else {
-        // Agregar nuevo item
-        return [...prev, cartItem];
-      }
-    });
+    let newCart;
+    if (existingIndex >= 0 && !cartItem.isReturn) {
+      // Actualizar cantidad del item existente
+      newCart = [...currentCart];
+      newCart[existingIndex] = {
+        ...newCart[existingIndex],
+        quantity: newCart[existingIndex].quantity + quantity
+      };
+    } else {
+      // Agregar nuevo item
+      newCart = [...currentCart, cartItem];
+    }
 
+    updateCurrentSession({ cart: newCart });
     return cartItem;
-  }, []);
+  }, [cart, updateCurrentSession]);
 
   /**
    * Actualizar cantidad de item en el carrito
    */
   const updateCartItemQuantity = useCallback((itemId, newQuantity) => {
+    let newCart;
     if (newQuantity <= 0) {
-      setCart(prev => prev.filter(item => item.id !== itemId));
+      newCart = cart.filter(item => item.id !== itemId);
     } else {
-      setCart(prev => prev.map(item => 
+      newCart = cart.map(item => 
         item.id === itemId ? { ...item, quantity: newQuantity } : item
-      ));
+      );
     }
-  }, []);
+    updateCurrentSession({ cart: newCart });
+  }, [cart, updateCurrentSession]);
 
   /**
    * Eliminar item del carrito
    */
   const removeFromCart = useCallback((itemId) => {
-    setCart(prev => prev.filter(item => item.id !== itemId));
-  }, []);
+    const newCart = cart.filter(item => item.id !== itemId);
+    updateCurrentSession({ cart: newCart });
+  }, [cart, updateCurrentSession]);
 
   /**
-   * Limpiar carrito
+   * Limpiar carrito del cliente activo
    */
   const clearCart = useCallback(() => {
-    setCart([]);
-    setDiscountAmount(0);
-    setDiscountPercent(0);
-    setCashReceived(0);
-    setCustomerName('');
-    setCardName('');
-    setInstallments(0);
-    setCommission(0);
-  }, []);
+    updateCurrentSession({
+      cart: [],
+      discountAmount: 0,
+      discountPercent: 0,
+      cashReceived: 0,
+      customerName: '',
+      cardName: '',
+      installments: 0,
+      commission: 0
+    });
+  }, [updateCurrentSession]);
 
   /**
    * Agregar artículo rápido
@@ -152,9 +220,10 @@ export const useSales = () => {
       isQuickItem: true
     };
 
-    setCart(prev => [...prev, quickItem]);
+    const newCart = [...cart, quickItem];
+    updateCurrentSession({ cart: newCart });
     return quickItem;
-  }, []);
+  }, [cart, updateCurrentSession]);
 
   /**
    * Agregar item de devolución
@@ -174,9 +243,102 @@ export const useSales = () => {
       isQuickItem: false
     };
 
-    setCart(prev => [...prev, returnItem]);
+    const newCart = [...cart, returnItem];
+    updateCurrentSession({ cart: newCart });
     return returnItem;
-  }, []);
+  }, [cart, updateCurrentSession]);
+
+  /**
+   * Setters para la sesión actual
+   */
+  const setPaymentMethod = useCallback((value) => {
+    updateCurrentSession({ paymentMethod: value });
+  }, [updateCurrentSession]);
+
+  const setDiscountAmount = useCallback((value) => {
+    updateCurrentSession({ discountAmount: value });
+  }, [updateCurrentSession]);
+
+  const setDiscountPercent = useCallback((value) => {
+    updateCurrentSession({ discountPercent: value });
+  }, [updateCurrentSession]);
+
+  const setCashReceived = useCallback((value) => {
+    updateCurrentSession({ cashReceived: value });
+  }, [updateCurrentSession]);
+
+  const setCustomerName = useCallback((value) => {
+    updateCurrentSession({ customerName: value });
+  }, [updateCurrentSession]);
+
+  const setCardName = useCallback((value) => {
+    updateCurrentSession({ cardName: value });
+  }, [updateCurrentSession]);
+
+  const setInstallments = useCallback((value) => {
+    updateCurrentSession({ installments: value });
+  }, [updateCurrentSession]);
+
+  const setCommission = useCallback((value) => {
+    updateCurrentSession({ commission: value });
+  }, [updateCurrentSession]);
+
+  /**
+   * Cambiar cliente activo
+   */
+  const changeActiveClient = useCallback(async (clientId) => {
+    try {
+      // Guardar sesión actual en Firebase si hay items
+      if (cart.length > 0) {
+        const totals = calculateTotals();
+        const saleData = {
+          items: cart,
+          paymentMethod,
+          discount: totals.discountValue,
+          total: totals.total,
+          customerName,
+          cardName,
+          installments,
+          commission
+        };
+        await savePendingSale(activeClient, saleData);
+      }
+
+      // Cambiar cliente activo
+      setActiveClient(clientId);
+      
+      // Si no existe la sesión del cliente, crearla
+      if (!clientSessions[clientId]) {
+        createClientSession(clientId);
+      }
+
+      // Cargar datos desde Firebase si existen
+      try {
+        const pendingSale = await getPendingSale(clientId);
+        if (pendingSale) {
+          setClientSessions(prev => ({
+            ...prev,
+            [clientId]: {
+              cart: pendingSale.items || [],
+              paymentMethod: pendingSale.paymentMethod || 'Efectivo',
+              discountAmount: 0, // Los descuentos se recalculan
+              discountPercent: 0,
+              cashReceived: 0,
+              customerName: pendingSale.customerName || '',
+              cardName: pendingSale.cardName || '',
+              installments: pendingSale.installments || 0,
+              commission: pendingSale.commission || 0
+            }
+          }));
+        }
+      } catch (err) {
+        console.log('No hay venta en espera para este cliente');
+      }
+    } catch (err) {
+      console.error('Error al cambiar cliente activo:', err);
+      setError('Error al cambiar de cliente');
+    }
+  }, [cart, paymentMethod, customerName, cardName, installments, commission, activeClient, calculateTotals, clientSessions, createClientSession]);
 
   /**
    * Procesar venta
@@ -218,7 +380,7 @@ export const useSales = () => {
 
       const completedSale = await processSale(saleData);
       
-      // Limpiar carrito después de la venta exitosa
+      // Limpiar sesión del cliente actual
       clearCart();
       
       // Eliminar venta en espera del cliente actual
@@ -240,6 +402,29 @@ export const useSales = () => {
       setLoading(false);
     }
   }, [cart, paymentMethod, calculateTotals, cashReceived, customerName, activeClient, cardName, installments, commission, clearCart]);
+
+  /**
+   * Eliminar cliente/venta en espera
+   */
+  const deletePendingSaleData = useCallback(async (clientId) => {
+    try {
+      await deletePendingSale(clientId);
+      setPendingSales(prev => prev.filter(sale => sale.clientId !== clientId));
+      
+      // Eliminar sesión del cliente
+      setClientSessions(prev => {
+        const newSessions = { ...prev };
+        delete newSessions[clientId];
+        return newSessions;
+      });
+
+      return clientId;
+    } catch (err) {
+      setError(err.message);
+      console.error('Error al eliminar venta en espera:', err);
+      throw err;
+    }
+  }, []);
 
   /**
    * Cargar historial de ventas
@@ -302,21 +487,25 @@ export const useSales = () => {
   }, []);
 
   /**
-   * Guardar venta en espera
+   * Guardar venta en espera (legacy - mantenido para compatibilidad)
    */
   const savePendingSaleData = useCallback(async (clientId) => {
-    if (cart.length === 0) {
+    const session = clientSessions[clientId];
+    if (!session || session.cart.length === 0) {
       return null;
     }
 
     try {
       const totals = calculateTotals();
       const saleData = {
-        items: cart,
-        paymentMethod,
+        items: session.cart,
+        paymentMethod: session.paymentMethod,
         discount: totals.discountValue,
         total: totals.total,
-        customerName
+        customerName: session.customerName,
+        cardName: session.cardName,
+        installments: session.installments,
+        commission: session.commission
       };
 
       const saved = await savePendingSale(clientId, saleData);
@@ -333,89 +522,38 @@ export const useSales = () => {
       console.error('Error al guardar venta en espera:', err);
       throw err;
     }
-  }, [cart, paymentMethod, calculateTotals, customerName]);
+  }, [clientSessions, calculateTotals]);
 
   /**
-   * Cargar venta en espera
+   * Cargar venta en espera (legacy - mantenido para compatibilidad)
    */
   const loadPendingSaleData = useCallback(async (clientId) => {
     try {
       const pendingSale = await getPendingSale(clientId);
       
       if (pendingSale) {
-        setCart(pendingSale.items || []);
-        setPaymentMethod(pendingSale.paymentMethod || 'Efectivo');
-        setCustomerName(pendingSale.customerName || '');
-        setCardName(pendingSale.cardName || '');
-        setInstallments(pendingSale.installments || 0);
-        setCommission(pendingSale.commission || 0);
-        // Los descuentos se recalcularán automáticamente
-      } else {
-        // Si no hay venta en espera, limpiar todo
-        clearCart();
+        setClientSessions(prev => ({
+          ...prev,
+          [clientId]: {
+            cart: pendingSale.items || [],
+            paymentMethod: pendingSale.paymentMethod || 'Efectivo',
+            discountAmount: 0,
+            discountPercent: 0,
+            cashReceived: 0,
+            customerName: pendingSale.customerName || '',
+            cardName: pendingSale.cardName || '',
+            installments: pendingSale.installments || 0,
+            commission: pendingSale.commission || 0
+          }
+        }));
       }
 
       return pendingSale;
     } catch (err) {
       console.error('Error al cargar venta en espera:', err);
-      // En caso de error, limpiar carrito para evitar datos inconsistentes
-      clearCart();
       return null;
     }
-  }, [clearCart]);
-
-  /**
-   * Cambiar cliente activo
-   */
-  const changeActiveClient = useCallback(async (clientId) => {
-    try {
-      // Guardar venta actual si hay items
-      if (cart.length > 0) {
-        const totals = calculateTotals();
-        const saleData = {
-          items: cart,
-          paymentMethod,
-          discount: totals.discountValue,
-          total: totals.total,
-          customerName,
-          cardName,
-          installments,
-          commission
-        };
-        await savePendingSale(activeClient, saleData);
-      }
-
-      // Cambiar cliente activo
-      setActiveClient(clientId);
-      
-      // Cargar venta en espera del nuevo cliente (o limpiar si no existe)
-      await loadPendingSaleData(clientId);
-    } catch (err) {
-      console.error('Error al cambiar cliente activo:', err);
-      setError('Error al cambiar de cliente');
-    }
-  }, [cart, paymentMethod, customerName, cardName, installments, commission, activeClient, calculateTotals, loadPendingSaleData]);
-
-  /**
-   * Eliminar cliente/venta en espera
-   */
-  const deletePendingSaleData = useCallback(async (clientId) => {
-    try {
-      await deletePendingSale(clientId);
-      setPendingSales(prev => prev.filter(sale => sale.clientId !== clientId));
-      
-      // Si es el cliente activo, limpiar carrito
-      if (clientId === activeClient) {
-        clearCart();
-      }
-
-      return clientId;
-    } catch (err) {
-      setError(err.message);
-      console.error('Error al eliminar venta en espera:', err);
-      throw err;
-    }
-  }, [activeClient, clearCart]);
+  }, []);
 
   /**
    * Generar datos para recibo
@@ -447,7 +585,7 @@ export const useSales = () => {
   const totals = calculateTotals();
 
   return {
-    // Estado del carrito
+    // Estado del carrito (sesión actual)
     cart,
     paymentMethod,
     discountAmount,
@@ -499,7 +637,11 @@ export const useSales = () => {
     
     // Utilidades
     generateReceipt,
-    getSalesStatistics
+    getSalesStatistics,
+    
+    // Funciones de sesiones
+    createClientSession,
+    clientSessions
   };
 };
 

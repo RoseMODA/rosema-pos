@@ -176,15 +176,10 @@ const Sales = () => {
    */
   const handleNewSale = async () => {
     try {
-      // Si hay productos en el carrito actual, preguntar si desea guardar
-      if (cart.length > 0) {
-        if (!confirm('¿Deseas crear una nueva venta? El carrito actual se mantendrá en espera.')) {
-          return;
-        }
-      }
-
-      // Crear nuevo cliente
-      const newClientId = pendingSales.length + 1;
+      // Crear nuevo cliente con ID único basado en los existentes
+      const existingIds = pendingSales.map(p => p.id);
+      const newClientId = existingIds.length > 0 ? Math.max(...existingIds) + 1 : 1;
+      
       const newClient = {
         id: newClientId,
         name: `Cliente ${newClientId}`,
@@ -195,7 +190,7 @@ const Sales = () => {
       // Agregar nuevo cliente a la lista
       setPendingSales(prev => [...prev, newClient]);
       
-      // Cambiar al nuevo cliente (esto automáticamente guardará el carrito actual y limpiará para el nuevo)
+      // Cambiar al nuevo cliente (esto automáticamente guardará el carrito actual y creará nueva sesión)
       await changeActiveClient(newClientId);
     } catch (error) {
       console.error('Error al crear nueva venta:', error);
