@@ -26,6 +26,11 @@ export const useSales = () => {
   const [cashReceived, setCashReceived] = useState(0);
   const [customerName, setCustomerName] = useState('');
   
+  // Campos adicionales para crédito
+  const [cardName, setCardName] = useState('');
+  const [installments, setInstallments] = useState(0);
+  const [commission, setCommission] = useState(0);
+  
   // Estado de ventas
   const [salesHistory, setSalesHistory] = useState([]);
   const [pendingSales, setPendingSales] = useState([]);
@@ -124,6 +129,9 @@ export const useSales = () => {
     setDiscountPercent(0);
     setCashReceived(0);
     setCustomerName('');
+    setCardName('');
+    setInstallments(0);
+    setCommission(0);
   }, []);
 
   /**
@@ -184,6 +192,11 @@ export const useSales = () => {
       throw new Error('El total debe ser mayor a cero');
     }
 
+    // Validaciones específicas para crédito
+    if (paymentMethod === 'Crédito' && !cardName.trim()) {
+      throw new Error('El nombre de la tarjeta es requerido para pagos con crédito');
+    }
+
     setLoading(true);
     setError(null);
 
@@ -196,13 +209,24 @@ export const useSales = () => {
         cashReceived,
         change: totals.change,
         customerName,
-        clientId: activeClient
+        clientId: activeClient,
+        // Campos adicionales para crédito
+        cardName: paymentMethod === 'Crédito' ? cardName : null,
+        installments: paymentMethod === 'Crédito' ? installments : null,
+        commission: paymentMethod === 'Crédito' ? commission : null
       };
 
       const completedSale = await processSale(saleData);
       
       // Limpiar carrito después de la venta exitosa
       clearCart();
+      
+      // Eliminar venta en espera del cliente actual
+      try {
+        await deletePendingSale(activeClient);
+      } catch (err) {
+        console.log('No había venta en espera para eliminar');
+      }
       
       // Actualizar historial
       setSalesHistory(prev => [completedSale, ...prev]);
@@ -215,7 +239,7 @@ export const useSales = () => {
     } finally {
       setLoading(false);
     }
-  }, [cart, paymentMethod, calculateTotals, cashReceived, customerName, activeClient, clearCart]);
+  }, [cart, paymentMethod, calculateTotals, cashReceived, customerName, activeClient, cardName, installments, commission, clearCart]);
 
   /**
    * Cargar historial de ventas
@@ -322,31 +346,55 @@ export const useSales = () => {
         setCart(pendingSale.items || []);
         setPaymentMethod(pendingSale.paymentMethod || 'Efectivo');
         setCustomerName(pendingSale.customerName || '');
+        setCardName(pendingSale.cardName || '');
+        setInstallments(pendingSale.installments || 0);
+        setCommission(pendingSale.commission || 0);
         // Los descuentos se recalcularán automáticamente
+      } else {
+        // Si no hay venta en espera, limpiar todo
+        clearCart();
       }
 
       return pendingSale;
     } catch (err) {
       console.error('Error al cargar venta en espera:', err);
+      // En caso de error, limpiar carrito para evitar datos inconsistentes
+      clearCart();
       return null;
     }
-  }, []);
+  }, [clearCart]);
 
   /**
    * Cambiar cliente activo
    */
   const changeActiveClient = useCallback(async (clientId) => {
-    // Guardar venta actual si hay items
-    if (cart.length > 0) {
-      await savePendingSaleData(activeClient);
-    }
+    try {
+      // Guardar venta actual si hay items
+      if (cart.length > 0) {
+        const totals = calculateTotals();
+        const saleData = {
+          items: cart,
+          paymentMethod,
+          discount: totals.discountValue,
+          total: totals.total,
+          customerName,
+          cardName,
+          installments,
+          commission
+        };
+        await savePendingSale(activeClient, saleData);
+      }
 
-    // Cambiar cliente activo
-    setActiveClient(clientId);
-    
-    // Cargar venta en espera del nuevo cliente
-    await loadPendingSaleData(clientId);
-  }, [cart.length, activeClient, savePendingSaleData, loadPendingSaleData]);
+      // Cambiar cliente activo
+      setActiveClient(clientId);
+      
+      // Cargar venta en espera del nuevo cliente (o limpiar si no existe)
+      await loadPendingSaleData(clientId);
+    } catch (err) {
+      console.error('Error al cambiar cliente activo:', err);
+      setError('Error al cambiar de cliente');
+    }
+  }, [cart, paymentMethod, customerName, cardName, installments, commission, activeClient, calculateTotals, loadPendingSaleData]);
 
   /**
    * Eliminar cliente/venta en espera
@@ -406,6 +454,9 @@ export const useSales = () => {
     discountPercent,
     cashReceived,
     customerName,
+    cardName,
+    installments,
+    commission,
     totals,
     
     // Estado de ventas
@@ -442,6 +493,9 @@ export const useSales = () => {
     setCashReceived,
     setCustomerName,
     setActiveClient,
+    setCardName,
+    setInstallments,
+    setCommission,
     
     // Utilidades
     generateReceipt,

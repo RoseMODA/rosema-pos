@@ -48,11 +48,9 @@ const PrintReceiptModal = ({ isOpen, onClose, saleData }) => {
                 hour: '2-digit',
                 minute: '2-digit'
               }) : currentDate}</p>
-            {saleData?.saleNumber && (
-              <p className="text-xs text-gray-500 font-medium">
-                Venta N°: {saleData.saleNumber}
-              </p>
-            )}
+            <p className="text-xs text-gray-500 font-medium">
+              Venta N°: {saleData?.saleNumber || 'N/A'}
+            </p>
           </div>
 
           {/* Información del cliente */}

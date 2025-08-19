@@ -27,6 +27,9 @@ const Sales = () => {
     discountPercent,
     cashReceived,
     customerName,
+    cardName,
+    installments,
+    commission,
     totals,
     activeClient,
     loading: salesLoading,
@@ -44,7 +47,10 @@ const Sales = () => {
     setDiscountAmount,
     setDiscountPercent,
     setCashReceived,
-    setCustomerName
+    setCustomerName,
+    setCardName,
+    setInstallments,
+    setCommission
   } = useSales();
 
   // Estados locales
@@ -168,28 +174,33 @@ const Sales = () => {
   /**
    * Crear nueva venta (agregar nuevo cliente)
    */
-  const handleNewSale = () => {
-    // Si hay productos en el carrito actual, preguntar si desea guardar
-    if (cart.length > 0) {
-      if (!confirm('¿Deseas crear una nueva venta? El carrito actual se mantendrá en espera.')) {
-        return;
+  const handleNewSale = async () => {
+    try {
+      // Si hay productos en el carrito actual, preguntar si desea guardar
+      if (cart.length > 0) {
+        if (!confirm('¿Deseas crear una nueva venta? El carrito actual se mantendrá en espera.')) {
+          return;
+        }
       }
+
+      // Crear nuevo cliente
+      const newClientId = pendingSales.length + 1;
+      const newClient = {
+        id: newClientId,
+        name: `Cliente ${newClientId}`,
+        total: 0,
+        items: []
+      };
+
+      // Agregar nuevo cliente a la lista
+      setPendingSales(prev => [...prev, newClient]);
+      
+      // Cambiar al nuevo cliente (esto automáticamente guardará el carrito actual y limpiará para el nuevo)
+      await changeActiveClient(newClientId);
+    } catch (error) {
+      console.error('Error al crear nueva venta:', error);
+      alert('Error al crear nueva venta');
     }
-
-    // Crear nuevo cliente
-    const newClientId = pendingSales.length + 1;
-    const newClient = {
-      id: newClientId,
-      name: `Cliente ${newClientId}`,
-      total: 0,
-      items: []
-    };
-
-    // Agregar nuevo cliente a la lista
-    setPendingSales(prev => [...prev, newClient]);
-    
-    // Cambiar al nuevo cliente
-    changeActiveClient(newClientId);
   };
 
   /**
@@ -203,6 +214,7 @@ const Sales = () => {
 
     // Preparar datos para el recibo
     const receiptData = {
+      saleNumber: `PREV-${Date.now()}`, // Número temporal para vista previa
       items: cart.map(item => ({
         name: item.name,
         code: item.code,
@@ -212,10 +224,11 @@ const Sales = () => {
       customerName: customerName,
       paymentMethod: paymentMethod,
       subtotal: totals.subtotal,
-      discount: totals.discount,
+      discount: totals.discountValue,
       total: totals.total,
       cashReceived: cashReceived,
-      change: totals.change
+      change: totals.change,
+      saleDate: new Date()
     };
 
     setLastSaleData(receiptData);
@@ -514,29 +527,96 @@ const Sales = () => {
               </div>
             </div>
 
-            {/* Recibido en efectivo */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Recibido en Efectivo
-              </label>
-              <input
-                type="number"
-                value={cashReceived || ''}
-                onChange={(e) => setCashReceived(Number(e.target.value) || 0)}
-                className="w-full input-rosema"
-                placeholder="Ingrese monto recibido"
-              />
-            </div>
+            {/* Campos específicos para Efectivo */}
+            {paymentMethod === 'Efectivo' && (
+              <>
+                {/* Recibido en efectivo */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Recibido en Efectivo
+                  </label>
+                  <input
+                    type="number"
+                    value={cashReceived || ''}
+                    onChange={(e) => setCashReceived(Number(e.target.value) || 0)}
+                    className="w-full input-rosema"
+                    placeholder="Ingrese monto recibido"
+                  />
+                </div>
 
-            {/* Vuelto */}
-            <div className="mb-6">
-              <div className="flex justify-between items-center text-lg font-semibold">
-                <span>Vuelto:</span>
-                <span className={totals.change >= 0 ? 'text-green-600' : 'text-red-600'}>
-                  ${totals.change.toLocaleString()}
-                </span>
-              </div>
-            </div>
+                {/* Vuelto */}
+                <div className="mb-6">
+                  <div className="flex justify-between items-center text-lg font-semibold">
+                    <span>Vuelto:</span>
+                    <span className={totals.change >= 0 ? 'text-green-600' : 'text-red-600'}>
+                      ${totals.change.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Campos específicos para Crédito */}
+            {paymentMethod === 'Crédito' && (
+              <>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nombre de la Tarjeta
+                  </label>
+                  <input
+                    type="text"
+                    value={cardName}
+                    onChange={(e) => setCardName(e.target.value)}
+                    className="w-full input-rosema"
+                    placeholder="Ingrese nombre de la tarjeta"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Cuotas sin Interés
+                    </label>
+                    <input
+                      type="number"
+                      value={installments || ''}
+                      onChange={(e) => setInstallments(Number(e.target.value) || 0)}
+                      className="w-full input-rosema"
+                      placeholder="Número de cuotas"
+                      min="0"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Comisión (%)
+                    </label>
+                    <input
+                      type="number"
+                      value={commission || ''}
+                      onChange={(e) => setCommission(Number(e.target.value) || 0)}
+                      className="w-full input-rosema"
+                      placeholder="% de comisión"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                    />
+                  </div>
+                </div>
+
+                {/* Mostrar cálculo de comisión */}
+                {commission > 0 && (
+                  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="text-sm text-yellow-800">
+                      <p className="font-medium">Información de Comisión:</p>
+                      <p>Comisión: ${((totals.total * commission) / 100).toLocaleString()}</p>
+                      <p>Neto a recibir: ${(totals.total - ((totals.total * commission) / 100)).toLocaleString()}</p>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
 
             {/* Total */}
             <div className="border-t border-gray-200 pt-4 mb-6">
