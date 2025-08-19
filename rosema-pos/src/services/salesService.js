@@ -1,28 +1,28 @@
-import {
-  collection,
-  doc,
-  getDocs,
-  getDoc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
+import { 
+  collection, 
+  doc, 
+  getDocs, 
+  getDoc, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  query, 
+  where, 
+  orderBy, 
   limit,
   writeBatch,
-  Timestamp,
-} from "firebase/firestore";
-import { db } from "./firebase";
-import { updateMultipleProductsStock } from "./productsService";
+  Timestamp
+} from 'firebase/firestore';
+import { db } from './firebase';
+import { updateMultipleProductsStock } from './productsService';
 
 /**
  * Servicio para gestión de ventas en Firestore
  * Maneja CRUD de ventas, historial y devoluciones
  */
 
-const SALES_COLLECTION = "sales";
-const PENDING_SALES_COLLECTION = "pendingSales";
+const SALES_COLLECTION = 'sales';
+const PENDING_SALES_COLLECTION = 'pendingSales';
 
 /**
  * Procesar una venta completa
@@ -37,12 +37,12 @@ export const processSale = async (saleData) => {
       cashReceived,
       change,
       customerName,
-      clientId,
+      clientId
     } = saleData;
 
     // Crear la venta
     const sale = {
-      items: items.map((item) => ({
+      items: items.map(item => ({
         productId: item.productId || null,
         name: item.name,
         code: item.code || null,
@@ -52,53 +52,50 @@ export const processSale = async (saleData) => {
         color: item.color || null,
         subtotal: item.price * item.quantity,
         isReturn: item.isReturn || false,
-        isQuickItem: item.isQuickItem || false,
+        isQuickItem: item.isQuickItem || false
       })),
       paymentMethod,
       discount: discount || 0,
-      subtotal: items.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0
-      ),
+      subtotal: items.reduce((sum, item) => sum + (item.price * item.quantity), 0),
       total,
       cashReceived: cashReceived || 0,
       change: change || 0,
-      customerName: customerName || "",
+      customerName: customerName || '',
       clientId: clientId || null,
       saleDate: new Date(),
       createdAt: new Date(),
-      status: "completed",
+      status: 'completed'
     };
 
     // Guardar la venta
     const docRef = await addDoc(collection(db, SALES_COLLECTION), sale);
-
+    
     // Actualizar stock de productos (solo para productos registrados)
     const stockUpdates = [];
-    items.forEach((item) => {
+    items.forEach(item => {
       if (item.productId && !item.isQuickItem) {
         const stockChange = item.isReturn ? item.quantity : -item.quantity;
         stockUpdates.push({
           productId: item.productId,
           stockChange: stockChange,
-          currentStock: item.currentStock || 0,
+          currentStock: item.currentStock || 0
         });
       }
     });
 
     if (stockUpdates.length > 0) {
-      const finalStockUpdates = stockUpdates.map((update) => ({
+      const finalStockUpdates = stockUpdates.map(update => ({
         productId: update.productId,
-        newStock: Math.max(0, update.currentStock + update.stockChange),
+        newStock: Math.max(0, update.currentStock + update.stockChange)
       }));
-
+      
       await updateMultipleProductsStock(finalStockUpdates);
     }
 
     return { id: docRef.id, ...sale };
   } catch (error) {
-    console.error("Error al procesar venta:", error);
-    throw new Error("No se pudo procesar la venta");
+    console.error('Error al procesar venta:', error);
+    throw new Error('No se pudo procesar la venta');
   }
 };
 
@@ -109,26 +106,20 @@ export const getSalesHistory = async (filters = {}) => {
   try {
     let salesQuery = query(
       collection(db, SALES_COLLECTION),
-      orderBy("saleDate", "desc")
+      orderBy('saleDate', 'desc')
     );
 
     // Aplicar filtros si existen
     if (filters.startDate) {
-      salesQuery = query(
-        salesQuery,
-        where("saleDate", ">=", filters.startDate)
-      );
+      salesQuery = query(salesQuery, where('saleDate', '>=', filters.startDate));
     }
-
+    
     if (filters.endDate) {
-      salesQuery = query(salesQuery, where("saleDate", "<=", filters.endDate));
+      salesQuery = query(salesQuery, where('saleDate', '<=', filters.endDate));
     }
 
     if (filters.paymentMethod) {
-      salesQuery = query(
-        salesQuery,
-        where("paymentMethod", "==", filters.paymentMethod)
-      );
+      salesQuery = query(salesQuery, where('paymentMethod', '==', filters.paymentMethod));
     }
 
     if (filters.limit) {
@@ -136,15 +127,15 @@ export const getSalesHistory = async (filters = {}) => {
     }
 
     const querySnapshot = await getDocs(salesQuery);
-
-    return querySnapshot.docs.map((doc) => ({
+    
+    return querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
-      saleDate: doc.data().saleDate?.toDate() || new Date(),
+      saleDate: doc.data().saleDate?.toDate() || new Date()
     }));
   } catch (error) {
-    console.error("Error al obtener historial de ventas:", error);
-    throw new Error("No se pudo cargar el historial de ventas");
+    console.error('Error al obtener historial de ventas:', error);
+    throw new Error('No se pudo cargar el historial de ventas');
   }
 };
 
@@ -158,27 +149,27 @@ export const searchSales = async (searchTerm) => {
     }
 
     const term = searchTerm.toLowerCase().trim();
-
+    
     // Buscar por nombre de cliente
     const customerQuery = query(
       collection(db, SALES_COLLECTION),
-      where("customerName", ">=", term),
-      where("customerName", "<=", term + "\uf8ff"),
-      orderBy("customerName"),
-      orderBy("saleDate", "desc"),
+      where('customerName', '>=', term),
+      where('customerName', '<=', term + '\uf8ff'),
+      orderBy('customerName'),
+      orderBy('saleDate', 'desc'),
       limit(20)
     );
 
     const querySnapshot = await getDocs(customerQuery);
-
-    return querySnapshot.docs.map((doc) => ({
+    
+    return querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
-      saleDate: doc.data().saleDate?.toDate() || new Date(),
+      saleDate: doc.data().saleDate?.toDate() || new Date()
     }));
   } catch (error) {
-    console.error("Error al buscar ventas:", error);
-    throw new Error("Error en la búsqueda de ventas");
+    console.error('Error al buscar ventas:', error);
+    throw new Error('Error en la búsqueda de ventas');
   }
 };
 
@@ -189,19 +180,19 @@ export const getSaleById = async (saleId) => {
   try {
     const docRef = doc(db, SALES_COLLECTION, saleId);
     const docSnap = await getDoc(docRef);
-
+    
     if (docSnap.exists()) {
       const data = docSnap.data();
       return {
         id: docSnap.id,
         ...data,
-        saleDate: data.saleDate?.toDate() || new Date(),
+        saleDate: data.saleDate?.toDate() || new Date()
       };
     } else {
-      throw new Error("Venta no encontrada");
+      throw new Error('Venta no encontrada');
     }
   } catch (error) {
-    console.error("Error al obtener venta:", error);
+    console.error('Error al obtener venta:', error);
     throw error;
   }
 };
@@ -214,14 +205,14 @@ export const updateSale = async (saleId, updates) => {
     const docRef = doc(db, SALES_COLLECTION, saleId);
     const updateData = {
       ...updates,
-      updatedAt: new Date(),
+      updatedAt: new Date()
     };
 
     await updateDoc(docRef, updateData);
     return { id: saleId, ...updateData };
   } catch (error) {
-    console.error("Error al actualizar venta:", error);
-    throw new Error("No se pudo actualizar la venta");
+    console.error('Error al actualizar venta:', error);
+    throw new Error('No se pudo actualizar la venta');
   }
 };
 
@@ -232,29 +223,29 @@ export const deleteSale = async (saleId) => {
   try {
     // Obtener la venta antes de eliminarla para restaurar stock
     const sale = await getSaleById(saleId);
-
+    
     // Restaurar stock de productos
     const stockUpdates = [];
-    sale.items.forEach((item) => {
+    sale.items.forEach(item => {
       if (item.productId && !item.isQuickItem) {
         const stockChange = item.isReturn ? -item.quantity : item.quantity;
         stockUpdates.push({
           productId: item.productId,
-          stockChange: stockChange,
+          stockChange: stockChange
         });
       }
     });
 
     // Eliminar la venta
     await deleteDoc(doc(db, SALES_COLLECTION, saleId));
-
+    
     // Restaurar stock (esto requeriría obtener el stock actual de cada producto)
     // Por simplicidad, se omite la implementación completa aquí
-
+    
     return saleId;
   } catch (error) {
-    console.error("Error al eliminar venta:", error);
-    throw new Error("No se pudo eliminar la venta");
+    console.error('Error al eliminar venta:', error);
+    throw new Error('No se pudo eliminar la venta');
   }
 };
 
@@ -267,12 +258,12 @@ export const savePendingSale = async (clientId, saleData) => {
       clientId,
       clientName: `Cliente ${clientId}`,
       items: saleData.items || [],
-      paymentMethod: saleData.paymentMethod || "Efectivo",
+      paymentMethod: saleData.paymentMethod || 'Efectivo',
       discount: saleData.discount || 0,
       total: saleData.total || 0,
-      customerName: saleData.customerName || "",
+      customerName: saleData.customerName || '',
       createdAt: new Date(),
-      updatedAt: new Date(),
+      updatedAt: new Date()
     };
 
     const docRef = doc(db, PENDING_SALES_COLLECTION, `client-${clientId}`);
@@ -280,14 +271,14 @@ export const savePendingSale = async (clientId, saleData) => {
       // Si no existe, crear nuevo documento
       await addDoc(collection(db, PENDING_SALES_COLLECTION), {
         ...pendingSale,
-        id: `client-${clientId}`,
+        id: `client-${clientId}`
       });
     });
 
     return pendingSale;
   } catch (error) {
-    console.error("Error al guardar venta en espera:", error);
-    throw new Error("No se pudo guardar la venta en espera");
+    console.error('Error al guardar venta en espera:', error);
+    throw new Error('No se pudo guardar la venta en espera');
   }
 };
 
@@ -298,14 +289,14 @@ export const getPendingSale = async (clientId) => {
   try {
     const docRef = doc(db, PENDING_SALES_COLLECTION, `client-${clientId}`);
     const docSnap = await getDoc(docRef);
-
+    
     if (docSnap.exists()) {
       return { id: docSnap.id, ...docSnap.data() };
     } else {
       return null;
     }
   } catch (error) {
-    console.error("Error al obtener venta en espera:", error);
+    console.error('Error al obtener venta en espera:', error);
     return null;
   }
 };
@@ -318,71 +309,66 @@ export const deletePendingSale = async (clientId) => {
     await deleteDoc(doc(db, PENDING_SALES_COLLECTION, `client-${clientId}`));
     return clientId;
   } catch (error) {
-    console.error("Error al eliminar venta en espera:", error);
-    throw new Error("No se pudo eliminar la venta en espera");
+    console.error('Error al eliminar venta en espera:', error);
+    throw new Error('No se pudo eliminar la venta en espera');
   }
 };
 
 /**
  * Obtener estadísticas de ventas
  */
-export const getSalesStats = async (period = "today") => {
+export const getSalesStats = async (period = 'today') => {
   try {
     const now = new Date();
     let startDate;
 
     switch (period) {
-      case "today":
+      case 'today':
         startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         break;
-      case "week":
+      case 'week':
         startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         break;
-      case "month":
+      case 'month':
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
         break;
       default:
         startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     }
 
-    const sales = await getSalesHistory({
+    const sales = await getSalesHistory({ 
       startDate: Timestamp.fromDate(startDate),
-      endDate: Timestamp.fromDate(now),
+      endDate: Timestamp.fromDate(now)
     });
 
     const stats = {
       totalSales: sales.length,
       totalRevenue: sales.reduce((sum, sale) => sum + (sale.total || 0), 0),
-      averageSale:
-        sales.length > 0
-          ? sales.reduce((sum, sale) => sum + (sale.total || 0), 0) /
-            sales.length
-          : 0,
+      averageSale: sales.length > 0 ? sales.reduce((sum, sale) => sum + (sale.total || 0), 0) / sales.length : 0,
       paymentMethods: {},
-      topProducts: {},
+      topProducts: {}
     };
 
     // Analizar métodos de pago
-    sales.forEach((sale) => {
-      const method = sale.paymentMethod || "Efectivo";
+    sales.forEach(sale => {
+      const method = sale.paymentMethod || 'Efectivo';
       stats.paymentMethods[method] = (stats.paymentMethods[method] || 0) + 1;
     });
 
     // Analizar productos más vendidos
-    sales.forEach((sale) => {
-      sale.items?.forEach((item) => {
+    sales.forEach(sale => {
+      sale.items?.forEach(item => {
         if (!item.isReturn) {
           const key = item.name;
-          stats.topProducts[key] =
-            (stats.topProducts[key] || 0) + item.quantity;
+          stats.topProducts[key] = (stats.topProducts[key] || 0) + item.quantity;
         }
       });
     });
 
     return stats;
   } catch (error) {
-    console.error("Error al obtener estadísticas de ventas:", error);
-    throw new Error("No se pudieron obtener las estadísticas");
+    console.error('Error al obtener estadísticas de ventas:', error);
+    throw new Error('No se pudieron obtener las estadísticas');
   }
 };
 
@@ -397,15 +383,15 @@ export const generateReceiptData = (sale) => {
     subtotal: sale.subtotal || 0,
     discount: sale.discount || 0,
     total: sale.total || 0,
-    paymentMethod: sale.paymentMethod || "Efectivo",
+    paymentMethod: sale.paymentMethod || 'Efectivo',
     cashReceived: sale.cashReceived || 0,
     change: sale.change || 0,
-    customerName: sale.customerName || "",
+    customerName: sale.customerName || '',
     storeInfo: {
-      name: "Rosema",
-      location: "Salto de las Rosas",
-      whatsapp: "260 438-1502",
-      returnPolicy: "Cambios en 3 días hábiles",
-    },
+      name: 'Rosema',
+      location: 'Salto de las Rosas',
+      whatsapp: '260 438-1502',
+      returnPolicy: 'Cambios en 3 días hábiles'
+    }
   };
 };

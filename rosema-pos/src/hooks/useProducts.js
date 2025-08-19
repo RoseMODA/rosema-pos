@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from 'react';
 import {
   getAllProducts,
   searchProducts,
@@ -8,8 +8,8 @@ import {
   deleteProduct,
   updateProductStock,
   createSampleProducts,
-  getProductStats,
-} from "../services/productsService";
+  getProductStats
+} from '../services/productsService';
 
 /**
  * Hook personalizado para gestión de productos
@@ -27,14 +27,14 @@ export const useProducts = () => {
   const loadProducts = useCallback(async () => {
     setLoading(true);
     setError(null);
-
+    
     try {
       const productsData = await getAllProducts();
       setProducts(productsData);
       return productsData;
     } catch (err) {
       setError(err.message);
-      console.error("Error al cargar productos:", err);
+      console.error('Error al cargar productos:', err);
       return [];
     } finally {
       setLoading(false);
@@ -53,7 +53,7 @@ export const useProducts = () => {
 
     setLoading(true);
     setError(null);
-
+    
     try {
       const results = await searchProducts(searchTerm);
       setSearchResults(results);
@@ -61,7 +61,7 @@ export const useProducts = () => {
       return results;
     } catch (err) {
       setError(err.message);
-      console.error("Error al buscar productos:", err);
+      console.error('Error al buscar productos:', err);
       return [];
     } finally {
       setLoading(false);
@@ -74,13 +74,13 @@ export const useProducts = () => {
   const getProduct = useCallback(async (productId) => {
     setLoading(true);
     setError(null);
-
+    
     try {
       const product = await getProductById(productId);
       return product;
     } catch (err) {
       setError(err.message);
-      console.error("Error al obtener producto:", err);
+      console.error('Error al obtener producto:', err);
       return null;
     } finally {
       setLoading(false);
@@ -93,14 +93,14 @@ export const useProducts = () => {
   const addProduct = useCallback(async (productData) => {
     setLoading(true);
     setError(null);
-
+    
     try {
       const newProduct = await createProduct(productData);
-      setProducts((prev) => [newProduct, ...prev]);
+      setProducts(prev => [newProduct, ...prev]);
       return newProduct;
     } catch (err) {
       setError(err.message);
-      console.error("Error al crear producto:", err);
+      console.error('Error al crear producto:', err);
       throw err;
     } finally {
       setLoading(false);
@@ -113,18 +113,18 @@ export const useProducts = () => {
   const updateProductData = useCallback(async (productId, updates) => {
     setLoading(true);
     setError(null);
-
+    
     try {
       const updatedProduct = await updateProduct(productId, updates);
-      setProducts((prev) =>
-        prev.map((product) =>
+      setProducts(prev => 
+        prev.map(product => 
           product.id === productId ? { ...product, ...updatedProduct } : product
         )
       );
       return updatedProduct;
     } catch (err) {
       setError(err.message);
-      console.error("Error al actualizar producto:", err);
+      console.error('Error al actualizar producto:', err);
       throw err;
     } finally {
       setLoading(false);
@@ -137,14 +137,14 @@ export const useProducts = () => {
   const removeProduct = useCallback(async (productId) => {
     setLoading(true);
     setError(null);
-
+    
     try {
       await deleteProduct(productId);
-      setProducts((prev) => prev.filter((product) => product.id !== productId));
+      setProducts(prev => prev.filter(product => product.id !== productId));
       return productId;
     } catch (err) {
       setError(err.message);
-      console.error("Error al eliminar producto:", err);
+      console.error('Error al eliminar producto:', err);
       throw err;
     } finally {
       setLoading(false);
@@ -156,18 +156,18 @@ export const useProducts = () => {
    */
   const updateStock = useCallback(async (productId, newStock) => {
     setError(null);
-
+    
     try {
       await updateProductStock(productId, newStock);
-      setProducts((prev) =>
-        prev.map((product) =>
+      setProducts(prev => 
+        prev.map(product => 
           product.id === productId ? { ...product, stock: newStock } : product
         )
       );
       return newStock;
     } catch (err) {
       setError(err.message);
-      console.error("Error al actualizar stock:", err);
+      console.error('Error al actualizar stock:', err);
       throw err;
     }
   }, []);
@@ -178,14 +178,14 @@ export const useProducts = () => {
   const createSampleData = useCallback(async () => {
     setLoading(true);
     setError(null);
-
+    
     try {
       const sampleProducts = await createSampleProducts();
-      setProducts((prev) => [...sampleProducts, ...prev]);
+      setProducts(prev => [...sampleProducts, ...prev]);
       return sampleProducts;
     } catch (err) {
       setError(err.message);
-      console.error("Error al crear productos de ejemplo:", err);
+      console.error('Error al crear productos de ejemplo:', err);
       throw err;
     } finally {
       setLoading(false);
@@ -209,13 +209,13 @@ export const useProducts = () => {
       const stats = await getProductStats();
       return stats;
     } catch (err) {
-      console.error("Error al obtener estadísticas:", err);
+      console.error('Error al obtener estadísticas:', err);
       return {
         totalProducts: products.length,
         totalStock: products.reduce((sum, p) => sum + (p.stock || 0), 0),
-        lowStockProducts: products.filter((p) => (p.stock || 0) <= 5).length,
-        outOfStockProducts: products.filter((p) => (p.stock || 0) === 0).length,
-        categories: {},
+        lowStockProducts: products.filter(p => (p.stock || 0) <= 5).length,
+        outOfStockProducts: products.filter(p => (p.stock || 0) === 0).length,
+        categories: {}
       };
     }
   }, [products]);
@@ -226,51 +226,39 @@ export const useProducts = () => {
   const getProductStats = useCallback(() => {
     return {
       totalProducts: products.length,
-      totalStock: products.reduce(
-        (sum, product) => sum + (product.stock || 0),
-        0
-      ),
-      lowStockProducts: products.filter((product) => (product.stock || 0) <= 5)
-        .length,
-      outOfStockProducts: products.filter(
-        (product) => (product.stock || 0) === 0
-      ).length,
+      totalStock: products.reduce((sum, product) => sum + (product.stock || 0), 0),
+      lowStockProducts: products.filter(product => (product.stock || 0) <= 5).length,
+      outOfStockProducts: products.filter(product => (product.stock || 0) === 0).length,
       categories: products.reduce((acc, product) => {
-        const category = product.category || "otros";
+        const category = product.category || 'otros';
         acc[category] = (acc[category] || 0) + 1;
         return acc;
-      }, {}),
+      }, {})
     };
   }, [products]);
 
   /**
    * Filtrar productos por categoría
    */
-  const filterByCategory = useCallback(
-    (category) => {
-      if (category === "all") {
-        return products;
-      }
-      return products.filter((product) => product.category === category);
-    },
-    [products]
-  );
+  const filterByCategory = useCallback((category) => {
+    if (category === 'all') {
+      return products;
+    }
+    return products.filter(product => product.category === category);
+  }, [products]);
 
   /**
    * Obtener productos con stock bajo
    */
-  const getLowStockProducts = useCallback(
-    (threshold = 5) => {
-      return products.filter((product) => (product.stock || 0) <= threshold);
-    },
-    [products]
-  );
+  const getLowStockProducts = useCallback((threshold = 5) => {
+    return products.filter(product => (product.stock || 0) <= threshold);
+  }, [products]);
 
   /**
    * Obtener productos sin stock
    */
   const getOutOfStockProducts = useCallback(() => {
-    return products.filter((product) => (product.stock || 0) === 0);
+    return products.filter(product => (product.stock || 0) === 0);
   }, [products]);
 
   // Cargar productos al montar el componente
@@ -288,7 +276,7 @@ export const useProducts = () => {
     loading,
     error,
     searchResults,
-
+    
     // Funciones CRUD
     loadProducts,
     searchProductsByTerm,
@@ -297,7 +285,7 @@ export const useProducts = () => {
     updateProductData,
     removeProduct,
     updateStock,
-
+    
     // Utilidades
     clearSearch,
     createSampleData,
@@ -305,7 +293,7 @@ export const useProducts = () => {
     getProductStatistics,
     filterByCategory,
     getLowStockProducts,
-    getOutOfStockProducts,
+    getOutOfStockProducts
   };
 };
 
