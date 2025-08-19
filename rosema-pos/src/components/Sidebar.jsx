@@ -29,49 +29,49 @@ const Sidebar = () => {
       name: 'Inicio',
       path: '/',
       icon: '🏠',
-      description: 'Dashboard principal'
+
     },
     {
       name: 'Estadísticas',
       path: '/statistics',
       icon: '📊',
-      description: 'Reportes y análisis'
+
     },
     {
       name: 'Ventas',
       path: '/sales',
       icon: '💰',
-      description: 'Gestión de ventas'
+
     },
     {
       name: 'Productos',
       path: '/products',
       icon: '👕',
-      description: 'Inventario y catálogo'
+
     },
     {
       name: 'Clientes',
       path: '/customers',
       icon: '👥',
-      description: 'Base de clientes'
+
     },
     {
       name: 'Proveedores',
       path: '/suppliers',
       icon: '🏪',
-      description: 'Gestión de proveedores'
+
     },
     {
       name: 'Metas',
       path: '/goals',
       icon: '🎯',
-      description: 'Objetivos y gastos'
+
     },
     {
       name: 'Facturas ARCA',
       path: '/invoices',
       icon: '📄',
-      description: 'Facturación electrónica'
+
     }
   ];
 
@@ -111,15 +111,15 @@ const Sidebar = () => {
       <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
         {menuItems.map((item) => {
           const isActive = location.pathname === item.path;
-          
+
           return (
             <NavLink
               key={item.path}
               to={item.path}
               className={`
                 flex items-center px-4 py-3 rounded-lg transition-all duration-200 group
-                ${isActive 
-                  ? 'bg-white text-red-600 shadow-md' 
+                ${isActive
+                  ? 'bg-white text-red-600 shadow-md'
                   : 'text-red-100 hover:bg-red-700 hover:text-white'
                 }
               `}
@@ -141,12 +141,8 @@ const Sidebar = () => {
       {/* Footer del sidebar */}
       <div className="p-4 border-t border-red-700">
         <div className="space-y-3">
-          {/* Información de la tienda */}
-          <div className="text-center">
-            <p className="text-xs text-red-200">Salto de las Rosas</p>
-            <p className="text-xs text-red-200">WhatsApp: 260 438-1502</p>
-          </div>
-          
+
+
           {/* Botón de cerrar sesión */}
           <button
             onClick={handleLogout}
