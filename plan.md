@@ -124,7 +124,7 @@ Implementar sistema completo de ventas con carrito, pagos y gestión de stock.
 
 - Guardar venta en Firestore
 - Descontar stock automáticamente
-- Botón devolución (cambio de prenda) con actualización de stock
+- El boton "realizar cambio de prenda" deber abrir una modal donde se escanee el codigo de barras, seleccione la talla y color, y un campo donde se ponga el precio que pago (porque hay veces que se hace descuento) y que al "agregar" se agregue al carrito de compra donde el precio salga en negativo para que se reste en el total. Y obviamente que al finalizar el articulo que se devolcio pueda reponerse en el stock.
 - Botón "artículo rápido" para productos no registrados:
   - Nombre
   - Talla (opcional)
@@ -133,7 +133,7 @@ Implementar sistema completo de ventas con carrito, pagos y gestión de stock.
 
 #### Historial y Recibos
 
-- CRUD de historial de ventas
+- historial de ventas, debe haber un buscador. en cada venta registrada debe tener al costado la opcion de eliminarlo, editarlo y ver el recibo.
 - Imprimir recibo con:
   - Logo de Rosema
   - Datos de contacto (WhatsApp 260 438-1502, Salto de las Rosas)
@@ -146,7 +146,7 @@ Implementar sistema completo de ventas con carrito, pagos y gestión de stock.
 - Crear múltiples ventas abiertas
 - Identificadores: Cliente 1, Cliente 2, etc.
 - Cambiar entre ventas activas
-- Finalizar o cancelar ventas pendientes
+- Finalizar o borrar ventas pendientes
 
 ---
 

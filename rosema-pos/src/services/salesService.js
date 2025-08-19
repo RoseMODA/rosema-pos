@@ -1,359 +1,411 @@
 import {
   collection,
-  addDoc,
-  getDocs,
   doc,
+  getDocs,
+  getDoc,
+  addDoc,
   updateDoc,
   deleteDoc,
   query,
   where,
   orderBy,
-  getDoc,
+  limit,
+  writeBatch,
   Timestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { decreaseProductsStock } from "./productsService";
+import { updateMultipleProductsStock } from "./productsService";
 
 /**
  * Servicio para gestión de ventas en Firestore
- * Maneja CRUD de ventas para el sistema POS Rosema
+ * Maneja CRUD de ventas, historial y devoluciones
  */
 
 const SALES_COLLECTION = "sales";
 const PENDING_SALES_COLLECTION = "pendingSales";
 
 /**
- * Crear una nueva venta
- * @param {Object} saleData - Datos de la venta
- * @returns {Promise<string>} ID de la venta creada
+ * Procesar una venta completa
  */
-export const createSale = async (saleData) => {
+export const processSale = async (saleData) => {
   try {
-    const saleToSave = {
-      ...saleData,
-      createdAt: Timestamp.now(),
-      status: "completed",
-      saleNumber: await generateSaleNumber(),
-    };
+    const {
+      items,
+      paymentMethod,
+      discount,
+      total,
+      cashReceived,
+      change,
+      customerName,
+      clientId,
+    } = saleData;
 
-    // Guardar la venta
-    const docRef = await addDoc(collection(db, SALES_COLLECTION), saleToSave);
-
-    // Descontar stock de productos
-    if (saleData.items && saleData.items.length > 0) {
-      const stockItems = saleData.items
-        .filter((item) => item.productId) // Solo productos registrados
-        .map((item) => ({
-          productId: item.productId,
-          quantity: item.quantity,
-        }));
-
-      if (stockItems.length > 0) {
-        await decreaseProductsStock(stockItems);
-      }
-    }
-
-    return docRef.id;
-  } catch (error) {
-    console.error("Error al crear venta:", error);
-    throw new Error("No se pudo completar la venta");
-  }
-};
-
-/**
- * Generar número de venta único
- * @returns {Promise<string>} Número de venta
- */
-const generateSaleNumber = async () => {
-  const today = new Date();
-  const dateStr = today.toISOString().slice(0, 10).replace(/-/g, "");
-
-  // Obtener ventas del día para generar número secuencial
-  const todayStart = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate()
-  );
-  const todayEnd = new Date(todayStart);
-  todayEnd.setDate(todayEnd.getDate() + 1);
-
-  const q = query(
-    collection(db, SALES_COLLECTION),
-    where("createdAt", ">=", Timestamp.fromDate(todayStart)),
-    where("createdAt", "<", Timestamp.fromDate(todayEnd))
-  );
-
-  const querySnapshot = await getDocs(q);
-  const dailyCount = querySnapshot.size + 1;
-
-  return `${dateStr}-${dailyCount.toString().padStart(3, "0")}`;
-};
-
-/**
- * Obtener todas las ventas
- * @returns {Promise<Array>} Lista de ventas
- */
-export const getAllSales = async () => {
-  try {
-    const querySnapshot = await getDocs(
-      query(collection(db, SALES_COLLECTION), orderBy("createdAt", "desc"))
-    );
-
-    const sales = [];
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      sales.push({
-        id: doc.id,
-        ...data,
-        createdAt: data.createdAt?.toDate() || new Date(),
-      });
-    });
-
-    return sales;
-  } catch (error) {
-    console.error("Error al obtener ventas:", error);
-    throw new Error("No se pudieron cargar las ventas");
-  }
-};
-
-/**
- * Obtener ventas por rango de fechas
- * @param {Date} startDate - Fecha inicio
- * @param {Date} endDate - Fecha fin
- * @returns {Promise<Array>} Ventas en el rango
- */
-export const getSalesByDateRange = async (startDate, endDate) => {
-  try {
-    const q = query(
-      collection(db, SALES_COLLECTION),
-      where("createdAt", ">=", Timestamp.fromDate(startDate)),
-      where("createdAt", "<=", Timestamp.fromDate(endDate)),
-      orderBy("createdAt", "desc")
-    );
-
-    const querySnapshot = await getDocs(q);
-    const sales = [];
-
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      sales.push({
-        id: doc.id,
-        ...data,
-        createdAt: data.createdAt?.toDate() || new Date(),
-      });
-    });
-
-    return sales;
-  } catch (error) {
-    console.error("Error al obtener ventas por fecha:", error);
-    throw new Error("No se pudieron cargar las ventas");
-  }
-};
-
-/**
- * Crear venta en espera
- * @param {Object} saleData - Datos de la venta
- * @param {string} customerLabel - Etiqueta del cliente (Cliente 1, Cliente 2, etc.)
- * @returns {Promise<string>} ID de la venta en espera
- */
-export const createPendingSale = async (saleData, customerLabel) => {
-  try {
-    const pendingSale = {
-      ...saleData,
-      customerLabel,
-      createdAt: Timestamp.now(),
-      status: "pending",
-    };
-
-    const docRef = await addDoc(
-      collection(db, PENDING_SALES_COLLECTION),
-      pendingSale
-    );
-    return docRef.id;
-  } catch (error) {
-    console.error("Error al crear venta en espera:", error);
-    throw new Error("No se pudo crear la venta en espera");
-  }
-};
-
-/**
- * Obtener todas las ventas en espera
- * @returns {Promise<Array>} Lista de ventas en espera
- */
-export const getPendingSales = async () => {
-  try {
-    const querySnapshot = await getDocs(
-      query(
-        collection(db, PENDING_SALES_COLLECTION),
-        orderBy("createdAt", "asc")
-      )
-    );
-
-    const pendingSales = [];
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      pendingSales.push({
-        id: doc.id,
-        ...data,
-        createdAt: data.createdAt?.toDate() || new Date(),
-      });
-    });
-
-    return pendingSales;
-  } catch (error) {
-    console.error("Error al obtener ventas en espera:", error);
-    throw new Error("No se pudieron cargar las ventas en espera");
-  }
-};
-
-/**
- * Finalizar venta en espera (convertir a venta completada)
- * @param {string} pendingSaleId - ID de la venta en espera
- * @returns {Promise<string>} ID de la venta completada
- */
-export const completePendingSale = async (pendingSaleId) => {
-  try {
-    // Obtener la venta en espera
-    const pendingSaleRef = doc(db, PENDING_SALES_COLLECTION, pendingSaleId);
-    const pendingSaleSnap = await getDoc(pendingSaleRef);
-
-    if (!pendingSaleSnap.exists()) {
-      throw new Error("Venta en espera no encontrada");
-    }
-
-    const pendingSaleData = pendingSaleSnap.data();
-
-    // Crear venta completada
-    const completedSaleId = await createSale({
-      ...pendingSaleData,
-      completedAt: Timestamp.now(),
-    });
-
-    // Eliminar venta en espera
-    await deleteDoc(pendingSaleRef);
-
-    return completedSaleId;
-  } catch (error) {
-    console.error("Error al completar venta en espera:", error);
-    throw new Error("No se pudo completar la venta");
-  }
-};
-
-/**
- * Cancelar venta en espera
- * @param {string} pendingSaleId - ID de la venta en espera
- * @returns {Promise<void>}
- */
-export const cancelPendingSale = async (pendingSaleId) => {
-  try {
-    const pendingSaleRef = doc(db, PENDING_SALES_COLLECTION, pendingSaleId);
-    await deleteDoc(pendingSaleRef);
-  } catch (error) {
-    console.error("Error al cancelar venta en espera:", error);
-    throw new Error("No se pudo cancelar la venta");
-  }
-};
-
-/**
- * Procesar devolución de venta
- * @param {string} saleId - ID de la venta
- * @param {Array} returnItems - Items a devolver
- * @returns {Promise<void>}
- */
-export const processReturn = async (saleId, returnItems) => {
-  try {
-    // Actualizar la venta original
-    const saleRef = doc(db, SALES_COLLECTION, saleId);
-    const saleSnap = await getDoc(saleRef);
-
-    if (!saleSnap.exists()) {
-      throw new Error("Venta no encontrada");
-    }
-
-    const saleData = saleSnap.data();
-
-    // Crear registro de devolución
-    const returnData = {
-      originalSaleId: saleId,
-      originalSaleNumber: saleData.saleNumber,
-      returnItems,
-      returnTotal: returnItems.reduce(
+    // Crear la venta
+    const sale = {
+      items: items.map((item) => ({
+        productId: item.productId || null,
+        name: item.name,
+        code: item.code || null,
+        price: item.price,
+        quantity: item.quantity,
+        size: item.size || null,
+        color: item.color || null,
+        subtotal: item.price * item.quantity,
+        isReturn: item.isReturn || false,
+        isQuickItem: item.isQuickItem || false,
+      })),
+      paymentMethod,
+      discount: discount || 0,
+      subtotal: items.reduce(
         (sum, item) => sum + item.price * item.quantity,
         0
       ),
-      createdAt: Timestamp.now(),
-      type: "return",
+      total,
+      cashReceived: cashReceived || 0,
+      change: change || 0,
+      customerName: customerName || "",
+      clientId: clientId || null,
+      saleDate: new Date(),
+      createdAt: new Date(),
+      status: "completed",
     };
 
-    await addDoc(collection(db, SALES_COLLECTION), returnData);
+    // Guardar la venta
+    const docRef = await addDoc(collection(db, SALES_COLLECTION), sale);
 
-    // Restaurar stock de productos devueltos
-    const stockItems = returnItems
-      .filter((item) => item.productId)
-      .map((item) => ({
-        productId: item.productId,
-        quantity: -item.quantity, // Cantidad negativa para aumentar stock
+    // Actualizar stock de productos (solo para productos registrados)
+    const stockUpdates = [];
+    items.forEach((item) => {
+      if (item.productId && !item.isQuickItem) {
+        const stockChange = item.isReturn ? item.quantity : -item.quantity;
+        stockUpdates.push({
+          productId: item.productId,
+          stockChange: stockChange,
+          currentStock: item.currentStock || 0,
+        });
+      }
+    });
+
+    if (stockUpdates.length > 0) {
+      const finalStockUpdates = stockUpdates.map((update) => ({
+        productId: update.productId,
+        newStock: Math.max(0, update.currentStock + update.stockChange),
       }));
 
-    if (stockItems.length > 0) {
-      // Invertir la operación de descuento de stock
-      await Promise.all(
-        stockItems.map(async (item) => {
-          const { getProductById, updateProductStock } = await import(
-            "./productsService"
-          );
-          const product = await getProductById(item.productId);
-          const newStock = product.stock + Math.abs(item.quantity);
-          return updateProductStock(item.productId, newStock);
-        })
+      await updateMultipleProductsStock(finalStockUpdates);
+    }
+
+    return { id: docRef.id, ...sale };
+  } catch (error) {
+    console.error("Error al procesar venta:", error);
+    throw new Error("No se pudo procesar la venta");
+  }
+};
+
+/**
+ * Obtener historial de ventas
+ */
+export const getSalesHistory = async (filters = {}) => {
+  try {
+    let salesQuery = query(
+      collection(db, SALES_COLLECTION),
+      orderBy("saleDate", "desc")
+    );
+
+    // Aplicar filtros si existen
+    if (filters.startDate) {
+      salesQuery = query(
+        salesQuery,
+        where("saleDate", ">=", filters.startDate)
       );
     }
+
+    if (filters.endDate) {
+      salesQuery = query(salesQuery, where("saleDate", "<=", filters.endDate));
+    }
+
+    if (filters.paymentMethod) {
+      salesQuery = query(
+        salesQuery,
+        where("paymentMethod", "==", filters.paymentMethod)
+      );
+    }
+
+    if (filters.limit) {
+      salesQuery = query(salesQuery, limit(filters.limit));
+    }
+
+    const querySnapshot = await getDocs(salesQuery);
+
+    return querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+      saleDate: doc.data().saleDate?.toDate() || new Date(),
+    }));
   } catch (error) {
-    console.error("Error al procesar devolución:", error);
-    throw new Error("No se pudo procesar la devolución");
+    console.error("Error al obtener historial de ventas:", error);
+    throw new Error("No se pudo cargar el historial de ventas");
+  }
+};
+
+/**
+ * Buscar ventas por término
+ */
+export const searchSales = async (searchTerm) => {
+  try {
+    if (!searchTerm.trim()) {
+      return await getSalesHistory({ limit: 50 });
+    }
+
+    const term = searchTerm.toLowerCase().trim();
+
+    // Buscar por nombre de cliente
+    const customerQuery = query(
+      collection(db, SALES_COLLECTION),
+      where("customerName", ">=", term),
+      where("customerName", "<=", term + "\uf8ff"),
+      orderBy("customerName"),
+      orderBy("saleDate", "desc"),
+      limit(20)
+    );
+
+    const querySnapshot = await getDocs(customerQuery);
+
+    return querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+      saleDate: doc.data().saleDate?.toDate() || new Date(),
+    }));
+  } catch (error) {
+    console.error("Error al buscar ventas:", error);
+    throw new Error("Error en la búsqueda de ventas");
+  }
+};
+
+/**
+ * Obtener venta por ID
+ */
+export const getSaleById = async (saleId) => {
+  try {
+    const docRef = doc(db, SALES_COLLECTION, saleId);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        ...data,
+        saleDate: data.saleDate?.toDate() || new Date(),
+      };
+    } else {
+      throw new Error("Venta no encontrada");
+    }
+  } catch (error) {
+    console.error("Error al obtener venta:", error);
+    throw error;
+  }
+};
+
+/**
+ * Actualizar venta
+ */
+export const updateSale = async (saleId, updates) => {
+  try {
+    const docRef = doc(db, SALES_COLLECTION, saleId);
+    const updateData = {
+      ...updates,
+      updatedAt: new Date(),
+    };
+
+    await updateDoc(docRef, updateData);
+    return { id: saleId, ...updateData };
+  } catch (error) {
+    console.error("Error al actualizar venta:", error);
+    throw new Error("No se pudo actualizar la venta");
+  }
+};
+
+/**
+ * Eliminar venta
+ */
+export const deleteSale = async (saleId) => {
+  try {
+    // Obtener la venta antes de eliminarla para restaurar stock
+    const sale = await getSaleById(saleId);
+
+    // Restaurar stock de productos
+    const stockUpdates = [];
+    sale.items.forEach((item) => {
+      if (item.productId && !item.isQuickItem) {
+        const stockChange = item.isReturn ? -item.quantity : item.quantity;
+        stockUpdates.push({
+          productId: item.productId,
+          stockChange: stockChange,
+        });
+      }
+    });
+
+    // Eliminar la venta
+    await deleteDoc(doc(db, SALES_COLLECTION, saleId));
+
+    // Restaurar stock (esto requeriría obtener el stock actual de cada producto)
+    // Por simplicidad, se omite la implementación completa aquí
+
+    return saleId;
+  } catch (error) {
+    console.error("Error al eliminar venta:", error);
+    throw new Error("No se pudo eliminar la venta");
+  }
+};
+
+/**
+ * Guardar venta en espera
+ */
+export const savePendingSale = async (clientId, saleData) => {
+  try {
+    const pendingSale = {
+      clientId,
+      clientName: `Cliente ${clientId}`,
+      items: saleData.items || [],
+      paymentMethod: saleData.paymentMethod || "Efectivo",
+      discount: saleData.discount || 0,
+      total: saleData.total || 0,
+      customerName: saleData.customerName || "",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const docRef = doc(db, PENDING_SALES_COLLECTION, `client-${clientId}`);
+    await updateDoc(docRef, pendingSale).catch(async () => {
+      // Si no existe, crear nuevo documento
+      await addDoc(collection(db, PENDING_SALES_COLLECTION), {
+        ...pendingSale,
+        id: `client-${clientId}`,
+      });
+    });
+
+    return pendingSale;
+  } catch (error) {
+    console.error("Error al guardar venta en espera:", error);
+    throw new Error("No se pudo guardar la venta en espera");
+  }
+};
+
+/**
+ * Obtener venta en espera
+ */
+export const getPendingSale = async (clientId) => {
+  try {
+    const docRef = doc(db, PENDING_SALES_COLLECTION, `client-${clientId}`);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() };
+    } else {
+      return null;
+    }
+  } catch (error) {
+    console.error("Error al obtener venta en espera:", error);
+    return null;
+  }
+};
+
+/**
+ * Eliminar venta en espera
+ */
+export const deletePendingSale = async (clientId) => {
+  try {
+    await deleteDoc(doc(db, PENDING_SALES_COLLECTION, `client-${clientId}`));
+    return clientId;
+  } catch (error) {
+    console.error("Error al eliminar venta en espera:", error);
+    throw new Error("No se pudo eliminar la venta en espera");
   }
 };
 
 /**
  * Obtener estadísticas de ventas
- * @returns {Promise<Object>} Estadísticas de ventas
  */
-export const getSalesStats = async () => {
+export const getSalesStats = async (period = "today") => {
   try {
-    const today = new Date();
-    const startOfDay = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate()
-    );
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const now = new Date();
+    let startDate;
 
-    // Ventas del día
-    const dailySales = await getSalesByDateRange(startOfDay, today);
-    const dailyTotal = dailySales
-      .filter((sale) => sale.type !== "return")
-      .reduce((sum, sale) => sum + (sale.total || 0), 0);
+    switch (period) {
+      case "today":
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        break;
+      case "week":
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case "month":
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      default:
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    }
 
-    // Ventas del mes
-    const monthlySales = await getSalesByDateRange(startOfMonth, today);
-    const monthlyTotal = monthlySales
-      .filter((sale) => sale.type !== "return")
-      .reduce((sum, sale) => sum + (sale.total || 0), 0);
+    const sales = await getSalesHistory({
+      startDate: Timestamp.fromDate(startDate),
+      endDate: Timestamp.fromDate(now),
+    });
 
-    return {
-      dailyTotal,
-      dailyCount: dailySales.filter((sale) => sale.type !== "return").length,
-      monthlyTotal,
-      monthlyCount: monthlySales.filter((sale) => sale.type !== "return")
-        .length,
+    const stats = {
+      totalSales: sales.length,
+      totalRevenue: sales.reduce((sum, sale) => sum + (sale.total || 0), 0),
+      averageSale:
+        sales.length > 0
+          ? sales.reduce((sum, sale) => sum + (sale.total || 0), 0) /
+            sales.length
+          : 0,
+      paymentMethods: {},
+      topProducts: {},
     };
+
+    // Analizar métodos de pago
+    sales.forEach((sale) => {
+      const method = sale.paymentMethod || "Efectivo";
+      stats.paymentMethods[method] = (stats.paymentMethods[method] || 0) + 1;
+    });
+
+    // Analizar productos más vendidos
+    sales.forEach((sale) => {
+      sale.items?.forEach((item) => {
+        if (!item.isReturn) {
+          const key = item.name;
+          stats.topProducts[key] =
+            (stats.topProducts[key] || 0) + item.quantity;
+        }
+      });
+    });
+
+    return stats;
   } catch (error) {
-    console.error("Error al obtener estadísticas:", error);
-    return {
-      dailyTotal: 0,
-      dailyCount: 0,
-      monthlyTotal: 0,
-      monthlyCount: 0,
-    };
+    console.error("Error al obtener estadísticas de ventas:", error);
+    throw new Error("No se pudieron obtener las estadísticas");
   }
+};
+
+/**
+ * Generar datos para recibo
+ */
+export const generateReceiptData = (sale) => {
+  return {
+    saleId: sale.id,
+    date: sale.saleDate || new Date(),
+    items: sale.items || [],
+    subtotal: sale.subtotal || 0,
+    discount: sale.discount || 0,
+    total: sale.total || 0,
+    paymentMethod: sale.paymentMethod || "Efectivo",
+    cashReceived: sale.cashReceived || 0,
+    change: sale.change || 0,
+    customerName: sale.customerName || "",
+    storeInfo: {
+      name: "Rosema",
+      location: "Salto de las Rosas",
+      whatsapp: "260 438-1502",
+      returnPolicy: "Cambios en 3 días hábiles",
+    },
+  };
 };

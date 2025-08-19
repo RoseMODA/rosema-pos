@@ -1,477 +1,481 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
-  createSale,
-  getAllSales,
-  getSalesByDateRange,
-  createPendingSale,
-  getPendingSales,
-  completePendingSale,
-  cancelPendingSale,
-  processReturn,
+  processSale,
+  getSalesHistory,
+  searchSales,
+  getSaleById,
+  updateSale,
+  deleteSale,
+  savePendingSale,
+  getPendingSale,
+  deletePendingSale,
   getSalesStats,
+  generateReceiptData,
 } from "../services/salesService";
 
 /**
  * Hook personalizado para gestión de ventas
- * Maneja el estado del carrito, ventas y operaciones relacionadas
+ * Proporciona estado y funciones para manejar el carrito y ventas
  */
 export const useSales = () => {
   // Estado del carrito actual
   const [cart, setCart] = useState([]);
-  const [discount, setDiscount] = useState({ type: "percentage", value: 0 });
-  const [paymentMethod, setPaymentMethod] = useState("efectivo");
+  const [paymentMethod, setPaymentMethod] = useState("Efectivo");
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [discountPercent, setDiscountPercent] = useState(0);
+  const [cashReceived, setCashReceived] = useState(0);
+  const [customerName, setCustomerName] = useState("");
 
   // Estado de ventas
-  const [sales, setSales] = useState([]);
+  const [salesHistory, setSalesHistory] = useState([]);
   const [pendingSales, setPendingSales] = useState([]);
-  const [currentPendingSale, setCurrentPendingSale] = useState(null);
-
-  // Estado de carga y errores
+  const [activeClient, setActiveClient] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Estadísticas
-  const [salesStats, setSalesStats] = useState({
-    dailyTotal: 0,
-    dailyCount: 0,
-    monthlyTotal: 0,
-    monthlyCount: 0,
-  });
+  /**
+   * Calcular totales del carrito
+   */
+  const calculateTotals = useCallback(() => {
+    const subtotal = cart.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+    const discountValue =
+      discountPercent > 0 ? (subtotal * discountPercent) / 100 : discountAmount;
+    const total = Math.max(0, subtotal - discountValue);
+    const change = Math.max(0, cashReceived - total);
+
+    return {
+      subtotal,
+      discountValue,
+      total,
+      change,
+      itemCount: cart.reduce((sum, item) => sum + item.quantity, 0),
+    };
+  }, [cart, discountAmount, discountPercent, cashReceived]);
 
   /**
    * Agregar producto al carrito
-   * @param {Object} product - Producto a agregar
-   * @param {number} quantity - Cantidad
-   * @param {string} size - Talla (opcional)
-   * @param {string} color - Color (opcional)
    */
-  const addToCart = (product, quantity = 1, size = null, color = null) => {
-    try {
-      setError(null);
-
+  const addToCart = useCallback(
+    (product, quantity = 1, size = null, color = null) => {
       const cartItem = {
-        id: `${product.id}-${size || "no-size"}-${
-          color || "no-color"
-        }-${Date.now()}`,
-        productId: product.id,
+        id: `${product.id || "quick"}-${Date.now()}-${Math.random()}`,
+        productId: product.id || null,
         name: product.name,
-        code: product.code,
-        price: product.salePrice,
-        quantity,
-        size,
-        color,
-        stock: product.stock,
-        isQuickItem: false,
+        code: product.code || null,
+        price: product.salePrice || product.price,
+        quantity: quantity,
+        size: size,
+        color: color,
+        stock: product.stock || null,
+        isReturn: product.isReturn || false,
+        isQuickItem: !product.id,
       };
 
-      setCart((prevCart) => [...prevCart, cartItem]);
-    } catch (err) {
-      setError("Error al agregar producto al carrito");
-      console.error("Error al agregar al carrito:", err);
-    }
-  };
+      setCart((prev) => {
+        // Verificar si ya existe un item similar (mismo producto, talla y color)
+        const existingIndex = prev.findIndex(
+          (item) =>
+            item.productId === cartItem.productId &&
+            item.size === cartItem.size &&
+            item.color === cartItem.color &&
+            !item.isReturn
+        );
+
+        if (existingIndex >= 0 && !cartItem.isReturn) {
+          // Actualizar cantidad del item existente
+          const updated = [...prev];
+          updated[existingIndex] = {
+            ...updated[existingIndex],
+            quantity: updated[existingIndex].quantity + quantity,
+          };
+          return updated;
+        } else {
+          // Agregar nuevo item
+          return [...prev, cartItem];
+        }
+      });
+
+      return cartItem;
+    },
+    []
+  );
 
   /**
-   * Agregar artículo rápido al carrito
-   * @param {Object} quickItem - Artículo rápido {name, price, quantity, size}
+   * Actualizar cantidad de item en el carrito
    */
-  const addQuickItemToCart = (quickItem) => {
-    try {
-      setError(null);
-
-      const cartItem = {
-        id: `quick-${Date.now()}`,
-        productId: null,
-        name: quickItem.name,
-        code: null,
-        price: quickItem.price,
-        quantity: quickItem.quantity,
-        size: quickItem.size || null,
-        color: null,
-        stock: null,
-        isQuickItem: true,
-      };
-
-      setCart((prevCart) => [...prevCart, cartItem]);
-    } catch (err) {
-      setError("Error al agregar artículo rápido");
-      console.error("Error al agregar artículo rápido:", err);
-    }
-  };
-
-  /**
-   * Actualizar cantidad de un item en el carrito
-   * @param {string} itemId - ID del item
-   * @param {number} newQuantity - Nueva cantidad
-   */
-  const updateCartItemQuantity = (itemId, newQuantity) => {
-    try {
-      setError(null);
-
-      if (newQuantity <= 0) {
-        removeFromCart(itemId);
-        return;
-      }
-
-      setCart((prevCart) =>
-        prevCart.map((item) =>
+  const updateCartItemQuantity = useCallback((itemId, newQuantity) => {
+    if (newQuantity <= 0) {
+      setCart((prev) => prev.filter((item) => item.id !== itemId));
+    } else {
+      setCart((prev) =>
+        prev.map((item) =>
           item.id === itemId ? { ...item, quantity: newQuantity } : item
         )
       );
-    } catch (err) {
-      setError("Error al actualizar cantidad");
-      console.error("Error al actualizar cantidad:", err);
     }
-  };
+  }, []);
 
   /**
-   * Remover item del carrito
-   * @param {string} itemId - ID del item a remover
+   * Eliminar item del carrito
    */
-  const removeFromCart = (itemId) => {
-    try {
-      setError(null);
-      setCart((prevCart) => prevCart.filter((item) => item.id !== itemId));
-    } catch (err) {
-      setError("Error al remover producto del carrito");
-      console.error("Error al remover del carrito:", err);
-    }
-  };
+  const removeFromCart = useCallback((itemId) => {
+    setCart((prev) => prev.filter((item) => item.id !== itemId));
+  }, []);
 
   /**
    * Limpiar carrito
    */
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     setCart([]);
-    setDiscount({ type: "percentage", value: 0 });
-    setPaymentMethod("efectivo");
-  };
+    setDiscountAmount(0);
+    setDiscountPercent(0);
+    setCashReceived(0);
+    setCustomerName("");
+  }, []);
 
   /**
-   * Calcular subtotal del carrito
-   * @returns {number} Subtotal
+   * Agregar artículo rápido
    */
-  const getSubtotal = () => {
-    return cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  };
+  const addQuickItem = useCallback((itemData) => {
+    const quickItem = {
+      id: `quick-${Date.now()}-${Math.random()}`,
+      productId: null,
+      name: itemData.name,
+      code: null,
+      price: itemData.price,
+      quantity: itemData.quantity || 1,
+      size: itemData.size || null,
+      color: null,
+      stock: null,
+      isReturn: false,
+      isQuickItem: true,
+    };
+
+    setCart((prev) => [...prev, quickItem]);
+    return quickItem;
+  }, []);
 
   /**
-   * Calcular descuento
-   * @returns {number} Monto del descuento
+   * Agregar item de devolución
    */
-  const getDiscountAmount = () => {
-    const subtotal = getSubtotal();
-    if (discount.type === "percentage") {
-      return (subtotal * discount.value) / 100;
-    } else {
-      return Math.min(discount.value, subtotal);
+  const addReturnItem = useCallback((returnData) => {
+    const returnItem = {
+      id: `return-${Date.now()}-${Math.random()}`,
+      productId: returnData.productId,
+      name: `DEVOLUCIÓN: ${returnData.name}`,
+      code: returnData.code,
+      price: -Math.abs(returnData.price), // Precio negativo
+      quantity: returnData.quantity,
+      size: returnData.size,
+      color: returnData.color,
+      stock: null,
+      isReturn: true,
+      isQuickItem: false,
+    };
+
+    setCart((prev) => [...prev, returnItem]);
+    return returnItem;
+  }, []);
+
+  /**
+   * Procesar venta
+   */
+  const completeSale = useCallback(async () => {
+    if (cart.length === 0) {
+      throw new Error("El carrito está vacío");
     }
-  };
 
-  /**
-   * Calcular total del carrito
-   * @returns {number} Total
-   */
-  const getTotal = () => {
-    return Math.max(0, getSubtotal() - getDiscountAmount());
-  };
+    const totals = calculateTotals();
 
-  /**
-   * Completar venta
-   * @param {Object} additionalData - Datos adicionales de la venta
-   * @returns {Promise<string>} ID de la venta creada
-   */
-  const completeSale = async (additionalData = {}) => {
+    if (totals.total <= 0) {
+      throw new Error("El total debe ser mayor a cero");
+    }
+
+    setLoading(true);
+    setError(null);
+
     try {
-      setLoading(true);
-      setError(null);
-
-      if (cart.length === 0) {
-        throw new Error("El carrito está vacío");
-      }
-
       const saleData = {
         items: cart,
-        subtotal: getSubtotal(),
-        discount: {
-          type: discount.type,
-          value: discount.value,
-          amount: getDiscountAmount(),
-        },
-        total: getTotal(),
         paymentMethod,
-        ...additionalData,
+        discount: totals.discountValue,
+        total: totals.total,
+        cashReceived,
+        change: totals.change,
+        customerName,
+        clientId: activeClient,
       };
 
-      const saleId = await createSale(saleData);
+      const completedSale = await processSale(saleData);
 
-      // Limpiar carrito después de la venta
+      // Limpiar carrito después de la venta exitosa
       clearCart();
 
-      // Recargar datos
-      await loadSales();
-      await loadSalesStats();
+      // Actualizar historial
+      setSalesHistory((prev) => [completedSale, ...prev]);
 
+      return completedSale;
+    } catch (err) {
+      setError(err.message);
+      console.error("Error al procesar venta:", err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [
+    cart,
+    paymentMethod,
+    calculateTotals,
+    cashReceived,
+    customerName,
+    activeClient,
+    clearCart,
+  ]);
+
+  /**
+   * Cargar historial de ventas
+   */
+  const loadSalesHistory = useCallback(async (filters = {}) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const history = await getSalesHistory(filters);
+      setSalesHistory(history);
+      return history;
+    } catch (err) {
+      setError(err.message);
+      console.error("Error al cargar historial:", err);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /**
+   * Buscar ventas
+   */
+  const searchSalesHistory = useCallback(async (searchTerm) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const results = await searchSales(searchTerm);
+      setSalesHistory(results);
+      return results;
+    } catch (err) {
+      setError(err.message);
+      console.error("Error al buscar ventas:", err);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /**
+   * Eliminar venta del historial
+   */
+  const deleteSaleFromHistory = useCallback(async (saleId) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      await deleteSale(saleId);
+      setSalesHistory((prev) => prev.filter((sale) => sale.id !== saleId));
       return saleId;
     } catch (err) {
       setError(err.message);
-      console.error("Error al completar venta:", err);
+      console.error("Error al eliminar venta:", err);
       throw err;
     } finally {
       setLoading(false);
     }
-  };
-
-  /**
-   * Crear venta en espera
-   * @param {string} customerLabel - Etiqueta del cliente
-   * @returns {Promise<string>} ID de la venta en espera
-   */
-  const createPendingSaleFromCart = async (customerLabel) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      if (cart.length === 0) {
-        throw new Error("El carrito está vacío");
-      }
-
-      const saleData = {
-        items: cart,
-        subtotal: getSubtotal(),
-        discount: {
-          type: discount.type,
-          value: discount.value,
-          amount: getDiscountAmount(),
-        },
-        total: getTotal(),
-        paymentMethod,
-      };
-
-      const pendingSaleId = await createPendingSale(saleData, customerLabel);
-
-      // Limpiar carrito
-      clearCart();
-
-      // Recargar ventas en espera
-      await loadPendingSales();
-
-      return pendingSaleId;
-    } catch (err) {
-      setError(err.message);
-      console.error("Error al crear venta en espera:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /**
-   * Cargar venta en espera al carrito
-   * @param {string} pendingSaleId - ID de la venta en espera
-   */
-  const loadPendingSaleToCart = async (pendingSaleId) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const pendingSale = pendingSales.find(
-        (sale) => sale.id === pendingSaleId
-      );
-      if (!pendingSale) {
-        throw new Error("Venta en espera no encontrada");
-      }
-
-      // Cargar datos al carrito
-      setCart(pendingSale.items);
-      setDiscount(pendingSale.discount);
-      setPaymentMethod(pendingSale.paymentMethod);
-      setCurrentPendingSale(pendingSaleId);
-    } catch (err) {
-      setError(err.message);
-      console.error("Error al cargar venta en espera:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /**
-   * Finalizar venta en espera
-   * @param {string} pendingSaleId - ID de la venta en espera
-   * @returns {Promise<string>} ID de la venta completada
-   */
-  const finalizePendingSale = async (pendingSaleId) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const completedSaleId = await completePendingSale(pendingSaleId);
-
-      // Recargar datos
-      await loadPendingSales();
-      await loadSales();
-      await loadSalesStats();
-
-      // Limpiar carrito si era la venta actual
-      if (currentPendingSale === pendingSaleId) {
-        clearCart();
-        setCurrentPendingSale(null);
-      }
-
-      return completedSaleId;
-    } catch (err) {
-      setError(err.message);
-      console.error("Error al finalizar venta en espera:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /**
-   * Cancelar venta en espera
-   * @param {string} pendingSaleId - ID de la venta en espera
-   */
-  const cancelPendingSaleById = async (pendingSaleId) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      await cancelPendingSale(pendingSaleId);
-
-      // Recargar ventas en espera
-      await loadPendingSales();
-
-      // Limpiar carrito si era la venta actual
-      if (currentPendingSale === pendingSaleId) {
-        clearCart();
-        setCurrentPendingSale(null);
-      }
-    } catch (err) {
-      setError(err.message);
-      console.error("Error al cancelar venta en espera:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /**
-   * Cargar todas las ventas
-   */
-  const loadSales = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const salesData = await getAllSales();
-      setSales(salesData);
-    } catch (err) {
-      setError(err.message);
-      console.error("Error al cargar ventas:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /**
-   * Cargar ventas en espera
-   */
-  const loadPendingSales = async () => {
-    try {
-      setError(null);
-      const pendingSalesData = await getPendingSales();
-      setPendingSales(pendingSalesData);
-    } catch (err) {
-      setError(err.message);
-      console.error("Error al cargar ventas en espera:", err);
-    }
-  };
-
-  /**
-   * Cargar estadísticas de ventas
-   */
-  const loadSalesStats = async () => {
-    try {
-      setError(null);
-      const stats = await getSalesStats();
-      setSalesStats(stats);
-    } catch (err) {
-      console.error("Error al cargar estadísticas:", err);
-    }
-  };
-
-  /**
-   * Procesar devolución
-   * @param {string} saleId - ID de la venta
-   * @param {Array} returnItems - Items a devolver
-   */
-  const processReturnById = async (saleId, returnItems) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      await processReturn(saleId, returnItems);
-
-      // Recargar datos
-      await loadSales();
-      await loadSalesStats();
-    } catch (err) {
-      setError(err.message);
-      console.error("Error al procesar devolución:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Cargar datos iniciales
-  useEffect(() => {
-    loadSales();
-    loadPendingSales();
-    loadSalesStats();
   }, []);
+
+  /**
+   * Guardar venta en espera
+   */
+  const savePendingSaleData = useCallback(
+    async (clientId) => {
+      if (cart.length === 0) {
+        return null;
+      }
+
+      try {
+        const totals = calculateTotals();
+        const saleData = {
+          items: cart,
+          paymentMethod,
+          discount: totals.discountValue,
+          total: totals.total,
+          customerName,
+        };
+
+        const saved = await savePendingSale(clientId, saleData);
+
+        // Actualizar estado local de ventas pendientes
+        setPendingSales((prev) => {
+          const updated = prev.filter((sale) => sale.clientId !== clientId);
+          return [...updated, saved];
+        });
+
+        return saved;
+      } catch (err) {
+        setError(err.message);
+        console.error("Error al guardar venta en espera:", err);
+        throw err;
+      }
+    },
+    [cart, paymentMethod, calculateTotals, customerName]
+  );
+
+  /**
+   * Cargar venta en espera
+   */
+  const loadPendingSaleData = useCallback(async (clientId) => {
+    try {
+      const pendingSale = await getPendingSale(clientId);
+
+      if (pendingSale) {
+        setCart(pendingSale.items || []);
+        setPaymentMethod(pendingSale.paymentMethod || "Efectivo");
+        setCustomerName(pendingSale.customerName || "");
+        // Los descuentos se recalcularán automáticamente
+      }
+
+      return pendingSale;
+    } catch (err) {
+      console.error("Error al cargar venta en espera:", err);
+      return null;
+    }
+  }, []);
+
+  /**
+   * Cambiar cliente activo
+   */
+  const changeActiveClient = useCallback(
+    async (clientId) => {
+      // Guardar venta actual si hay items
+      if (cart.length > 0) {
+        await savePendingSaleData(activeClient);
+      }
+
+      // Cambiar cliente activo
+      setActiveClient(clientId);
+
+      // Cargar venta en espera del nuevo cliente
+      await loadPendingSaleData(clientId);
+    },
+    [cart.length, activeClient, savePendingSaleData, loadPendingSaleData]
+  );
+
+  /**
+   * Eliminar cliente/venta en espera
+   */
+  const deletePendingSaleData = useCallback(
+    async (clientId) => {
+      try {
+        await deletePendingSale(clientId);
+        setPendingSales((prev) =>
+          prev.filter((sale) => sale.clientId !== clientId)
+        );
+
+        // Si es el cliente activo, limpiar carrito
+        if (clientId === activeClient) {
+          clearCart();
+        }
+
+        return clientId;
+      } catch (err) {
+        setError(err.message);
+        console.error("Error al eliminar venta en espera:", err);
+        throw err;
+      }
+    },
+    [activeClient, clearCart]
+  );
+
+  /**
+   * Generar datos para recibo
+   */
+  const generateReceipt = useCallback((sale) => {
+    return generateReceiptData(sale);
+  }, []);
+
+  /**
+   * Obtener estadísticas de ventas
+   */
+  const getSalesStatistics = useCallback(async (period = "today") => {
+    try {
+      const stats = await getSalesStats(period);
+      return stats;
+    } catch (err) {
+      console.error("Error al obtener estadísticas:", err);
+      return {
+        totalSales: 0,
+        totalRevenue: 0,
+        averageSale: 0,
+        paymentMethods: {},
+        topProducts: {},
+      };
+    }
+  }, []);
+
+  // Calcular totales automáticamente cuando cambie el carrito
+  const totals = calculateTotals();
 
   return {
     // Estado del carrito
     cart,
-    discount,
     paymentMethod,
+    discountAmount,
+    discountPercent,
+    cashReceived,
+    customerName,
+    totals,
 
     // Estado de ventas
-    sales,
+    salesHistory,
     pendingSales,
-    currentPendingSale,
-    salesStats,
-
-    // Estado de carga
+    activeClient,
     loading,
     error,
 
-    // Acciones del carrito
+    // Funciones del carrito
     addToCart,
-    addQuickItemToCart,
     updateCartItemQuantity,
     removeFromCart,
     clearCart,
-    setDiscount,
-    setPaymentMethod,
+    addQuickItem,
+    addReturnItem,
 
-    // Cálculos
-    getSubtotal,
-    getDiscountAmount,
-    getTotal,
-
-    // Acciones de ventas
+    // Funciones de venta
     completeSale,
-    createPendingSaleFromCart,
-    loadPendingSaleToCart,
-    finalizePendingSale,
-    cancelPendingSaleById,
-    processReturnById,
+    loadSalesHistory,
+    searchSalesHistory,
+    deleteSaleFromHistory,
 
-    // Carga de datos
-    loadSales,
-    loadPendingSales,
-    loadSalesStats,
+    // Funciones de ventas en espera
+    savePendingSaleData,
+    loadPendingSaleData,
+    changeActiveClient,
+    deletePendingSaleData,
+
+    // Setters
+    setPaymentMethod,
+    setDiscountAmount,
+    setDiscountPercent,
+    setCashReceived,
+    setCustomerName,
+    setActiveClient,
+
+    // Utilidades
+    generateReceipt,
+    getSalesStatistics,
   };
 };
+
+export default useSales;

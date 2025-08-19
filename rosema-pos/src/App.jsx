@@ -19,8 +19,11 @@ import Invoices from './pages/Invoices';
 function App() {
   const { isAuthenticated, loading } = useAuth();
 
+  // MODO DESARROLLO: Permitir acceso directo a ventas
+  const isDevelopment = process.env.NODE_ENV === 'development';
+
   // Mostrar loading mientras se verifica el estado de autenticación
-  if (loading) {
+  if (loading && !isDevelopment) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -35,16 +38,21 @@ function App() {
   return (
     <div className="App">
       <Routes>
-        {/* Ruta de login - solo accesible si no está autenticado */}
+        {/* Ruta de login */}
         <Route 
           path="/login" 
           element={
-            isAuthenticated ? <Navigate to="/" replace /> : <Login />
+            (isAuthenticated && !isDevelopment) ? <Navigate to="/" replace /> : <Login />
           } 
         />
         
+        {/* MODO DESARROLLO: Ruta directa a ventas sin autenticación */}
+        {isDevelopment && (
+          <Route path="/sales-dev" element={<Sales />} />
+        )}
+        
         {/* Rutas protegidas - solo accesibles si está autenticado */}
-        {isAuthenticated ? (
+        {(isAuthenticated || isDevelopment) ? (
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
             <Route path="statistics" element={<Statistics />} />
@@ -59,11 +67,11 @@ function App() {
           <Route path="*" element={<Navigate to="/login" replace />} />
         )}
         
-        {/* Ruta por defecto - redirige según el estado de autenticación */}
+        {/* Ruta por defecto */}
         <Route 
           path="*" 
           element={
-            <Navigate to={isAuthenticated ? "/" : "/login"} replace />
+            <Navigate to={(isAuthenticated || isDevelopment) ? "/" : "/login"} replace />
           } 
         />
       </Routes>

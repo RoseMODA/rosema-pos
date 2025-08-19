@@ -26,9 +26,9 @@ const Home = () => {
     <div className="p-6">
       {/* Header del dashboard */}
       <div className="mb-6">
-        
+        <h1 className="text-3xl font-bold text-gray-900">🏠 Dashboard Principal</h1>
         <p className="text-gray-600 mt-2">{getCurrentDate()}</p>
-        
+        <p className="text-sm text-gray-500">Bienvenido, {user?.email}</p>
       </div>
 
       {/* Botones de acción rápida */}
@@ -78,7 +78,7 @@ const Home = () => {
       </div>
 
       {/* Estado del sistema */}
-
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div className="card-rosema">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">
             Estado del Sistema
@@ -103,8 +103,35 @@ const Home = () => {
           </div>
         </div>
 
-    
-      
+        <div className="card-rosema">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            Información de la Tienda
+          </h2>
+          <div className="space-y-3">
+            <div className="flex items-center">
+              <span className="text-red-600 mr-3">🏪</span>
+              <div>
+                <div className="font-medium text-gray-900">Rosema</div>
+                <div className="text-sm text-gray-500">Tienda de Ropa</div>
+              </div>
+            </div>
+            <div className="flex items-center">
+              <span className="text-blue-600 mr-3">📍</span>
+              <div>
+                <div className="font-medium text-gray-900">Salto de las Rosas</div>
+                <div className="text-sm text-gray-500">Ubicación</div>
+              </div>
+            </div>
+            <div className="flex items-center">
+              <span className="text-green-600 mr-3">📱</span>
+              <div>
+                <div className="font-medium text-gray-900">260 438-1502</div>
+                <div className="text-sm text-gray-500">WhatsApp</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Accesos rápidos a secciones */}
       <div className="card-rosema">
@@ -134,7 +161,9 @@ const Home = () => {
       {/* Mensaje de bienvenida */}
       <div className="card-rosema mt-6">
         <div className="text-center">
-        
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            ¡Bienvenido al Sistema POS de Rosema!
+          </h2>
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
             <p className="text-green-800 font-medium">
               🎉 Etapa 2 Implementada: Dashboard y Navegación
