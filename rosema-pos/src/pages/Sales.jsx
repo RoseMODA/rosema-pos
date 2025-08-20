@@ -77,6 +77,12 @@ const Sales = () => {
   }, [discountAmount]);
   
   useEffect(() => {
+
+  // Forzar re-render cuando cambien los descuentos para actualizar totales
+  const [, forceUpdate] = useState({});
+  useEffect(() => {
+    forceUpdate({});
+  }, [discountAmount, discountPercent]);
     setDiscountPercentInput(discountPercent > 0 ? discountPercent.toString() : '');
   }, [discountPercent]);
 
@@ -572,6 +578,25 @@ const Sales = () => {
                 />
               </div>
             </div>
+
+            {/* Mostrar subtotal y descuento aplicado */}
+            {cart.length > 0 && (
+              <div className="border-t border-gray-200 pt-4 mb-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Subtotal:</span>
+                  <span>${totals.subtotal.toLocaleString()}</span>
+                </div>
+                
+                {totals.discountValue > 0 && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>
+                      Descuento ({discountPercent > 0 ? `${discountPercent}%` : `$${discountAmount.toLocaleString()}`}):
+                    </span>
+                    <span>-${totals.discountValue.toLocaleString()}</span>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Campos específicos para Efectivo */}
             {paymentMethod === 'Efectivo' && (
