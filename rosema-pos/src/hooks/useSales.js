@@ -14,348 +14,240 @@ import {
 } from '../services/salesService';
 
 /**
- * Hook personalizado para gestión de ventas con sesiones independientes
- * Cada cliente mantiene su propia sesión completamente aislada
+ * Hook personalizado para gestión de ventas con sesiones completamente independientes
+ * Implementa el modelo de SaleSession con aislamiento total entre ventas
  */
-export const useSales = () => {
-  // Estado de sesiones múltiples - cada cliente tiene su sesión independiente
-  const [clientSessions, setClientSessions] = useState({
-    1: {
-      cart: [],
-      paymentMethod: 'Efectivo',
-      discountAmount: 0,
-      discountPercent: 0,
-      cashReceived: 0,
-      customerName: '',
-      cardName: '',
-      installments: 0,
-      commission: 0
+
+// Tipos de pago permitidos
+const PAYMENT_METHODS = {
+  EFECTIVO: 'Efectivo',
+  TRANSFERENCIA: 'Transferencia',
+  DEBITO: 'Débito',
+  CREDITO: 'Crédito',
+  QR: 'QR'
+};
+
+// Configuración
+const MAX_SESSIONS = 6;
+const STORAGE_KEY = 'pos.sessions.v1';
+
+/**
+ * Generar ID único para sesiones y líneas de productos
+ */
+const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+/**
+ * Crear una nueva sesión vacía
+ */
+const createEmptySession = (label) => ({
+  id: generateId(),
+  label: label || `Cliente ${Date.now()}`,
+  status: 'open',
+  items: [],
+  customerId: null,
+  customerName: '',
+  discountAmount: 0,
+  discountPercent: 0,
+  paymentMethod: PAYMENT_METHODS.EFECTIVO,
+  cashReceived: 0,
+  cardName: '',
+  installments: 0,
+  commission: 0,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+});
+
+/**
+ * Cargar sesiones desde localStorage
+ */
+const loadSessionsFromStorage = () => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const data = JSON.parse(stored);
+      return {
+        sessions: data.sessions || {},
+        activeSessionId: data.activeSessionId || null
+      };
     }
+  } catch (error) {
+    console.error('Error loading sessions from storage:', error);
+  }
+  return { sessions: {}, activeSessionId: null };
+};
+
+/**
+ * Guardar sesiones en localStorage
+ */
+const saveSessionsToStorage = (sessions, activeSessionId) => {
+  try {
+    // Solo guardar sesiones abiertas
+    const openSessions = Object.fromEntries(
+      Object.entries(sessions).filter(([_, session]) => session.status === 'open')
+    );
+    
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      sessions: openSessions,
+      activeSessionId: activeSessionId
+    }));
+  } catch (error) {
+    console.error('Error saving sessions to storage:', error);
+  }
+};
+
+export const useSales = () => {
+  // Estado principal de sesiones
+  const [salesState, setSalesState] = useState(() => {
+    const loaded = loadSessionsFromStorage();
+    
+    // Si no hay sesiones, crear la primera
+    if (Object.keys(loaded.sessions).length === 0) {
+      const firstSession = createEmptySession('Cliente 1');
+      return {
+        sessions: { [firstSession.id]: firstSession },
+        activeSessionId: firstSession.id
+      };
+    }
+    
+    return {
+      sessions: loaded.sessions,
+      activeSessionId: loaded.activeSessionId || Object.keys(loaded.sessions)[0]
+    };
   });
-  
-  // Estado de ventas
+
+  // Estados adicionales
   const [salesHistory, setSalesHistory] = useState([]);
-  const [pendingSales, setPendingSales] = useState([]);
-  const [activeClient, setActiveClient] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Obtener sesión del cliente activo
-  const getCurrentSession = useCallback(() => {
-    return clientSessions[activeClient] || {
-      cart: [],
-      paymentMethod: 'Efectivo',
-      discountAmount: 0,
-      discountPercent: 0,
-      cashReceived: 0,
-      customerName: '',
-      cardName: '',
-      installments: 0,
-      commission: 0
-    };
-  }, [clientSessions, activeClient]);
+  // Obtener sesión activa
+  const getActiveSession = useCallback(() => {
+    return salesState.sessions[salesState.activeSessionId] || null;
+  }, [salesState]);
 
-  // Estados derivados de la sesión actual
-  const currentSession = getCurrentSession();
-  const cart = currentSession.cart;
-  const paymentMethod = currentSession.paymentMethod;
-  const discountAmount = currentSession.discountAmount;
-  const discountPercent = currentSession.discountPercent;
-  const cashReceived = currentSession.cashReceived;
-  const customerName = currentSession.customerName;
-  const cardName = currentSession.cardName;
-  const installments = currentSession.installments;
-  const commission = currentSession.commission;
-
-  /**
-   * Actualizar sesión del cliente activo
-   */
-  const updateCurrentSession = useCallback((updates) => {
-    setClientSessions(prev => ({
-      ...prev,
-      [activeClient]: {
-        ...prev[activeClient],
-        ...updates
-      }
-    }));
-  }, [activeClient]);
-
-  /**
-   * Crear nueva sesión para un cliente
-   */
-  const createClientSession = useCallback((clientId) => {
-    setClientSessions(prev => ({
-      ...prev,
-      [clientId]: {
-        cart: [],
-        paymentMethod: 'Efectivo',
-        discountAmount: 0,
-        discountPercent: 0,
-        cashReceived: 0,
-        customerName: '',
-        cardName: '',
-        installments: 0,
-        commission: 0
-      }
-    }));
-  }, []);
-
-  /**
-   * Calcular totales del carrito actual
-   */
-  const calculateTotals = useCallback(() => {
-    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const discountValue = discountPercent > 0 ? (subtotal * discountPercent / 100) : discountAmount;
+  // Calcular totales de una sesión
+  const calculateSessionTotals = useCallback((session) => {
+    if (!session) return { subtotal: 0, discountValue: 0, total: 0, change: 0, itemCount: 0 };
+    
+    const subtotal = session.items.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    const discountValue = session.discountPercent > 0 
+      ? (subtotal * session.discountPercent / 100) 
+      : session.discountAmount;
     const total = Math.max(0, subtotal - discountValue);
-    const change = Math.max(0, cashReceived - total);
+    const change = Math.max(0, session.cashReceived - total);
 
     return {
       subtotal,
       discountValue,
       total,
       change,
-      itemCount: cart.reduce((sum, item) => sum + item.quantity, 0)
+      itemCount: session.items.reduce((sum, item) => sum + item.qty, 0)
     };
-  }, [cart, discountAmount, discountPercent, cashReceived]);
+  }, []);
 
-  /**
-   * Agregar producto al carrito del cliente activo
-   */
-  const addToCart = useCallback((product, quantity = 1, size = null, color = null) => {
-    const cartItem = {
-      id: `${product.id || 'quick'}-${Date.now()}-${Math.random()}`,
-      productId: product.id || null,
-      name: product.name,
-      code: product.code || null,
-      price: product.salePrice || product.price,
-      quantity: quantity,
-      size: size,
-      color: color,
-      stock: product.stock || null,
-      isReturn: product.isReturn || false,
-      isQuickItem: !product.id
-    };
-
-    const currentCart = cart;
-    
-    // Verificar si ya existe un item similar (mismo producto, talla y color)
-    const existingIndex = currentCart.findIndex(item => 
-      item.productId === cartItem.productId &&
-      item.size === cartItem.size &&
-      item.color === cartItem.color &&
-      !item.isReturn
-    );
-
-    let newCart;
-    if (existingIndex >= 0 && !cartItem.isReturn) {
-      // Actualizar cantidad del item existente
-      newCart = [...currentCart];
-      newCart[existingIndex] = {
-        ...newCart[existingIndex],
-        quantity: newCart[existingIndex].quantity + quantity
-      };
-    } else {
-      // Agregar nuevo item
-      newCart = [...currentCart, cartItem];
-    }
-
-    updateCurrentSession({ cart: newCart });
-    return cartItem;
-  }, [cart, updateCurrentSession]);
-
-  /**
-   * Actualizar cantidad de item en el carrito
-   */
-  const updateCartItemQuantity = useCallback((itemId, newQuantity) => {
-    let newCart;
-    if (newQuantity <= 0) {
-      newCart = cart.filter(item => item.id !== itemId);
-    } else {
-      newCart = cart.map(item => 
-        item.id === itemId ? { ...item, quantity: newQuantity } : item
-      );
-    }
-    updateCurrentSession({ cart: newCart });
-  }, [cart, updateCurrentSession]);
-
-  /**
-   * Eliminar item del carrito
-   */
-  const removeFromCart = useCallback((itemId) => {
-    const newCart = cart.filter(item => item.id !== itemId);
-    updateCurrentSession({ cart: newCart });
-  }, [cart, updateCurrentSession]);
-
-  /**
-   * Limpiar carrito del cliente activo
-   */
-  const clearCart = useCallback(() => {
-    updateCurrentSession({
-      cart: [],
-      discountAmount: 0,
-      discountPercent: 0,
-      cashReceived: 0,
-      customerName: '',
-      cardName: '',
-      installments: 0,
-      commission: 0
+  // Actualizar estado y persistir
+  const updateSalesState = useCallback((updater) => {
+    setSalesState(prevState => {
+      const newState = typeof updater === 'function' ? updater(prevState) : updater;
+      saveSessionsToStorage(newState.sessions, newState.activeSessionId);
+      return newState;
     });
-  }, [updateCurrentSession]);
+  }, []);
+
+  // API del Store - Gestión de sesiones
 
   /**
-   * Agregar artículo rápido
+   * Crear nueva sesión
    */
-  const addQuickItem = useCallback((itemData) => {
-    const quickItem = {
-      id: `quick-${Date.now()}-${Math.random()}`,
-      productId: null,
-      name: itemData.name,
-      code: null,
-      price: itemData.price,
-      quantity: itemData.quantity || 1,
-      size: itemData.size || null,
-      color: null,
-      stock: null,
-      isReturn: false,
-      isQuickItem: true
-    };
-
-    const newCart = [...cart, quickItem];
-    updateCurrentSession({ cart: newCart });
-    return quickItem;
-  }, [cart, updateCurrentSession]);
-
-  /**
-   * Agregar item de devolución
-   */
-  const addReturnItem = useCallback((returnData) => {
-    const returnItem = {
-      id: `return-${Date.now()}-${Math.random()}`,
-      productId: returnData.productId,
-      name: `DEVOLUCIÓN: ${returnData.name}`,
-      code: returnData.code,
-      price: -Math.abs(returnData.price), // Precio negativo
-      quantity: returnData.quantity,
-      size: returnData.size,
-      color: returnData.color,
-      stock: null,
-      isReturn: true,
-      isQuickItem: false
-    };
-
-    const newCart = [...cart, returnItem];
-    updateCurrentSession({ cart: newCart });
-    return returnItem;
-  }, [cart, updateCurrentSession]);
-
-  /**
-   * Setters para la sesión actual
-   */
-  const setPaymentMethod = useCallback((value) => {
-    updateCurrentSession({ paymentMethod: value });
-  }, [updateCurrentSession]);
-
-  const setDiscountAmount = useCallback((value) => {
-    updateCurrentSession({ discountAmount: value });
-  }, [updateCurrentSession]);
-
-  const setDiscountPercent = useCallback((value) => {
-    updateCurrentSession({ discountPercent: value });
-  }, [updateCurrentSession]);
-
-  const setCashReceived = useCallback((value) => {
-    updateCurrentSession({ cashReceived: value });
-  }, [updateCurrentSession]);
-
-  const setCustomerName = useCallback((value) => {
-    updateCurrentSession({ customerName: value });
-  }, [updateCurrentSession]);
-
-  const setCardName = useCallback((value) => {
-    updateCurrentSession({ cardName: value });
-  }, [updateCurrentSession]);
-
-  const setInstallments = useCallback((value) => {
-    updateCurrentSession({ installments: value });
-  }, [updateCurrentSession]);
-
-  const setCommission = useCallback((value) => {
-    updateCurrentSession({ commission: value });
-  }, [updateCurrentSession]);
-
-  /**
-   * Cambiar cliente activo
-   */
-  const changeActiveClient = useCallback(async (clientId) => {
-    try {
-      // Guardar sesión actual en Firebase si hay items
-      if (cart.length > 0) {
-        const totals = calculateTotals();
-        const saleData = {
-          items: cart,
-          paymentMethod,
-          discount: totals.discountValue,
-          total: totals.total,
-          customerName,
-          cardName,
-          installments,
-          commission
-        };
-        await savePendingSale(activeClient, saleData);
-      }
-
-      // Cambiar cliente activo
-      setActiveClient(clientId);
-      
-      // Si no existe la sesión del cliente, crearla
-      if (!clientSessions[clientId]) {
-        createClientSession(clientId);
-      }
-
-      // Cargar datos desde Firebase si existen
-      try {
-        const pendingSale = await getPendingSale(clientId);
-        if (pendingSale) {
-          setClientSessions(prev => ({
-            ...prev,
-            [clientId]: {
-              cart: pendingSale.items || [],
-              paymentMethod: pendingSale.paymentMethod || 'Efectivo',
-              discountAmount: 0, // Los descuentos se recalculan
-              discountPercent: 0,
-              cashReceived: 0,
-              customerName: pendingSale.customerName || '',
-              cardName: pendingSale.cardName || '',
-              installments: pendingSale.installments || 0,
-              commission: pendingSale.commission || 0
-            }
-          }));
-        }
-      } catch (err) {
-        console.log('No hay venta en espera para este cliente');
-      }
-    } catch (err) {
-      console.error('Error al cambiar cliente activo:', err);
-      setError('Error al cambiar de cliente');
-    }
-  }, [cart, paymentMethod, customerName, cardName, installments, commission, activeClient, calculateTotals, clientSessions, createClientSession]);
-
-  /**
-   * Procesar venta
-   */
-  const completeSale = useCallback(async () => {
-    if (cart.length === 0) {
-      throw new Error('El carrito está vacío');
+  const createSession = useCallback((label) => {
+    const sessionCount = Object.keys(salesState.sessions).length;
+    if (sessionCount >= MAX_SESSIONS) {
+      throw new Error(`Máximo ${MAX_SESSIONS} ventas abiertas permitidas`);
     }
 
-    const totals = calculateTotals();
+    const newSession = createEmptySession(label || `Cliente ${sessionCount + 1}`);
     
+    updateSalesState(prevState => ({
+      sessions: {
+        ...prevState.sessions,
+        [newSession.id]: newSession
+      },
+      activeSessionId: newSession.id
+    }));
+
+    return newSession.id;
+  }, [salesState.sessions, updateSalesState]);
+
+  /**
+   * Cambiar sesión activa
+   */
+  const switchSession = useCallback((sessionId) => {
+    if (!salesState.sessions[sessionId]) {
+      console.error(`Session ${sessionId} not found`);
+      return;
+    }
+
+    updateSalesState(prevState => ({
+      ...prevState,
+      activeSessionId: sessionId
+    }));
+  }, [salesState.sessions, updateSalesState]);
+
+  /**
+   * Cancelar sesión
+   */
+  const cancelSession = useCallback((sessionId) => {
+    const session = salesState.sessions[sessionId];
+    if (!session) return;
+
+    // Si tiene items, pedir confirmación
+    if (session.items.length > 0) {
+      if (!confirm(`¿Estás seguro de cancelar la venta "${session.label}"? Se perderán todos los productos.`)) {
+        return;
+      }
+    }
+
+    updateSalesState(prevState => {
+      const newSessions = { ...prevState.sessions };
+      delete newSessions[sessionId];
+      
+      // Si era la sesión activa, cambiar a otra o crear nueva
+      let newActiveSessionId = prevState.activeSessionId;
+      if (prevState.activeSessionId === sessionId) {
+        const remainingIds = Object.keys(newSessions);
+        if (remainingIds.length > 0) {
+          newActiveSessionId = remainingIds[0];
+        } else {
+          // Crear nueva sesión si no quedan
+          const newSession = createEmptySession('Cliente 1');
+          newSessions[newSession.id] = newSession;
+          newActiveSessionId = newSession.id;
+        }
+      }
+
+      return {
+        sessions: newSessions,
+        activeSessionId: newActiveSessionId
+      };
+    });
+  }, [salesState.sessions, updateSalesState]);
+
+  /**
+   * Finalizar sesión (procesar venta)
+   */
+  const finalizeSession = useCallback(async (sessionId) => {
+    const session = salesState.sessions[sessionId];
+    if (!session || session.items.length === 0) {
+      throw new Error('No hay productos en la venta');
+    }
+
+    const totals = calculateSessionTotals(session);
     if (totals.total <= 0) {
       throw new Error('El total debe ser mayor a cero');
     }
 
     // Validaciones específicas para crédito
-    if (paymentMethod === 'Crédito' && !cardName.trim()) {
+    if (session.paymentMethod === PAYMENT_METHODS.CREDITO && !session.cardName.trim()) {
       throw new Error('El nombre de la tarjeta es requerido para pagos con crédito');
     }
 
@@ -364,31 +256,55 @@ export const useSales = () => {
 
     try {
       const saleData = {
-        items: cart,
-        paymentMethod,
+        items: session.items.map(item => ({
+          productId: item.productId,
+          name: item.name,
+          code: item.code,
+          price: item.price,
+          quantity: item.qty,
+          size: item.variant?.talla,
+          color: item.variant?.color,
+          subtotal: item.price * item.qty,
+          isReturn: item.isReturn || false,
+          isQuickItem: item.isQuickItem || false
+        })),
+        paymentMethod: session.paymentMethod,
         discount: totals.discountValue,
         total: totals.total,
-        cashReceived,
+        cashReceived: session.cashReceived,
         change: totals.change,
-        customerName,
-        clientId: activeClient,
-        // Campos adicionales para crédito
-        cardName: paymentMethod === 'Crédito' ? cardName : null,
-        installments: paymentMethod === 'Crédito' ? installments : null,
-        commission: paymentMethod === 'Crédito' ? commission : null
+        customerName: session.customerName,
+        clientId: sessionId,
+        cardName: session.paymentMethod === PAYMENT_METHODS.CREDITO ? session.cardName : null,
+        installments: session.paymentMethod === PAYMENT_METHODS.CREDITO ? session.installments : null,
+        commission: session.paymentMethod === PAYMENT_METHODS.CREDITO ? session.commission : null
       };
 
       const completedSale = await processSale(saleData);
       
-      // Limpiar sesión del cliente actual
-      clearCart();
-      
-      // Eliminar venta en espera del cliente actual
-      try {
-        await deletePendingSale(activeClient);
-      } catch (err) {
-        console.log('No había venta en espera para eliminar');
-      }
+      // Marcar sesión como pagada y remover de abiertas
+      updateSalesState(prevState => {
+        const newSessions = { ...prevState.sessions };
+        delete newSessions[sessionId];
+        
+        // Si era la sesión activa, cambiar a otra o crear nueva
+        let newActiveSessionId = prevState.activeSessionId;
+        if (prevState.activeSessionId === sessionId) {
+          const remainingIds = Object.keys(newSessions);
+          if (remainingIds.length > 0) {
+            newActiveSessionId = remainingIds[0];
+          } else {
+            const newSession = createEmptySession('Cliente 1');
+            newSessions[newSession.id] = newSession;
+            newActiveSessionId = newSession.id;
+          }
+        }
+
+        return {
+          sessions: newSessions,
+          activeSessionId: newActiveSessionId
+        };
+      });
       
       // Actualizar historial
       setSalesHistory(prev => [completedSale, ...prev]);
@@ -401,247 +317,389 @@ export const useSales = () => {
     } finally {
       setLoading(false);
     }
-  }, [cart, paymentMethod, calculateTotals, cashReceived, customerName, activeClient, cardName, installments, commission, clearCart]);
+  }, [salesState.sessions, calculateSessionTotals, updateSalesState]);
+
+  // API del Store - Gestión de items
 
   /**
-   * Eliminar cliente/venta en espera
+   * Agregar item a sesión
    */
-  const deletePendingSaleData = useCallback(async (clientId) => {
-    try {
-      await deletePendingSale(clientId);
-      setPendingSales(prev => prev.filter(sale => sale.clientId !== clientId));
-      
-      // Eliminar sesión del cliente
-      setClientSessions(prev => {
-        const newSessions = { ...prev };
-        delete newSessions[clientId];
-        return newSessions;
-      });
+  const addItem = useCallback((sessionId, itemData) => {
+    const session = salesState.sessions[sessionId];
+    if (!session) return;
 
-      return clientId;
-    } catch (err) {
-      setError(err.message);
-      console.error('Error al eliminar venta en espera:', err);
-      throw err;
+    const lineItem = {
+      lineId: generateId(),
+      productId: itemData.productId || null,
+      name: itemData.name,
+      code: itemData.code || null,
+      price: itemData.price,
+      qty: itemData.quantity || 1,
+      variant: {
+        talla: itemData.size || null,
+        color: itemData.color || null
+      },
+      stock: itemData.stock || null,
+      isReturn: itemData.isReturn || false,
+      isQuickItem: itemData.isQuickItem || false
+    };
+
+    // Verificar si ya existe un item similar
+    const existingIndex = session.items.findIndex(item => 
+      item.productId === lineItem.productId &&
+      item.variant?.talla === lineItem.variant?.talla &&
+      item.variant?.color === lineItem.variant?.color &&
+      !item.isReturn
+    );
+
+    let newItems;
+    if (existingIndex >= 0 && !lineItem.isReturn) {
+      // Actualizar cantidad del item existente
+      newItems = [...session.items];
+      newItems[existingIndex] = {
+        ...newItems[existingIndex],
+        qty: newItems[existingIndex].qty + lineItem.qty
+      };
+    } else {
+      // Agregar nuevo item
+      newItems = [...session.items, lineItem];
     }
-  }, []);
+
+    updateSalesState(prevState => ({
+      ...prevState,
+      sessions: {
+        ...prevState.sessions,
+        [sessionId]: {
+          ...session,
+          items: newItems,
+          updatedAt: new Date().toISOString()
+        }
+      }
+    }));
+
+    return lineItem.lineId;
+  }, [salesState.sessions, updateSalesState]);
 
   /**
-   * Cargar historial de ventas
+   * Remover item de sesión
    */
+  const removeItem = useCallback((sessionId, lineId) => {
+    const session = salesState.sessions[sessionId];
+    if (!session) return;
+
+    const newItems = session.items.filter(item => item.lineId !== lineId);
+
+    updateSalesState(prevState => ({
+      ...prevState,
+      sessions: {
+        ...prevState.sessions,
+        [sessionId]: {
+          ...session,
+          items: newItems,
+          updatedAt: new Date().toISOString()
+        }
+      }
+    }));
+  }, [salesState.sessions, updateSalesState]);
+
+  /**
+   * Actualizar cantidad de item
+   */
+  const updateItemQty = useCallback((sessionId, lineId, qty) => {
+    const session = salesState.sessions[sessionId];
+    if (!session) return;
+
+    let newItems;
+    if (qty <= 0) {
+      newItems = session.items.filter(item => item.lineId !== lineId);
+    } else {
+      newItems = session.items.map(item => 
+        item.lineId === lineId ? { ...item, qty } : item
+      );
+    }
+
+    updateSalesState(prevState => ({
+      ...prevState,
+      sessions: {
+        ...prevState.sessions,
+        [sessionId]: {
+          ...session,
+          items: newItems,
+          updatedAt: new Date().toISOString()
+        }
+      }
+    }));
+  }, [salesState.sessions, updateSalesState]);
+
+  // API del Store - Gestión de descuentos y pagos
+
+  /**
+   * Aplicar descuento por monto
+   */
+  const applyDiscountAmount = useCallback((sessionId, amount) => {
+    const session = salesState.sessions[sessionId];
+    if (!session) return;
+
+    updateSalesState(prevState => ({
+      ...prevState,
+      sessions: {
+        ...prevState.sessions,
+        [sessionId]: {
+          ...session,
+          discountAmount: amount,
+          discountPercent: 0, // Reset porcentaje
+          updatedAt: new Date().toISOString()
+        }
+      }
+    }));
+  }, [salesState.sessions, updateSalesState]);
+
+  /**
+   * Aplicar descuento por porcentaje
+   */
+  const applyDiscountPercent = useCallback((sessionId, percent) => {
+    const session = salesState.sessions[sessionId];
+    if (!session) return;
+
+    updateSalesState(prevState => ({
+      ...prevState,
+      sessions: {
+        ...prevState.sessions,
+        [sessionId]: {
+          ...session,
+          discountPercent: percent,
+          discountAmount: 0, // Reset monto
+          updatedAt: new Date().toISOString()
+        }
+      }
+    }));
+  }, [salesState.sessions, updateSalesState]);
+
+  /**
+   * Establecer método de pago
+   */
+  const setPaymentMethod = useCallback((sessionId, method) => {
+    const session = salesState.sessions[sessionId];
+    if (!session) return;
+
+    updateSalesState(prevState => ({
+      ...prevState,
+      sessions: {
+        ...prevState.sessions,
+        [sessionId]: {
+          ...session,
+          paymentMethod: method,
+          updatedAt: new Date().toISOString()
+        }
+      }
+    }));
+  }, [salesState.sessions, updateSalesState]);
+
+  /**
+   * Establecer efectivo recibido
+   */
+  const setCashReceived = useCallback((sessionId, amount) => {
+    const session = salesState.sessions[sessionId];
+    if (!session) return;
+
+    updateSalesState(prevState => ({
+      ...prevState,
+      sessions: {
+        ...prevState.sessions,
+        [sessionId]: {
+          ...session,
+          cashReceived: amount,
+          updatedAt: new Date().toISOString()
+        }
+      }
+    }));
+  }, [salesState.sessions, updateSalesState]);
+
+  /**
+   * Establecer datos del cliente
+   */
+  const attachCustomer = useCallback((sessionId, customerName) => {
+    const session = salesState.sessions[sessionId];
+    if (!session) return;
+
+    updateSalesState(prevState => ({
+      ...prevState,
+      sessions: {
+        ...prevState.sessions,
+        [sessionId]: {
+          ...session,
+          customerName: customerName || '',
+          updatedAt: new Date().toISOString()
+        }
+      }
+    }));
+  }, [salesState.sessions, updateSalesState]);
+
+  /**
+   * Establecer datos de tarjeta de crédito
+   */
+  const setCreditCardData = useCallback((sessionId, cardName, installments, commission) => {
+    const session = salesState.sessions[sessionId];
+    if (!session) return;
+
+    updateSalesState(prevState => ({
+      ...prevState,
+      sessions: {
+        ...prevState.sessions,
+        [sessionId]: {
+          ...session,
+          cardName: cardName || '',
+          installments: installments || 0,
+          commission: commission || 0,
+          updatedAt: new Date().toISOString()
+        }
+      }
+    }));
+  }, [salesState.sessions, updateSalesState]);
+
+  /**
+   * Limpiar sesión
+   */
+  const clearSession = useCallback((sessionId) => {
+    const session = salesState.sessions[sessionId];
+    if (!session) return;
+
+    const clearedSession = {
+      ...session,
+      items: [],
+      discountAmount: 0,
+      discountPercent: 0,
+      cashReceived: 0,
+      customerName: '',
+      cardName: '',
+      installments: 0,
+      commission: 0,
+      updatedAt: new Date().toISOString()
+    };
+
+    updateSalesState(prevState => ({
+      ...prevState,
+      sessions: {
+        ...prevState.sessions,
+        [sessionId]: clearedSession
+      }
+    }));
+  }, [salesState.sessions, updateSalesState]);
+
+  // Funciones de compatibilidad con la API anterior
+  const activeSession = getActiveSession();
+  const totals = calculateSessionTotals(activeSession);
+
+  // Wrappers para la sesión activa
+  const addToCart = useCallback((product, quantity = 1, size = null, color = null) => {
+    if (!salesState.activeSessionId) return;
+    return addItem(salesState.activeSessionId, {
+      productId: product.id,
+      name: product.name,
+      code: product.code,
+      price: product.salePrice || product.price,
+      quantity,
+      size,
+      color,
+      stock: product.stock,
+      isReturn: product.isReturn,
+      isQuickItem: !product.id
+    });
+  }, [salesState.activeSessionId, addItem]);
+
+  const updateCartItemQuantity = useCallback((lineId, newQuantity) => {
+    if (!salesState.activeSessionId) return;
+    updateItemQty(salesState.activeSessionId, lineId, newQuantity);
+  }, [salesState.activeSessionId, updateItemQty]);
+
+  const removeFromCart = useCallback((lineId) => {
+    if (!salesState.activeSessionId) return;
+    removeItem(salesState.activeSessionId, lineId);
+  }, [salesState.activeSessionId, removeItem]);
+
+  // Funciones adicionales para compatibilidad
   const loadSalesHistory = useCallback(async (filters = {}) => {
     setLoading(true);
-    setError(null);
-
     try {
       const history = await getSalesHistory(filters);
       setSalesHistory(history);
       return history;
     } catch (err) {
       setError(err.message);
-      console.error('Error al cargar historial:', err);
       return [];
     } finally {
       setLoading(false);
     }
   }, []);
-
-  /**
-   * Buscar ventas
-   */
-  const searchSalesHistory = useCallback(async (searchTerm) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const results = await searchSales(searchTerm);
-      setSalesHistory(results);
-      return results;
-    } catch (err) {
-      setError(err.message);
-      console.error('Error al buscar ventas:', err);
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  /**
-   * Eliminar venta del historial
-   */
-  const deleteSaleFromHistory = useCallback(async (saleId) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      await deleteSale(saleId);
-      setSalesHistory(prev => prev.filter(sale => sale.id !== saleId));
-      return saleId;
-    } catch (err) {
-      setError(err.message);
-      console.error('Error al eliminar venta:', err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  /**
-   * Guardar venta en espera (legacy - mantenido para compatibilidad)
-   */
-  const savePendingSaleData = useCallback(async (clientId) => {
-    const session = clientSessions[clientId];
-    if (!session || session.cart.length === 0) {
-      return null;
-    }
-
-    try {
-      const totals = calculateTotals();
-      const saleData = {
-        items: session.cart,
-        paymentMethod: session.paymentMethod,
-        discount: totals.discountValue,
-        total: totals.total,
-        customerName: session.customerName,
-        cardName: session.cardName,
-        installments: session.installments,
-        commission: session.commission
-      };
-
-      const saved = await savePendingSale(clientId, saleData);
-      
-      // Actualizar estado local de ventas pendientes
-      setPendingSales(prev => {
-        const updated = prev.filter(sale => sale.clientId !== clientId);
-        return [...updated, saved];
-      });
-
-      return saved;
-    } catch (err) {
-      setError(err.message);
-      console.error('Error al guardar venta en espera:', err);
-      throw err;
-    }
-  }, [clientSessions, calculateTotals]);
-
-  /**
-   * Cargar venta en espera (legacy - mantenido para compatibilidad)
-   */
-  const loadPendingSaleData = useCallback(async (clientId) => {
-    try {
-      const pendingSale = await getPendingSale(clientId);
-      
-      if (pendingSale) {
-        setClientSessions(prev => ({
-          ...prev,
-          [clientId]: {
-            cart: pendingSale.items || [],
-            paymentMethod: pendingSale.paymentMethod || 'Efectivo',
-            discountAmount: 0,
-            discountPercent: 0,
-            cashReceived: 0,
-            customerName: pendingSale.customerName || '',
-            cardName: pendingSale.cardName || '',
-            installments: pendingSale.installments || 0,
-            commission: pendingSale.commission || 0
-          }
-        }));
-      }
-
-      return pendingSale;
-    } catch (err) {
-      console.error('Error al cargar venta en espera:', err);
-      return null;
-    }
-  }, []);
-
-  /**
-   * Generar datos para recibo
-   */
-  const generateReceipt = useCallback((sale) => {
-    return generateReceiptData(sale);
-  }, []);
-
-  /**
-   * Obtener estadísticas de ventas
-   */
-  const getSalesStatistics = useCallback(async (period = 'today') => {
-    try {
-      const stats = await getSalesStats(period);
-      return stats;
-    } catch (err) {
-      console.error('Error al obtener estadísticas:', err);
-      return {
-        totalSales: 0,
-        totalRevenue: 0,
-        averageSale: 0,
-        paymentMethods: {},
-        topProducts: {}
-      };
-    }
-  }, []);
-
-  // Calcular totales automáticamente cuando cambie el carrito
-  const totals = calculateTotals();
 
   return {
-    // Estado del carrito (sesión actual)
-    cart,
-    paymentMethod,
-    discountAmount,
-    discountPercent,
-    cashReceived,
-    customerName,
-    cardName,
-    installments,
-    commission,
+    // Estado de sesiones
+    sessions: salesState.sessions,
+    activeSessionId: salesState.activeSessionId,
+    
+    // Estado de la sesión activa (para compatibilidad)
+    cart: activeSession?.items || [],
+    paymentMethod: activeSession?.paymentMethod || PAYMENT_METHODS.EFECTIVO,
+    discountAmount: activeSession?.discountAmount || 0,
+    discountPercent: activeSession?.discountPercent || 0,
+    cashReceived: activeSession?.cashReceived || 0,
+    customerName: activeSession?.customerName || '',
+    cardName: activeSession?.cardName || '',
+    installments: activeSession?.installments || 0,
+    commission: activeSession?.commission || 0,
     totals,
     
-    // Estado de ventas
+    // Estado general
     salesHistory,
-    pendingSales,
-    activeClient,
     loading,
     error,
+    activeClient: salesState.activeSessionId, // Para compatibilidad
     
-    // Funciones del carrito
+    // API de sesiones
+    createSession,
+    switchSession,
+    cancelSession,
+    finalizeSession,
+    addItem,
+    removeItem,
+    updateItemQty,
+    applyDiscountAmount,
+    applyDiscountPercent,
+    setPaymentMethod: (method) => salesState.activeSessionId && setPaymentMethod(salesState.activeSessionId, method),
+    setCashReceived: (amount) => salesState.activeSessionId && setCashReceived(salesState.activeSessionId, amount),
+    attachCustomer: (name) => salesState.activeSessionId && attachCustomer(salesState.activeSessionId, name),
+    setCreditCardData: (cardName, installments, commission) => salesState.activeSessionId && setCreditCardData(salesState.activeSessionId, cardName, installments, commission),
+    clearSession: () => salesState.activeSessionId && clearSession(salesState.activeSessionId),
+    
+    // Funciones de compatibilidad
     addToCart,
     updateCartItemQuantity,
     removeFromCart,
-    clearCart,
-    addQuickItem,
-    addReturnItem,
+    completeSale: () => salesState.activeSessionId && finalizeSession(salesState.activeSessionId),
+    changeActiveClient: switchSession,
+    clearCart: () => salesState.activeSessionId && clearSession(salesState.activeSessionId),
     
-    // Funciones de venta
-    completeSale,
+    // Setters de compatibilidad
+    setDiscountAmount: (amount) => salesState.activeSessionId && applyDiscountAmount(salesState.activeSessionId, amount),
+    setDiscountPercent: (percent) => salesState.activeSessionId && applyDiscountPercent(salesState.activeSessionId, percent),
+    setCustomerName: (name) => salesState.activeSessionId && attachCustomer(salesState.activeSessionId, name),
+    setCardName: (name) => salesState.activeSessionId && setCreditCardData(salesState.activeSessionId, name, activeSession?.installments, activeSession?.commission),
+    setInstallments: (installments) => salesState.activeSessionId && setCreditCardData(salesState.activeSessionId, activeSession?.cardName, installments, activeSession?.commission),
+    setCommission: (commission) => salesState.activeSessionId && setCreditCardData(salesState.activeSessionId, activeSession?.cardName, activeSession?.installments, commission),
+    
+    // Funciones adicionales
     loadSalesHistory,
-    searchSalesHistory,
-    deleteSaleFromHistory,
+    generateReceipt: generateReceiptData,
+    getSalesStatistics: getSalesStats,
     
-    // Funciones de ventas en espera
-    savePendingSaleData,
-    loadPendingSaleData,
-    changeActiveClient,
-    deletePendingSaleData,
-    
-    // Setters
-    setPaymentMethod,
-    setDiscountAmount,
-    setDiscountPercent,
-    setCashReceived,
-    setCustomerName,
-    setActiveClient,
-    setCardName,
-    setInstallments,
-    setCommission,
-    
-    // Utilidades
-    generateReceipt,
-    getSalesStatistics,
-    
-    // Funciones de sesiones
-    createClientSession,
-    clientSessions
+    // Funciones legacy (mantener para compatibilidad)
+    addQuickItem: (itemData) => salesState.activeSessionId && addItem(salesState.activeSessionId, { ...itemData, isQuickItem: true }),
+    addReturnItem: (returnData) => salesState.activeSessionId && addItem(salesState.activeSessionId, { ...returnData, isReturn: true, price: -Math.abs(returnData.price) }),
+    deletePendingSaleData: cancelSession,
+    savePendingSaleData: () => Promise.resolve(null), // No necesario con localStorage
+    loadPendingSaleData: () => Promise.resolve(null), // No necesario con localStorage
+    searchSalesHistory: searchSales,
+    deleteSaleFromHistory: deleteSale
   };
 };
 

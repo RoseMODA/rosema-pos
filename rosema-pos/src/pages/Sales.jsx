@@ -21,6 +21,8 @@ const Sales = () => {
   } = useProducts();
   
   const {
+    sessions,
+    activeSessionId,
     cart,
     paymentMethod,
     discountAmount,
@@ -31,18 +33,15 @@ const Sales = () => {
     installments,
     commission,
     totals,
-    activeClient,
     loading: salesLoading,
     error,
+    createSession,
+    switchSession,
+    cancelSession,
     addToCart,
     updateCartItemQuantity,
     removeFromCart,
-    clearCart,
-    addQuickItem,
-    addReturnItem,
     completeSale,
-    changeActiveClient,
-    deletePendingSaleData,
     setPaymentMethod,
     setDiscountAmount,
     setDiscountPercent,
@@ -50,7 +49,9 @@ const Sales = () => {
     setCustomerName,
     setCardName,
     setInstallments,
-    setCommission
+    setCommission,
+    addQuickItem,
+    addReturnItem
   } = useSales();
 
   // Estados locales
@@ -62,10 +63,13 @@ const Sales = () => {
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [lastSaleData, setLastSaleData] = useState(null);
 
-  // Estados para las ventas en espera (múltiples clientes)
-  const [pendingSales, setPendingSales] = useState([
-    { id: 1, name: 'Cliente 1', total: 0, items: [] }
-  ]);
+  // Convertir sesiones a formato compatible con la UI existente
+  const pendingSales = Object.values(sessions).map(session => ({
+    id: session.id,
+    name: session.label,
+    total: totals.total || 0,
+    items: session.items || []
+  }));
 
   // Estadísticas de productos
   const productStats = getProductStats();
@@ -100,21 +104,16 @@ const Sales = () => {
   /**
    * Cambiar cliente activo
    */
-  const handleClientChange = async (clientId) => {
-    await changeActiveClient(clientId);
+  const handleClientChange = (clientId) => {
+    switchSession(clientId);
   };
 
   /**
    * Eliminar cliente/venta en espera
    */
-  const handleDeleteClient = async (clientId) => {
+  const handleDeleteClient = (clientId) => {
     if (pendingSales.length > 1) {
-      await deletePendingSaleData(clientId);
-      setPendingSales(prev => prev.filter(client => client.id !== clientId));
-      if (activeClient === clientId) {
-        const newActiveClient = pendingSales.find(c => c.id !== clientId)?.id || 1;
-        await changeActiveClient(newActiveClient);
-      }
+      cancelSession(clientId);
     }
   };
 
@@ -174,27 +173,15 @@ const Sales = () => {
   /**
    * Crear nueva venta (agregar nuevo cliente)
    */
-  const handleNewSale = async () => {
+  const handleNewSale = () => {
     try {
-      // Crear nuevo cliente con ID único basado en los existentes
-      const existingIds = pendingSales.map(p => p.id);
-      const newClientId = existingIds.length > 0 ? Math.max(...existingIds) + 1 : 1;
-      
-      const newClient = {
-        id: newClientId,
-        name: `Cliente ${newClientId}`,
-        total: 0,
-        items: []
-      };
-
-      // Agregar nuevo cliente a la lista
-      setPendingSales(prev => [...prev, newClient]);
-      
-      // Cambiar al nuevo cliente (esto automáticamente guardará el carrito actual y creará nueva sesión)
-      await changeActiveClient(newClientId);
+      // Crear nueva sesión con etiqueta automática
+      const sessionCount = Object.keys(sessions).length;
+      const newSessionId = createSession(`Cliente ${sessionCount + 1}`);
+      console.log('Nueva sesión creada:', newSessionId);
     } catch (error) {
       console.error('Error al crear nueva venta:', error);
-      alert('Error al crear nueva venta');
+      alert(`Error al crear nueva venta: ${error.message}`);
     }
   };
 
@@ -212,8 +199,8 @@ const Sales = () => {
       saleNumber: `PREV-${Date.now()}`, // Número temporal para vista previa
       items: cart.map(item => ({
         name: item.name,
-        code: item.code,
-        quantity: item.quantity,
+        code: item.code || 'N/A',
+        quantity: item.qty || item.quantity,
         price: item.price
       })),
       customerName: customerName,
@@ -231,7 +218,7 @@ const Sales = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div key={activeSessionId} className="min-h-screen bg-gray-50 p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
@@ -264,45 +251,56 @@ const Sales = () => {
 
       {/* Tabs de clientes en espera */}
       <div className="flex space-x-2 mb-6">
-        {pendingSales.map((client) => (
-          <div key={client.id} className="flex items-center">
-            <button
-              onClick={() => handleClientChange(client.id)}
-              className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
-                activeClient === client.id
-                  ? 'bg-gray-800 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              {client.name}
-            </button>
-            
-            {/* Indicador de total y botón eliminar */}
-            <div className={`flex items-center px-2 py-2 ${
-              activeClient === client.id ? 'bg-gray-800' : 'bg-gray-200'
-            } rounded-t-lg`}>
-              <span className={`text-sm mr-2 ${
-                activeClient === client.id ? 'text-white' : 'text-gray-600'
-              }`}>
-                ${totals.total.toLocaleString()}
-              </span>
-              {pendingSales.length > 1 && (
-                <button
-                  onClick={() => handleDeleteClient(client.id)}
-                  className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${
-                    activeClient === client.id 
-                      ? 'bg-red-600 hover:bg-red-700 text-white' 
-                      : 'bg-red-500 hover:bg-red-600 text-white'
-                  }`}
-                >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
+        {pendingSales.map((client) => {
+          const session = sessions[client.id];
+          const sessionTotals = session ? {
+            subtotal: session.items.reduce((sum, item) => sum + (item.price * item.qty), 0),
+            discountValue: session.discountPercent > 0 
+              ? (session.items.reduce((sum, item) => sum + (item.price * item.qty), 0) * session.discountPercent / 100)
+              : session.discountAmount,
+            get total() { return Math.max(0, this.subtotal - this.discountValue); }
+          } : { total: 0 };
+
+          return (
+            <div key={client.id} className="flex items-center">
+              <button
+                onClick={() => handleClientChange(client.id)}
+                className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
+                  activeSessionId === client.id
+                    ? 'bg-gray-800 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                {client.name}
+              </button>
+              
+              {/* Indicador de total y botón eliminar */}
+              <div className={`flex items-center px-2 py-2 ${
+                activeSessionId === client.id ? 'bg-gray-800' : 'bg-gray-200'
+              } rounded-t-lg`}>
+                <span className={`text-sm mr-2 ${
+                  activeSessionId === client.id ? 'text-white' : 'text-gray-600'
+                }`}>
+                  ${sessionTotals.total.toLocaleString()}
+                </span>
+                {pendingSales.length > 1 && (
+                  <button
+                    onClick={() => handleDeleteClient(client.id)}
+                    className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${
+                      activeSessionId === client.id 
+                        ? 'bg-red-600 hover:bg-red-700 text-white' 
+                        : 'bg-red-500 hover:bg-red-600 text-white'
+                    }`}
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Layout principal de dos columnas */}
@@ -675,11 +673,11 @@ const Sales = () => {
           {/* Lista de productos en el carrito */}
           <div className="space-y-4 mb-6">
             {cart.map((item) => (
-              <div key={item.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div key={item.lineId || item.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div className="flex-1">
                   <h4 className="font-medium text-gray-900">{item.name}</h4>
                   <p className="text-sm text-gray-600">
-                    Código: {item.code} | Talla: {item.size || 'N/A'} | Color: {item.color || 'N/A'}
+                    Código: {item.code || 'N/A'} | Talla: {item.variant?.talla || item.size || 'N/A'} | Color: {item.variant?.color || item.color || 'N/A'}
                   </p>
                   <p className="text-lg font-semibold text-green-600">
                     ${item.price.toLocaleString()}
@@ -689,7 +687,7 @@ const Sales = () => {
                 <div className="flex items-center space-x-3">
                   {/* Controles de cantidad */}
                   <button
-                    onClick={() => updateCartItemQuantity(item.id, item.quantity - 1)}
+                    onClick={() => updateCartItemQuantity(item.lineId || item.id, (item.qty || item.quantity) - 1)}
                     className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center transition-colors"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -697,10 +695,10 @@ const Sales = () => {
                     </svg>
                   </button>
                   
-                  <span className="w-8 text-center font-medium">{item.quantity}</span>
+                  <span className="w-8 text-center font-medium">{item.qty || item.quantity}</span>
                   
                   <button
-                    onClick={() => updateCartItemQuantity(item.id, item.quantity + 1)}
+                    onClick={() => updateCartItemQuantity(item.lineId || item.id, (item.qty || item.quantity) + 1)}
                     className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center transition-colors"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -710,7 +708,7 @@ const Sales = () => {
                   
                   {/* Botón eliminar */}
                   <button
-                    onClick={() => removeFromCart(item.id)}
+                    onClick={() => removeFromCart(item.lineId || item.id)}
                     className="w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
