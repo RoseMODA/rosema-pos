@@ -259,24 +259,27 @@ const SalesCart = ({
                   value={discountTypeInput}
                   onChange={(e) => setDiscountTypeInput(e.target.value)}
                 >
-                  <option value="percentage">Porcentaje (%)</option>
+                                    <option value="percentage">Porcentaje (%)</option>
                   <option value="fixed">Monto Fijo ($)</option>
                 </select>
-              </div>
-              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Valor
                 </label>
                 <input
-                  type="number"
+                  type="text"
                   id="discountValue"
                   placeholder="Ingrese el valor"
                   value={discountValueInput}
-                  onChange={(e) => setDiscountValueInput(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Solo permitir números, punto decimal y borrar
+                    if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                      setDiscountValueInput(value);
+                    }
+                  }}
                   className="input-rosema"
-                  min="0"
-                  step="0.01"
+                  inputMode="decimal"
                 />
               </div>
             </div>
