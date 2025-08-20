@@ -270,17 +270,13 @@ const SalesCart = ({
                   Valor
                 </label>
                 <input
-                  type="text"
+                  type="number"
+                  step="0.01"
+                  min="0"
                   id="discountValue"
                   placeholder="Ingrese el valor"
                   value={discountValueInput}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    // Solo permitir números, punto decimal y borrar
-                    if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                      setDiscountValueInput(value);
-                    }
-                  }}
+                  onChange={(e) => setDiscountValueInput(e.target.value)}
                   className="input-rosema"
                   inputMode="decimal"
                 />
