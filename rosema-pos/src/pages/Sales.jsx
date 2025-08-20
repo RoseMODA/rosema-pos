@@ -63,6 +63,23 @@ const Sales = () => {
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [lastSaleData, setLastSaleData] = useState(null);
 
+  // Estados locales para inputs de descuento (como strings para permitir escritura libre)
+  const [discountAmountInput, setDiscountAmountInput] = useState(
+    discountAmount > 0 ? discountAmount.toString() : ''
+  );
+  const [discountPercentInput, setDiscountPercentInput] = useState(
+    discountPercent > 0 ? discountPercent.toString() : ''
+  );
+
+  // Sincronizar estado local cuando cambien los valores del store (para cargas de sesión)
+  useEffect(() => {
+    setDiscountAmountInput(discountAmount > 0 ? discountAmount.toString() : '');
+  }, [discountAmount]);
+  
+  useEffect(() => {
+    setDiscountPercentInput(discountPercent > 0 ? discountPercent.toString() : '');
+  }, [discountPercent]);
+
   // Convertir sesiones a formato compatible con la UI existente
   const pendingSales = Object.values(sessions).map(session => ({
     id: session.id,
@@ -493,11 +510,26 @@ const Sales = () => {
                 </label>
                 <input
                   type="number"
-                  value={discountAmount || ''}
+                  value={discountAmountInput}
                   onChange={(e) => {
-                    const value = e.target.value === '' ? 0 : Number(e.target.value);
-                    setDiscountAmount(value);
-                    if (value > 0) setDiscountPercent(0);
+                    // Actualizar solo el estado local
+                    setDiscountAmountInput(e.target.value);
+                  }}
+                  onBlur={() => {
+                    // Al perder el foco, parsear y actualizar el estado global
+                    const parsed = parseFloat(discountAmountInput);
+                    if (!isNaN(parsed) && parsed >= 0) {
+                      // Si es un número válido, actualizar el store
+                      setDiscountAmount(parsed);
+                      if (parsed > 0) {
+                        // Resetear el descuento por porcentaje
+                        setDiscountPercent(0);
+                        setDiscountPercentInput('');
+                      }
+                    } else {
+                      // Si no es válido o está vacío, dejar en 0
+                      setDiscountAmount(0);
+                    }
                   }}
                   className="w-full input-rosema"
                   placeholder="Ingrese monto"
@@ -511,11 +543,26 @@ const Sales = () => {
                 </label>
                 <input
                   type="number"
-                  value={discountPercent || ''}
+                  value={discountPercentInput}
                   onChange={(e) => {
-                    const value = e.target.value === '' ? 0 : Number(e.target.value);
-                    setDiscountPercent(value);
-                    if (value > 0) setDiscountAmount(0);
+                    // Actualizar solo el estado local
+                    setDiscountPercentInput(e.target.value);
+                  }}
+                  onBlur={() => {
+                    // Al perder el foco, parsear y actualizar el estado global
+                    const parsed = parseFloat(discountPercentInput);
+                    if (!isNaN(parsed) && parsed >= 0) {
+                      // Si es un número válido, actualizar el store
+                      setDiscountPercent(parsed);
+                      if (parsed > 0) {
+                        // Resetear el descuento por monto
+                        setDiscountAmount(0);
+                        setDiscountAmountInput('');
+                      }
+                    } else {
+                      // Si no es válido o está vacío, dejar en 0
+                      setDiscountPercent(0);
+                    }
                   }}
                   className="w-full input-rosema"
                   placeholder="Ingrese porcentaje"
