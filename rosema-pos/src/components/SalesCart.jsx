@@ -245,7 +245,6 @@ const SalesCart = ({
       {/* Modal de descuento */}
       {showDiscountModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96 max-w-90vw">
             <h3 className="text-lg font-semibold mb-4">Aplicar Descuento</h3>
             
             <div className="space-y-4">
@@ -259,9 +258,11 @@ const SalesCart = ({
                   value={discountTypeInput}
                   onChange={(e) => setDiscountTypeInput(e.target.value)}
                 >
-                                    <option value="percentage">Porcentaje (%)</option>
+                  <option value="percentage">Porcentaje (%)</option>
                   <option value="fixed">Monto Fijo ($)</option>
                 </select>
+              </div>
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Valor
@@ -306,7 +307,6 @@ const SalesCart = ({
               </button>
             </div>
           </div>
-        </div>
       )}
 
       {/* Modal de venta en espera */}
