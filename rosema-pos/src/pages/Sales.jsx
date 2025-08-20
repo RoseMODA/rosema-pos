@@ -719,4 +719,152 @@ const Sales = () => {
 
             {/* Total */}
             <div className="border-t border-gray-200 pt-4 mb-6">
-              <div className="flex justify-between items-center text-2xl font-bol
+              <div className="flex justify-between items-center text-2xl font-bold
+d">
+                <span>Total:</span>
+                <span className="text-green-600">${totals.total.toLocaleString()}</span>
+              </div>
+            </div>
+
+            {/* Botones de acción */}
+            <div className="flex space-x-3">
+              <button 
+                onClick={handlePrintReceipt}
+                className="flex-1 btn-secondary flex items-center justify-center space-x-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                <span>Imprimir recibo</span>
+              </button>
+              
+              <button 
+                onClick={handleProcessSale}
+                disabled={salesLoading || cart.length === 0}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {salesLoading ? "Procesando..." : "Procesar Venta"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Columna derecha - Carrito detallado */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+              <svg className="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01" />
+              </svg>
+              Carrito de Compra
+            </h3>
+            
+            <button className="w-8 h-8 bg-gray-800 hover:bg-gray-900 text-white rounded-lg flex items-center justify-center transition-colors">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Campo de cliente */}
+          <div className="mb-6">
+            <input
+              type="text"
+              placeholder="Cliente (Opcional)"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              className="w-full input-rosema"
+            />
+          </div>
+
+          {/* Lista de productos en el carrito */}
+          <div className="space-y-4 mb-6">
+            {cart.map((item) => (
+              <div key={item.lineId || item.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex-1">
+                  <h4 className="font-medium text-gray-900">{item.name}</h4>
+                  <p className="text-sm text-gray-600">
+                    Código: {item.code || "N/A"} | Talla: {item.variant?.talla || item.size || "N/A"} | Color: {item.variant?.color || item.color || "N/A"}
+                  </p>
+                  <p className="text-lg font-semibold text-green-600">
+                    ${item.price.toLocaleString()}
+                  </p>
+                </div>
+                
+                <div className="flex items-center space-x-3">
+                  {/* Controles de cantidad */}
+                  <button
+                    onClick={() => updateCartItemQuantity(item.lineId || item.id, (item.qty || item.quantity) - 1)}
+                    className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                    </svg>
+                  </button>
+                  
+                  <span className="w-8 text-center font-medium">{item.qty || item.quantity}</span>
+                  
+                  <button
+                    onClick={() => updateCartItemQuantity(item.lineId || item.id, (item.qty || item.quantity) + 1)}
+                    className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                  </button>
+                  
+                  {/* Botón eliminar */}
+                  <button
+                    onClick={() => removeFromCart(item.lineId || item.id)}
+                    className="w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Mensaje si el carrito está vacío */}
+          {cart.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01" />
+              </svg>
+              <p>El carrito está vacío</p>
+              <p className="text-sm">Busca productos para agregar a la venta</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Modales */}
+      <QuickItemModal
+        isOpen={showQuickItemModal}
+        onClose={() => setShowQuickItemModal(false)}
+        onAddItem={handleAddQuickItem}
+      />
+
+      <SalesHistoryModal
+        isOpen={showHistoryModal}
+        onClose={() => setShowHistoryModal(false)}
+      />
+
+      <ReturnModal
+        isOpen={showReturnModal}
+        onClose={() => setShowReturnModal(false)}
+        onAddReturn={handleAddReturn}
+      />
+
+      <PrintReceiptModal
+        isOpen={showPrintModal}
+        onClose={() => setShowPrintModal(false)}
+        saleData={lastSaleData}
+      />
+    </div>
+  );
+};
+
+export default Sales;
