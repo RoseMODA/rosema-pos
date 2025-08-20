@@ -19,6 +19,9 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [saleForPrint, setSaleForPrint] = useState(null);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [paymentFilter, setPaymentFilter] = useState('all');
 
   /**
    * Cargar historial al abrir el modal
@@ -30,15 +33,51 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
   }, [isOpen, loadSalesHistory]);
 
   /**
-   * Manejar búsqueda
+   * Manejar búsqueda y filtros
    */
-  const handleSearch = async (term) => {
+  const handleSearch = async (term = searchTerm) => {
     setSearchTerm(term);
+    
+    const filters = { limit: 50 };
+    
+    // Filtro por fechas
+    if (startDate) {
+      filters.startDate = new Date(startDate);
+    }
+    if (endDate) {
+      const endDateTime = new Date(endDate);
+      endDateTime.setHours(23, 59, 59, 999); // Incluir todo el día
+      filters.endDate = endDateTime;
+    }
+    
+    // Filtro por método de pago
+    if (paymentFilter !== 'all') {
+      filters.paymentMethod = paymentFilter;
+    }
+    
     if (term.trim()) {
       await searchSalesHistory(term);
     } else {
-      await loadSalesHistory({ limit: 50 });
+      await loadSalesHistory(filters);
     }
+  };
+
+  /**
+   * Aplicar filtros
+   */
+  const applyFilters = () => {
+    handleSearch();
+  };
+
+  /**
+   * Limpiar filtros
+   */
+  const clearFilters = () => {
+    setStartDate('');
+    setEndDate('');
+    setPaymentFilter('all');
+    setSearchTerm('');
+    loadSalesHistory({ limit: 50 });
   };
 
   /**

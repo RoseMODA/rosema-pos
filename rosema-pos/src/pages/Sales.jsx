@@ -495,11 +495,14 @@ const Sales = () => {
                   type="number"
                   value={discountAmount || ''}
                   onChange={(e) => {
-                    setDiscountAmount(Number(e.target.value) || 0);
-                    setDiscountPercent(0);
+                    const value = e.target.value === '' ? 0 : Number(e.target.value);
+                    setDiscountAmount(value);
+                    if (value > 0) setDiscountPercent(0);
                   }}
                   className="w-full input-rosema"
                   placeholder="Ingrese monto"
+                  min="0"
+                  step="0.01"
                 />
               </div>
               <div>
@@ -510,12 +513,15 @@ const Sales = () => {
                   type="number"
                   value={discountPercent || ''}
                   onChange={(e) => {
-                    setDiscountPercent(Number(e.target.value) || 0);
-                    setDiscountAmount(0);
+                    const value = e.target.value === '' ? 0 : Number(e.target.value);
+                    setDiscountPercent(value);
+                    if (value > 0) setDiscountAmount(0);
                   }}
                   className="w-full input-rosema"
                   placeholder="Ingrese porcentaje"
+                  min="0"
                   max="100"
+                  step="0.1"
                 />
               </div>
             </div>
@@ -596,6 +602,38 @@ const Sales = () => {
                       step="0.1"
                     />
                   </div>
+                </div>
+
+                {/* Mostrar cálculo de comisión */}
+                {commission > 0 && (
+                  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="text-sm text-yellow-800">
+                      <p className="font-medium">Información de Comisión:</p>
+                      <p>Comisión: ${((totals.total * commission) / 100).toLocaleString()}</p>
+                      <p>Neto a recibir: ${(totals.total - ((totals.total * commission) / 100)).toLocaleString()}</p>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Campos específicos para Débito y QR */}
+            {(paymentMethod === 'Débito' || paymentMethod === 'QR') && (
+              <>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Comisión (%)
+                  </label>
+                  <input
+                    type="number"
+                    value={commission || ''}
+                    onChange={(e) => setCommission(Number(e.target.value) || 0)}
+                    className="w-full input-rosema"
+                    placeholder="% de comisión"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                  />
                 </div>
 
                 {/* Mostrar cálculo de comisión */}
