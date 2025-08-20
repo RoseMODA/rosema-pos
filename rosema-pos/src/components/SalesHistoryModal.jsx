@@ -123,6 +123,19 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
   };
 
   /**
+   * Calcular dinero realmente recibido (considerando comisiones)
+   */
+  const calculateNetReceived = (sale) => {
+    if (sale.paymentMethod === 'Efectivo') {
+      return sale.cashReceived || sale.total;
+    }
+    if (['Crédito', 'Débito', 'QR'].includes(sale.paymentMethod) && sale.commission) {
+      return sale.total - (sale.total * sale.commission / 100);
+    }
+    return sale.total;
+  };
+
+  /**
    * Manejar impresión de recibo
    */
   const handlePrintReceipt = (sale) => {
@@ -184,12 +197,72 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        {/* Búsqueda */}
+        {/* Búsqueda y Filtros */}
         <div className="p-6 border-b border-gray-200">
+          {/* Filtros por fecha */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de inicio</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full input-rosema"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de fin</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full input-rosema"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Método de pago</label>
+              <select
+                value={paymentFilter}
+                onChange={(e) => setPaymentFilter(e.target.value)}
+                className="w-full input-rosema"
+              >
+                <option value="all">Todos los métodos</option>
+                <option value="Efectivo">Efectivo</option>
+                <option value="Transferencia">Transferencia</option>
+                <option value="Débito">Débito</option>
+                <option value="Crédito">Crédito</option>
+                <option value="QR">QR</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Botones de filtro */}
+          <div className="flex space-x-3 mb-4">
+            <button
+              onClick={applyFilters}
+              className="btn-rosema flex items-center space-x-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
+              </svg>
+              <span>Aplicar Filtros</span>
+            </button>
+            <button
+              onClick={clearFilters}
+              className="btn-secondary flex items-center space-x-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              <span>Limpiar</span>
+            </button>
+          </div>
+
+          {/* Búsqueda */}
           <div className="relative">
             <input
               type="text"
-              placeholder="Buscar por cliente..."
+              placeholder="Buscar por cliente o N° Venta..."
               value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
               className="w-full input-rosema pl-10"
@@ -231,6 +304,13 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
                         </span>
                         <span className="text-sm text-gray-500">
                           {formatDate(sale.saleDate)}
+                        </span>
+                      </div>
+
+                      {/* Número de venta */}
+                      <div className="mb-2">
+                        <span className="text-xs text-gray-500">
+                          N° Venta: {sale.id.slice(-8).toUpperCase()}
                         </span>
                       </div>
 
@@ -339,6 +419,10 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
+                    <label className="text-sm font-medium text-gray-500">N° Venta</label>
+                    <p className="text-gray-900 font-mono">{selectedSale.id.slice(-8).toUpperCase()}</p>
+                  </div>
+                  <div>
                     <label className="text-sm font-medium text-gray-500">Cliente</label>
                     <p className="text-gray-900">{selectedSale.customerName || 'Sin nombre'}</p>
                   </div>
@@ -353,6 +437,10 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
                   <div>
                     <label className="text-sm font-medium text-gray-500">Total</label>
                     <p className="text-green-600 font-semibold">${selectedSale.total?.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Dinero Recibido</label>
+                    <p className="text-blue-600 font-semibold">${calculateNetReceived(selectedSale)?.toLocaleString() || '0'}</p>
                   </div>
                 </div>
 

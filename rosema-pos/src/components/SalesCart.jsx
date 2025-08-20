@@ -22,6 +22,8 @@ const SalesCart = ({
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [showPendingSaleModal, setShowPendingSaleModal] = useState(false);
   const [pendingSaleLabel, setPendingSaleLabel] = useState('');
+  const [discountTypeInput, setDiscountTypeInput] = useState(discount.type);
+  const [discountValueInput, setDiscountValueInput] = useState(discount.value);
 
   /**
    * Manejar aplicación de descuento
@@ -29,6 +31,15 @@ const SalesCart = ({
   const handleApplyDiscount = (type, value) => {
     onSetDiscount({ type, value: parseFloat(value) || 0 });
     setShowDiscountModal(false);
+  };
+
+  /**
+   * Abrir modal de descuento con valores actuales
+   */
+  const openDiscountModal = () => {
+    setDiscountTypeInput(discount.type);
+    setDiscountValueInput(discount.value);
+    setShowDiscountModal(true);
   };
 
   /**
@@ -195,7 +206,7 @@ const SalesCart = ({
           <div className="mt-6 space-y-3">
             {/* Botón de descuento */}
             <button
-              onClick={() => setShowDiscountModal(true)}
+              onClick={openDiscountModal}
               disabled={loading}
               className="w-full btn-secondary"
             >
@@ -245,7 +256,8 @@ const SalesCart = ({
                 <select
                   id="discountType"
                   className="input-rosema"
-                  defaultValue={discount.type}
+                  value={discountTypeInput}
+                  onChange={(e) => setDiscountTypeInput(e.target.value)}
                 >
                   <option value="percentage">Porcentaje (%)</option>
                   <option value="fixed">Monto Fijo ($)</option>
@@ -260,7 +272,8 @@ const SalesCart = ({
                   type="number"
                   id="discountValue"
                   placeholder="Ingrese el valor"
-                  defaultValue={discount.value}
+                  value={discountValueInput}
+                  onChange={(e) => setDiscountValueInput(e.target.value)}
                   className="input-rosema"
                   min="0"
                   step="0.01"
@@ -277,9 +290,12 @@ const SalesCart = ({
               </button>
               <button
                 onClick={() => {
-                  const type = document.getElementById('discountType').value;
-                  const value = document.getElementById('discountValue').value;
-                  handleApplyDiscount(type, value);
+                  const value = parseFloat(discountValueInput) || 0;
+                  if (value < 0) {
+                    alert('El valor del descuento no puede ser negativo');
+                    return;
+                  }
+                  handleApplyDiscount(discountTypeInput, value);
                 }}
                 className="flex-1 btn-rosema"
               >
