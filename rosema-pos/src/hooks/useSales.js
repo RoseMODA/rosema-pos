@@ -46,7 +46,6 @@ const createEmptySession = (label) => ({
   items: [],
   customerId: null,
   customerName: '',
-  discountAmount: 0,
   discountPercent: 0,
   paymentMethod: PAYMENT_METHODS.EFECTIVO,
   cashReceived: 0,
@@ -125,15 +124,19 @@ export const useSales = () => {
     return salesState.sessions[salesState.activeSessionId] || null;
   }, [salesState]);
 
-  // Calcular totales de una sesión
+  // Función para redondear al múltiplo de 500 más cercano
+  const roundToNearest500 = useCallback((amount) => {
+    return Math.round(amount / 500) * 500;
+  }, []);
+
+  // Calcular totales de una sesión con redondeo a múltiplos de 500
   const calculateSessionTotals = useCallback((session) => {
     if (!session) return { subtotal: 0, discountValue: 0, total: 0, change: 0, itemCount: 0 };
     
     const subtotal = session.items.reduce((sum, item) => sum + (item.price * item.qty), 0);
-    const discountValue = session.discountPercent > 0 
-      ? (subtotal * session.discountPercent / 100) 
-      : session.discountAmount;
-    const total = Math.max(0, subtotal - discountValue);
+    const discountValue = subtotal * (session.discountPercent / 100);
+    const totalBeforeRounding = subtotal - discountValue;
+    const total = roundToNearest500(Math.max(0, totalBeforeRounding));
     const change = Math.max(0, session.cashReceived - total);
 
     return {
@@ -143,7 +146,7 @@ export const useSales = () => {
       change,
       itemCount: session.items.reduce((sum, item) => sum + item.qty, 0)
     };
-  }, []);
+  }, [roundToNearest500]);
 
   // Actualizar estado y persistir
   const updateSalesState = useCallback((updater) => {
@@ -434,27 +437,6 @@ export const useSales = () => {
   // API del Store - Gestión de descuentos y pagos
 
   /**
-   * Aplicar descuento por monto
-   */
-  const applyDiscountAmount = useCallback((sessionId, amount) => {
-    const session = salesState.sessions[sessionId];
-    if (!session) return;
-
-    updateSalesState(prevState => ({
-      ...prevState,
-      sessions: {
-        ...prevState.sessions,
-        [sessionId]: {
-          ...session,
-          discountAmount: amount,
-          discountPercent: 0, // Reset porcentaje
-          updatedAt: new Date().toISOString()
-        }
-      }
-    }));
-  }, [salesState.sessions, updateSalesState]);
-
-  /**
    * Aplicar descuento por porcentaje
    */
   const applyDiscountPercent = useCallback((sessionId, percent) => {
@@ -468,7 +450,6 @@ export const useSales = () => {
         [sessionId]: {
           ...session,
           discountPercent: percent,
-          discountAmount: 0, // Reset monto
           updatedAt: new Date().toISOString()
         }
       }
@@ -567,7 +548,6 @@ export const useSales = () => {
     const clearedSession = {
       ...session,
       items: [],
-      discountAmount: 0,
       discountPercent: 0,
       cashReceived: 0,
       customerName: '',
@@ -640,7 +620,6 @@ export const useSales = () => {
     // Estado de la sesión activa (para compatibilidad)
     cart: activeSession?.items || [],
     paymentMethod: activeSession?.paymentMethod || PAYMENT_METHODS.EFECTIVO,
-    discountAmount: activeSession?.discountAmount || 0,
     discountPercent: activeSession?.discountPercent || 0,
     cashReceived: activeSession?.cashReceived || 0,
     customerName: activeSession?.customerName || '',
@@ -663,7 +642,6 @@ export const useSales = () => {
     addItem,
     removeItem,
     updateItemQty,
-    applyDiscountAmount,
     applyDiscountPercent,
     setPaymentMethod: (method) => salesState.activeSessionId && setPaymentMethod(salesState.activeSessionId, method),
     setCashReceived: (amount) => salesState.activeSessionId && setCashReceived(salesState.activeSessionId, amount),
@@ -680,7 +658,6 @@ export const useSales = () => {
     clearCart: () => salesState.activeSessionId && clearSession(salesState.activeSessionId),
     
     // Setters de compatibilidad
-    setDiscountAmount: (amount) => salesState.activeSessionId && applyDiscountAmount(salesState.activeSessionId, amount),
     setDiscountPercent: (percent) => salesState.activeSessionId && applyDiscountPercent(salesState.activeSessionId, percent),
     setCustomerName: (name) => salesState.activeSessionId && attachCustomer(salesState.activeSessionId, name),
     setCardName: (name) => salesState.activeSessionId && setCreditCardData(salesState.activeSessionId, name, activeSession?.installments, activeSession?.commission),

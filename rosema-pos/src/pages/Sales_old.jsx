@@ -9,7 +9,7 @@ import PrintReceiptModal from '../components/PrintReceiptModal';
 /**
  * Página principal del sistema de ventas
  * Implementa el diseño visual específico con layout de dos columnas
- * CON SELECTOR DE DESCUENTOS FIJOS Y REDONDEO A MÚLTIPLOS DE 500
+ * CON AISLAMIENTO COMPLETO DE DESCUENTOS POR SESIÓN
  */
 const Sales = () => {
   // Hooks personalizados
@@ -62,23 +62,25 @@ const Sales = () => {
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [lastSaleData, setLastSaleData] = useState(null);
 
-  // Función para redondear al múltiplo de 500 más cercano
-  const roundToNearest500 = (amount) => {
-    return Math.round(amount / 500) * 500;
-  };
 
-  // Función para calcular totales de cualquier sesión con redondeo
+  // Función para calcular totales de cualquier sesión
   const calculateTotal = (session) => {
     if (!session) return { subtotal: 0, discountValue: 0, total: 0 };
     
     const subtotal = session.items.reduce((sum, item) => sum + item.price * item.qty, 0);
-    const discountValue = subtotal * (session.discountPercent / 100);
-    const totalBeforeRounding = subtotal - discountValue;
-    const total = roundToNearest500(totalBeforeRounding);
+    
+    let total = subtotal;
+    if (session.discountAmount) {
+      total -= session.discountAmount;
+    } else if (session.discountPercent) {
+      total -= subtotal * (session.discountPercent / 100);
+    }
     
     return {
       subtotal,
-      discountValue,
+      discountValue: session.discountPercent > 0 
+        ? subtotal * (session.discountPercent / 100)
+        : session.discountAmount,
       total: total < 0 ? 0 : total
     };
   };
@@ -502,22 +504,75 @@ const Sales = () => {
               </select>
             </div>
 
-            {/* Selector de descuento fijo */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Descuento
-              </label>
-              <select
-                value={discountPercent}
-                onChange={(e) => setDiscountPercent(Number(e.target.value))}
-                className="w-full input-rosema"
-              >
-                <option value={0}>0% (sin descuento)</option>
-                <option value={5}>5% OFF</option>
-                <option value={10}>10% OFF</option>
-                <option value={15}>15% OFF</option>
-                <option value={20}>20% OFF</option>
-              </select>
+            {/* Descuentos AISLADOS POR SESIÓN */}
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Descuento en $
+                </label>
+                <input
+                  type="number"
+                  value={discountAmountInput}
+                  onChange={(e) => {
+                    // Actualizar solo el estado local
+                    setDiscountAmountInput(e.target.value);
+                  }}
+                  onBlur={() => {
+                    // Al perder el foco, parsear y actualizar el estado global DE LA SESIÓN ACTIVA
+                    const parsed = parseFloat(discountAmountInput);
+                    if (!isNaN(parsed) && parsed >= 0) {
+                      // Aplicar descuento a la sesión activa específicamente
+                      applyDiscountAmount(activeSessionId, parsed);
+                      if (parsed > 0) {
+                        // Resetear el descuento por porcentaje en la sesión activa
+                        applyDiscountPercent(activeSessionId, 0);
+                        setDiscountPercentInput('');
+                      }
+                    } else {
+                      // Si no es válido o está vacío, dejar en 0
+                      applyDiscountAmount(activeSessionId, 0);
+                    }
+                  }}
+                  className="w-full input-rosema"
+                  placeholder="Ingrese monto"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Descuento en %
+                </label>
+                <input
+                  type="number"
+                  value={discountPercentInput}
+                  onChange={(e) => {
+                    // Actualizar solo el estado local
+                    setDiscountPercentInput(e.target.value);
+                  }}
+                  onBlur={() => {
+                    // Al perder el foco, parsear y actualizar el estado global DE LA SESIÓN ACTIVA
+                    const parsed = parseFloat(discountPercentInput);
+                    if (!isNaN(parsed) && parsed >= 0) {
+                      // Aplicar descuento a la sesión activa específicamente
+                      applyDiscountPercent(activeSessionId, parsed);
+                      if (parsed > 0) {
+                        // Resetear el descuento por monto en la sesión activa
+                        applyDiscountAmount(activeSessionId, 0);
+                        setDiscountAmountInput('');
+                      }
+                    } else {
+                      // Si no es válido o está vacío, dejar en 0
+                      applyDiscountPercent(activeSessionId, 0);
+                    }
+                  }}
+                  className="w-full input-rosema"
+                  placeholder="Ingrese porcentaje"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                />
+              </div>
             </div>
 
             {/* Mostrar subtotal y descuento aplicado */}
@@ -530,7 +585,9 @@ const Sales = () => {
                 
                 {totals.discountValue > 0 && (
                   <div className="flex justify-between text-sm text-green-600">
-                    <span>Descuento ({discountPercent}%):</span>
+                    <span>
+                      Descuento ({discountPercent > 0 ? `${discountPercent}%` : `$${discountAmount.toLocaleString()}`}):
+                    </span>
                     <span>-${totals.discountValue.toLocaleString()}</span>
                   </div>
                 )}
@@ -662,7 +719,8 @@ const Sales = () => {
 
             {/* Total */}
             <div className="border-t border-gray-200 pt-4 mb-6">
-              <div className="flex justify-between items-center text-2xl font-bold">
+              <div className="flex justify-between items-center text-2xl font-bold
+d">
                 <span>Total:</span>
                 <span className="text-green-600">${totals.total.toLocaleString()}</span>
               </div>
