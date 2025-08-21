@@ -155,6 +155,13 @@ const Sales = () => {
         return;
       }
 
+      // Mostrar confirmación antes de procesar la venta
+      const confirmMessage = `¿Confirmar venta por $${totals.total.toLocaleString()}?\n\nMétodo de pago: ${paymentMethod}\nDescuento: ${discountPercent}%\nTotal: $${totals.total.toLocaleString()}`;
+      
+      if (!confirm(confirmMessage)) {
+        return; // El usuario canceló
+      }
+
       const sale = await completeSale();
       alert('Venta procesada exitosamente');
       console.log('Venta completada:', sale);

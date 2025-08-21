@@ -38,6 +38,18 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
   const handleSearch = async (term = searchTerm) => {
     setSearchTerm(term);
     
+    if (term.trim()) {
+      await searchSalesHistory(term);
+    } else {
+      // Si no hay término de búsqueda, aplicar filtros
+      applyFilters();
+    }
+  };
+
+  /**
+   * Aplicar filtros
+   */
+  const applyFilters = async () => {
     const filters = { limit: 50 };
     
     // Filtro por fechas
@@ -55,18 +67,7 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
       filters.paymentMethod = paymentFilter;
     }
     
-    if (term.trim()) {
-      await searchSalesHistory(term);
-    } else {
-      await loadSalesHistory(filters);
-    }
-  };
-
-  /**
-   * Aplicar filtros
-   */
-  const applyFilters = () => {
-    handleSearch();
+    await loadSalesHistory(filters);
   };
 
   /**
