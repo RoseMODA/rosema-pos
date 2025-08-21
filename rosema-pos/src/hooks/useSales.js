@@ -347,24 +347,26 @@ export const useSales = () => {
       isQuickItem: itemData.isQuickItem || false
     };
 
-    // Verificar si ya existe un item similar
-    const existingIndex = session.items.findIndex(item => 
-      item.productId === lineItem.productId &&
-      item.variant?.talla === lineItem.variant?.talla &&
-      item.variant?.color === lineItem.variant?.color &&
-      !item.isReturn
-    );
+    // Verificar si ya existe un item similar (solo para productos con productId, no para artículos rápidos)
+    const existingIndex = !lineItem.isQuickItem && lineItem.productId ? 
+      session.items.findIndex(item => 
+        item.productId === lineItem.productId &&
+        item.variant?.talla === lineItem.variant?.talla &&
+        item.variant?.color === lineItem.variant?.color &&
+        !item.isReturn &&
+        !item.isQuickItem
+      ) : -1;
 
     let newItems;
-    if (existingIndex >= 0 && !lineItem.isReturn) {
-      // Actualizar cantidad del item existente
+    if (existingIndex >= 0 && !lineItem.isReturn && !lineItem.isQuickItem) {
+      // Actualizar cantidad del item existente (solo para productos regulares)
       newItems = [...session.items];
       newItems[existingIndex] = {
         ...newItems[existingIndex],
         qty: newItems[existingIndex].qty + lineItem.qty
       };
     } else {
-      // Agregar nuevo item
+      // Agregar nuevo item (siempre para artículos rápidos y devoluciones)
       newItems = [...session.items, lineItem];
     }
 
