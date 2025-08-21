@@ -4,11 +4,11 @@ import React from 'react';
  * Componente de recibo para imprimir
  * Genera un recibo con el formato requerido para Rosema
  */
-const Receipt = ({ 
-  sale, 
-  onPrint, 
+const Receipt = ({
+  sale,
+  onPrint,
   onClose,
-  show = false 
+  show = false
 }) => {
   /**
    * Formatear precio
@@ -68,10 +68,10 @@ const Receipt = ({
               <div className="mx-auto w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mb-3 print:w-12 print:h-12 print:mb-2">
                 <span className="text-white text-2xl font-bold print:text-xl">R</span>
               </div>
-              
+
               <h1 className="text-2xl font-bold text-gray-900 print:text-xl">ROSEMA</h1>
-              <p className="text-sm text-gray-600 print:text-xs">Tienda de Ropa</p>
-              
+              <p className="text-sm text-gray-600 print:text-xs">Moda Familiar</p>
+
               {/* Información de contacto */}
               <div className="mt-3 text-sm text-gray-600 print:text-xs print:mt-2">
                 <p>Salto de las Rosas</p>
@@ -100,7 +100,7 @@ const Receipt = ({
               <h3 className="font-semibold text-gray-900 mb-2 print:text-sm print:mb-1">
                 Detalle de Productos
               </h3>
-              
+
               <div className="space-y-2 print:space-y-1">
                 {sale.items.map((item, index) => (
                   <div key={index} className="text-sm print:text-xs">
@@ -108,13 +108,13 @@ const Receipt = ({
                       <span className="font-medium">{item.name}</span>
                       <span>{formatPrice(item.price * item.quantity)}</span>
                     </div>
-                    
+
                     <div className="flex justify-between text-gray-600 ml-2">
                       <span>
                         {item.quantity} x {formatPrice(item.price)}
                         {item.size && ` • Talla: ${item.size}`}
                         {item.color && ` • Color: ${item.color}`}
-                        {item.isQuickItem && ' • Artículo Rápido'}
+                        {item.isQuickItem && ''}
                       </span>
                     </div>
                   </div>
@@ -129,16 +129,16 @@ const Receipt = ({
                   <span>Subtotal:</span>
                   <span>{formatPrice(sale.subtotal)}</span>
                 </div>
-                
+
                 {sale.discount && sale.discount.value > 0 && (
                   <div className="flex justify-between text-green-600">
                     <span>
                       Descuento ({sale.discount.type === 'percentage' ? `${sale.discount.value}%` : formatPrice(sale.discount.value)}):
                     </span>
-                    <span>-{formatPrice(sale.discount.amount)}</span>
+
                   </div>
                 )}
-                
+
                 <div className="flex justify-between font-bold text-lg border-t border-gray-300 pt-2 print:text-base print:pt-1">
                   <span>TOTAL:</span>
                   <span>{formatPrice(sale.total)}</span>
@@ -154,7 +154,7 @@ const Receipt = ({
                 <p>Presentar este recibo</p>
                 <p>Producto en perfecto estado</p>
               </div>
-              
+
               <p className="text-xs text-gray-500 print:text-xs">
                 ¡Gracias por su compra!
               </p>
