@@ -82,13 +82,38 @@ const Sales = () => {
     }
   }, [activeSessionId, sessions]);
 
+  // Función para calcular totales de cualquier sesión
+  const calculateTotal = (session) => {
+    if (!session) return { subtotal: 0, discountValue: 0, total: 0 };
+    
+    const subtotal = session.items.reduce((sum, item) => sum + item.price * item.qty, 0);
+    
+    let total = subtotal;
+    if (session.discountAmount) {
+      total -= session.discountAmount;
+    } else if (session.discountPercent) {
+      total -= subtotal * (session.discountPercent / 100);
+    }
+    
+    return {
+      subtotal,
+      discountValue: session.discountPercent > 0 
+        ? subtotal * (session.discountPercent / 100)
+        : session.discountAmount,
+      total: total < 0 ? 0 : total
+    };
+  };
+
   // Convertir sesiones a formato compatible con la UI existente
-  const pendingSales = Object.values(sessions).map(session => ({
-    id: session.id,
-    name: session.label,
-    total: totals.total || 0,
-    items: session.items || []
-  }));
+  const pendingSales = Object.values(sessions).map(session => {
+    const sessionTotals = calculateTotal(session);
+    return {
+      id: session.id,
+      name: session.label,
+      total: sessionTotals.total,
+      items: session.items || []
+    };
+  });
 
   // Estadísticas de productos
   const productStats = getProductStats();
@@ -272,13 +297,7 @@ const Sales = () => {
       <div className="flex space-x-2 mb-6">
         {pendingSales.map((client) => {
           const session = sessions[client.id];
-          const sessionTotals = session ? {
-            subtotal: session.items.reduce((sum, item) => sum + (item.price * item.qty), 0),
-            discountValue: session.discountPercent > 0 
-              ? (session.items.reduce((sum, item) => sum + (item.price * item.qty), 0) * session.discountPercent / 100)
-              : session.discountAmount,
-            get total() { return Math.max(0, this.subtotal - this.discountValue); }
-          } : { total: 0 };
+          const sessionTotals = calculateTotal(session);
 
           return (
             <div key={client.id} className="flex items-center">
