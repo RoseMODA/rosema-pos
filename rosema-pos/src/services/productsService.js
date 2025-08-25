@@ -19,7 +19,7 @@ import { db } from './firebase';
  * Maneja CRUD de productos con stock, tallas y colores
  */
 
-const COLLECTION_NAME = 'products';
+const COLLECTION_NAME = 'articulos';
 
 /**
  * Obtener todos los productos
