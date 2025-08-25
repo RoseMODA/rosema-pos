@@ -6,6 +6,7 @@ import {
   addDoc, 
   updateDoc, 
   deleteDoc, 
+  setDoc,
   query, 
   where, 
   orderBy, 
@@ -139,22 +140,55 @@ export const getProductById = async (productId) => {
 };
 
 /**
+ * Verificar si existe un producto con el mismo código
+ */
+export const checkProductCodeExists = async (code, excludeId = null) => {
+  try {
+    const q = query(
+      collection(db, COLLECTION_NAME),
+      where('id', '==', code)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    
+    // Si estamos editando, excluir el producto actual
+    if (excludeId) {
+      return querySnapshot.docs.some(doc => doc.id !== excludeId);
+    }
+    
+    return querySnapshot.size > 0;
+  } catch (error) {
+    console.error('Error al verificar código:', error);
+    return false;
+  }
+};
+
+/**
  * Crear nuevo producto
  */
 export const createProduct = async (productData) => {
   try {
+    // Verificar que el código no exista
+    const codeExists = await checkProductCodeExists(productData.id);
+    if (codeExists) {
+      throw new Error('Ya existe un producto con este código de barras');
+    }
+
     const newProduct = {
       ...productData,
-      searchName: productData.name.toLowerCase(),
+      searchName: (productData.articulo || '').toLowerCase(),
       createdAt: new Date(),
       updatedAt: new Date()
     };
 
-    const docRef = await addDoc(collection(db, COLLECTION_NAME), newProduct);
-    return { id: docRef.id, ...newProduct };
+    // Usar el ID del producto como ID del documento en Firestore
+    const docRef = doc(db, COLLECTION_NAME, productData.id);
+    await setDoc(docRef, newProduct);
+    
+    return { id: productData.id, ...newProduct };
   } catch (error) {
     console.error('Error al crear producto:', error);
-    throw new Error('No se pudo crear el producto');
+    throw new Error(error.message || 'No se pudo crear el producto');
   }
 };
 

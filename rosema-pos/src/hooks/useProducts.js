@@ -8,7 +8,8 @@ import {
   deleteProduct,
   updateProductStock,
   createSampleProducts,
-  getProductStats
+  getProductStats,
+  checkProductCodeExists
 } from '../services/productsService';
 
 /**
@@ -261,6 +262,18 @@ export const useProducts = () => {
     return products.filter(product => (product.stock || 0) === 0);
   }, [products]);
 
+  /**
+   * Validar código único
+   */
+  const validateProductCode = useCallback(async (code, excludeId = null) => {
+    try {
+      return await checkProductCodeExists(code, excludeId);
+    } catch (error) {
+      console.error('Error al validar código:', error);
+      return false;
+    }
+  }, []);
+
   // Cargar productos al montar el componente
   useEffect(() => {
     // Solo cargar automáticamente si no hay productos y no estamos buscando
@@ -293,7 +306,8 @@ export const useProducts = () => {
     getProductStatistics,
     filterByCategory,
     getLowStockProducts,
-    getOutOfStockProducts
+    getOutOfStockProducts,
+    validateProductCode
   };
 };
 
