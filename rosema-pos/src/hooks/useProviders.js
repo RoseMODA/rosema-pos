@@ -6,18 +6,28 @@ import {
   updateProvider,
   deleteProvider,
   getProviderStats,
-  searchProviders
+  searchProviders,
+  getProvidersByCategory,
+  getProvidersByArea,
+  getProvidersByGallery,
+  getProviderProductStats,
+  getUniqueCategories,
+  getUniqueAreas,
+  getUniqueGalleries
 } from '../services/providersService';
 
 /**
- * Hook personalizado para gestión de proveedores
- * Maneja estado, carga y operaciones CRUD
+ * Hook personalizado para gestión completa de proveedores
+ * Implementa todas las funcionalidades de la Etapa 5
  */
 export const useProviders = () => {
   const [providers, setProviders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [areas, setAreas] = useState([]);
+  const [galleries, setGalleries] = useState([]);
 
   /**
    * Cargar todos los proveedores
@@ -34,6 +44,48 @@ export const useProviders = () => {
       console.error('Error loading providers:', err);
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  /**
+   * Cargar categorías únicas
+   */
+  const loadCategories = useCallback(async () => {
+    try {
+      const categoriesData = await getUniqueCategories();
+      setCategories(categoriesData);
+      return categoriesData;
+    } catch (err) {
+      console.error('Error loading categories:', err);
+      return [];
+    }
+  }, []);
+
+  /**
+   * Cargar áreas únicas
+   */
+  const loadAreas = useCallback(async () => {
+    try {
+      const areasData = await getUniqueAreas();
+      setAreas(areasData);
+      return areasData;
+    } catch (err) {
+      console.error('Error loading areas:', err);
+      return [];
+    }
+  }, []);
+
+  /**
+   * Cargar galerías únicas
+   */
+  const loadGalleries = useCallback(async () => {
+    try {
+      const galleriesData = await getUniqueGalleries();
+      setGalleries(galleriesData);
+      return galleriesData;
+    } catch (err) {
+      console.error('Error loading galleries:', err);
+      return [];
     }
   }, []);
 
@@ -64,6 +116,63 @@ export const useProviders = () => {
   }, []);
 
   /**
+   * Filtrar por categoría
+   */
+  const filterByCategory = useCallback(async (categoria) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const results = await getProvidersByCategory(categoria);
+      setProviders(results);
+      return results;
+    } catch (err) {
+      setError(err.message || 'Error al filtrar por categoría');
+      console.error('Error filtering by category:', err);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /**
+   * Filtrar por área
+   */
+  const filterByArea = useCallback(async (area) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const results = await getProvidersByArea(area);
+      setProviders(results);
+      return results;
+    } catch (err) {
+      setError(err.message || 'Error al filtrar por área');
+      console.error('Error filtering by area:', err);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /**
+   * Filtrar por galería
+   */
+  const filterByGallery = useCallback(async (galeria) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const results = await getProvidersByGallery(galeria);
+      setProviders(results);
+      return results;
+    } catch (err) {
+      setError(err.message || 'Error al filtrar por galería');
+      console.error('Error filtering by gallery:', err);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /**
    * Obtener proveedor por ID
    */
   const getProvider = useCallback(async (providerId) => {
@@ -82,6 +191,25 @@ export const useProviders = () => {
   }, []);
 
   /**
+   * Obtener estadísticas de productos de un proveedor
+   */
+  const getProviderProductStatistics = useCallback(async (providerId) => {
+    try {
+      const stats = await getProviderProductStats(providerId);
+      return stats;
+    } catch (err) {
+      console.error('Error getting provider product stats:', err);
+      return {
+        totalComprados: 0,
+        totalVendidos: 0,
+        productosActivos: 0,
+        ultimaCompra: null,
+        ultimaVenta: null
+      };
+    }
+  }, []);
+
+  /**
    * Agregar nuevo proveedor
    */
   const addProvider = useCallback(async (providerData) => {
@@ -90,6 +218,12 @@ export const useProviders = () => {
     try {
       const newProvider = await createProvider(providerData);
       setProviders(prev => [newProvider, ...prev]);
+      
+      // Recargar listas únicas
+      loadCategories();
+      loadAreas();
+      loadGalleries();
+      
       return newProvider;
     } catch (err) {
       setError(err.message || 'Error al crear proveedor');
@@ -98,7 +232,7 @@ export const useProviders = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadCategories, loadAreas, loadGalleries]);
 
   /**
    * Actualizar proveedor existente
@@ -113,6 +247,14 @@ export const useProviders = () => {
           provider.id === providerId ? { ...provider, ...updatedProvider } : provider
         )
       );
+      
+      // Recargar listas únicas si se actualizaron campos relevantes
+      if (updates.categoria || updates.locales) {
+        loadCategories();
+        loadAreas();
+        loadGalleries();
+      }
+      
       return updatedProvider;
     } catch (err) {
       setError(err.message || 'Error al actualizar proveedor');
@@ -121,7 +263,7 @@ export const useProviders = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadCategories, loadAreas, loadGalleries]);
 
   /**
    * Eliminar proveedor
@@ -132,6 +274,12 @@ export const useProviders = () => {
     try {
       await deleteProvider(providerId);
       setProviders(prev => prev.filter(provider => provider.id !== providerId));
+      
+      // Recargar listas únicas
+      loadCategories();
+      loadAreas();
+      loadGalleries();
+      
       return providerId;
     } catch (err) {
       setError(err.message || 'Error al eliminar proveedor');
@@ -140,7 +288,7 @@ export const useProviders = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadCategories, loadAreas, loadGalleries]);
 
   /**
    * Limpiar búsqueda
@@ -164,7 +312,9 @@ export const useProviders = () => {
         totalProviders: providers.length,
         activeProviders: providers.filter(p => p.active !== false).length,
         areas: {},
-        tags: {}
+        categorias: {},
+        tags: {},
+        galerias: {}
       };
     }
   }, [providers]);
@@ -173,36 +323,46 @@ export const useProviders = () => {
    * Obtener estadísticas locales (sin llamada a la API)
    */
   const getProviderStatsLocal = useCallback(() => {
-    return {
+    const stats = {
       totalProviders: providers.length,
       activeProviders: providers.filter(provider => provider.active !== false).length,
-      areas: providers.reduce((acc, provider) => {
-        if (provider.area) {
-          acc[provider.area] = (acc[provider.area] || 0) + 1;
-        }
-        return acc;
-      }, {}),
-      tags: providers.reduce((acc, provider) => {
-        if (provider.tags && Array.isArray(provider.tags)) {
-          provider.tags.forEach(tag => {
-            acc[tag] = (acc[tag] || 0) + 1;
-          });
-        }
-        return acc;
-      }, {})
+      areas: {},
+      categorias: {},
+      tags: {},
+      galerias: {}
     };
+
+    providers.forEach(provider => {
+      // Áreas de locales
+      if (provider.locales && Array.isArray(provider.locales)) {
+        provider.locales.forEach(local => {
+          if (local.area) {
+            stats.areas[local.area] = (stats.areas[local.area] || 0) + 1;
+          }
+          if (local.galeria) {
+            stats.galerias[local.galeria] = (stats.galerias[local.galeria] || 0) + 1;
+          }
+        });
+      }
+
+      // Categorías
+      if (provider.categoria) {
+        stats.categorias[provider.categoria] = (stats.categorias[provider.categoria] || 0) + 1;
+      }
+
+      // Tags
+      if (provider.tags && Array.isArray(provider.tags)) {
+        provider.tags.forEach(tag => {
+          stats.tags[tag] = (stats.tags[tag] || 0) + 1;
+        });
+      }
+    });
+
+    return stats;
   }, [providers]);
 
   /**
-   * Filtrar por área
-   */
-  const filterByArea = useCallback((area) => {
-    if (!area) return providers;
-    return providers.filter(provider => provider.area === area);
-  }, [providers]);
-
-  /**
-   * Filtrar por tags
+   * Filtrar localmente por tags
    */
   const filterByTags = useCallback((tags) => {
     if (!tags || tags.length === 0) return providers;
@@ -211,11 +371,22 @@ export const useProviders = () => {
     );
   }, [providers]);
 
-  // Cargar proveedores al montar el componente
+  /**
+   * Filtrar localmente por talles
+   */
+  const filterByTalles = useCallback((talles) => {
+    if (!talles || talles.length === 0) return providers;
+    return providers.filter(provider => 
+      provider.talles && provider.talles.some(talle => talles.includes(talle))
+    );
+  }, [providers]);
+
+  // Cargar datos iniciales
   useEffect(() => {
-    // No cargar automáticamente para evitar llamadas innecesarias
-    // loadProviders();
-  }, []);
+    loadCategories();
+    loadAreas();
+    loadGalleries();
+  }, [loadCategories, loadAreas, loadGalleries]);
 
   return {
     // Estado
@@ -223,6 +394,9 @@ export const useProviders = () => {
     loading,
     error,
     searchResults,
+    categories,
+    areas,
+    galleries,
 
     // Funciones CRUD
     loadProviders,
@@ -233,11 +407,22 @@ export const useProviders = () => {
     removeProvider,
     clearSearch,
 
-    // Estadísticas y filtros
+    // Filtros
+    filterByCategory,
+    filterByArea,
+    filterByGallery,
+    filterByTags,
+    filterByTalles,
+
+    // Estadísticas
     getProviderStatistics,
     getProviderStatsLocal,
-    filterByArea,
-    filterByTags
+    getProviderProductStatistics,
+
+    // Cargar listas
+    loadCategories,
+    loadAreas,
+    loadGalleries
   };
 };
 

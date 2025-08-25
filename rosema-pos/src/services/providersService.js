@@ -7,13 +7,14 @@ import {
   updateDoc, 
   deleteDoc, 
   query, 
-  orderBy 
+  orderBy,
+  where 
 } from 'firebase/firestore';
 import { db } from './firebase';
 
 /**
  * Servicio para gestión de proveedores en Firestore
- * Maneja CRUD de proveedores con información completa
+ * Implementa todos los requisitos de la Etapa 5
  */
 
 const COLLECTION_NAME = 'proveedores';
@@ -23,26 +24,23 @@ const COLLECTION_NAME = 'proveedores';
  */
 export const getAllProviders = async () => {
   try {
-    console.log('🔍 Intentando obtener proveedores de la colección:', COLLECTION_NAME);
+    console.log('🔍 Obteniendo proveedores de la colección:', COLLECTION_NAME);
     
-    // Primero intentamos sin ordenar para evitar errores de índice
     const querySnapshot = await getDocs(collection(db, COLLECTION_NAME));
     
     console.log('📊 Proveedores encontrados:', querySnapshot.size);
     
     const providers = querySnapshot.docs.map(doc => {
       const data = doc.data();
-      console.log('📄 Proveedor encontrado:', doc.id, data);
       
       return {
         id: doc.id,
         ...data,
-        // Mapear campos comunes que podrían tener nombres diferentes
-        name: data.name || data.nombre || data.razonSocial || 'Sin nombre',
-        address: data.address || data.direccion || data.domicilio || '',
-        contact: data.contact || data.contacto || data.telefono || data.whatsapp || '',
-        area: data.area || data.zona || data.barrio || '',
-        tags: data.tags || data.etiquetas || []
+        // Asegurar que los campos requeridos existan
+        proveedor: data.proveedor || data.name || data.nombre || 'Sin nombre',
+        locales: data.locales || [{ direccion: '', area: '', galeria: '', pasillo: '', local: '' }],
+        tags: data.tags || [],
+        talles: data.talles || []
       };
     });
     
@@ -50,19 +48,6 @@ export const getAllProviders = async () => {
     return providers;
   } catch (error) {
     console.error('❌ Error al obtener proveedores:', error);
-    console.error('Error details:', error.message);
-    
-    // Intentar obtener al menos un documento para ver la estructura
-    try {
-      const simpleQuery = await getDocs(collection(db, COLLECTION_NAME));
-      if (simpleQuery.size > 0) {
-        const firstDoc = simpleQuery.docs[0];
-        console.log('🔍 Estructura del primer proveedor:', firstDoc.data());
-      }
-    } catch (debugError) {
-      console.error('❌ Error en debug query:', debugError);
-    }
-    
     throw new Error('No se pudieron cargar los proveedores: ' + error.message);
   }
 };
@@ -76,7 +61,15 @@ export const getProviderById = async (providerId) => {
     const docSnap = await getDoc(docRef);
     
     if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() };
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        ...data,
+        proveedor: data.proveedor || 'Sin nombre',
+        locales: data.locales || [{ direccion: '', area: '', galeria: '', pasillo: '', local: '' }],
+        tags: data.tags || [],
+        talles: data.talles || []
+      };
     } else {
       throw new Error('Proveedor no encontrado');
     }
@@ -91,8 +84,29 @@ export const getProviderById = async (providerId) => {
  */
 export const createProvider = async (providerData) => {
   try {
+    // Validar datos requeridos
+    if (!providerData.proveedor || !providerData.proveedor.trim()) {
+      throw new Error('El nombre del proveedor es requerido');
+    }
+
     const newProvider = {
-      ...providerData,
+      proveedor: providerData.proveedor.trim(),
+      cuit: providerData.cuit || null,
+      whattsapp: providerData.whattsapp || null,
+      whattsapp2: providerData.whattsapp2 || null,
+      catalogo: providerData.catalogo || null,
+      web: providerData.web || null,
+      categoria: providerData.categoria || null,
+      locales: providerData.locales && providerData.locales.length > 0 
+        ? providerData.locales 
+        : [{ direccion: '', area: '', galeria: '', pasillo: '', local: '' }],
+      tags: providerData.tags || [],
+      instagram: providerData.instagram || null,
+      tiktok: providerData.tiktok || null,
+      calidad: providerData.calidad || null,
+      precios: providerData.precios || null,
+      notas: providerData.notas || null,
+      talles: providerData.talles || [],
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -101,7 +115,7 @@ export const createProvider = async (providerData) => {
     return { id: docRef.id, ...newProvider };
   } catch (error) {
     console.error('Error al crear proveedor:', error);
-    throw new Error('No se pudo crear el proveedor');
+    throw new Error('No se pudo crear el proveedor: ' + error.message);
   }
 };
 
@@ -111,6 +125,12 @@ export const createProvider = async (providerData) => {
 export const updateProvider = async (providerId, updates) => {
   try {
     const docRef = doc(db, COLLECTION_NAME, providerId);
+    
+    // Validar datos requeridos
+    if (updates.proveedor !== undefined && (!updates.proveedor || !updates.proveedor.trim())) {
+      throw new Error('El nombre del proveedor es requerido');
+    }
+
     const updateData = {
       ...updates,
       updatedAt: new Date()
@@ -127,7 +147,7 @@ export const updateProvider = async (providerId, updates) => {
     return { id: providerId, ...updateData };
   } catch (error) {
     console.error('Error al actualizar proveedor:', error);
-    throw new Error('No se pudo actualizar el proveedor');
+    throw new Error('No se pudo actualizar el proveedor: ' + error.message);
   }
 };
 
@@ -140,7 +160,7 @@ export const deleteProvider = async (providerId) => {
     return providerId;
   } catch (error) {
     console.error('Error al eliminar proveedor:', error);
-    throw new Error('No se pudo eliminar el proveedor');
+    throw new Error('No se pudo eliminar el proveedor: ' + error.message);
   }
 };
 
@@ -155,18 +175,31 @@ export const getProviderStats = async () => {
       totalProviders: providers.length,
       activeProviders: providers.filter(provider => provider.active !== false).length,
       areas: {},
-      tags: {}
+      categorias: {},
+      tags: {},
+      galerias: {}
     };
 
-    // Contar por áreas
+    // Contar por áreas, categorías, tags y galerías
     providers.forEach(provider => {
-      if (provider.area) {
-        stats.areas[provider.area] = (stats.areas[provider.area] || 0) + 1;
+      // Áreas de locales
+      if (provider.locales && Array.isArray(provider.locales)) {
+        provider.locales.forEach(local => {
+          if (local.area) {
+            stats.areas[local.area] = (stats.areas[local.area] || 0) + 1;
+          }
+          if (local.galeria) {
+            stats.galerias[local.galeria] = (stats.galerias[local.galeria] || 0) + 1;
+          }
+        });
       }
-    });
 
-    // Contar por tags
-    providers.forEach(provider => {
+      // Categorías
+      if (provider.categoria) {
+        stats.categorias[provider.categoria] = (stats.categorias[provider.categoria] || 0) + 1;
+      }
+
+      // Tags
       if (provider.tags && Array.isArray(provider.tags)) {
         provider.tags.forEach(tag => {
           stats.tags[tag] = (stats.tags[tag] || 0) + 1;
@@ -177,12 +210,13 @@ export const getProviderStats = async () => {
     return stats;
   } catch (error) {
     console.error('Error al obtener estadísticas de proveedores:', error);
-    throw new Error('No se pudieron obtener las estadísticas');
+    throw new Error('No se pudieron obtener las estadísticas: ' + error.message);
   }
 };
 
 /**
  * Buscar proveedores por término
+ * Busca en nombre, tags, talles y dirección
  */
 export const searchProviders = async (searchTerm) => {
   try {
@@ -193,13 +227,180 @@ export const searchProviders = async (searchTerm) => {
     const providers = await getAllProviders();
     const term = searchTerm.toLowerCase().trim();
     
-    return providers.filter(provider => 
-      (provider.name && provider.name.toLowerCase().includes(term)) ||
-      (provider.area && provider.area.toLowerCase().includes(term)) ||
-      (provider.tags && provider.tags.some(tag => tag.toLowerCase().includes(term)))
-    );
+    return providers.filter(provider => {
+      // Buscar en nombre del proveedor
+      if (provider.proveedor && provider.proveedor.toLowerCase().includes(term)) {
+        return true;
+      }
+
+      // Buscar en tags
+      if (provider.tags && Array.isArray(provider.tags)) {
+        if (provider.tags.some(tag => tag.toLowerCase().includes(term))) {
+          return true;
+        }
+      }
+
+      // Buscar en talles
+      if (provider.talles && Array.isArray(provider.talles)) {
+        if (provider.talles.some(talle => talle.toLowerCase().includes(term))) {
+          return true;
+        }
+      }
+
+      // Buscar en direcciones de locales
+      if (provider.locales && Array.isArray(provider.locales)) {
+        return provider.locales.some(local => 
+          (local.direccion && local.direccion.toLowerCase().includes(term)) ||
+          (local.area && local.area.toLowerCase().includes(term)) ||
+          (local.galeria && local.galeria.toLowerCase().includes(term))
+        );
+      }
+
+      return false;
+    });
   } catch (error) {
     console.error('Error al buscar proveedores:', error);
-    throw new Error('Error en la búsqueda de proveedores');
+    throw new Error('Error en la búsqueda de proveedores: ' + error.message);
+  }
+};
+
+/**
+ * Filtrar proveedores por categoría
+ */
+export const getProvidersByCategory = async (categoria) => {
+  try {
+    const providers = await getAllProviders();
+    return providers.filter(provider => provider.categoria === categoria);
+  } catch (error) {
+    console.error('Error al filtrar por categoría:', error);
+    throw new Error('Error al filtrar proveedores por categoría: ' + error.message);
+  }
+};
+
+/**
+ * Filtrar proveedores por área
+ */
+export const getProvidersByArea = async (area) => {
+  try {
+    const providers = await getAllProviders();
+    return providers.filter(provider => 
+      provider.locales && provider.locales.some(local => local.area === area)
+    );
+  } catch (error) {
+    console.error('Error al filtrar por área:', error);
+    throw new Error('Error al filtrar proveedores por área: ' + error.message);
+  }
+};
+
+/**
+ * Filtrar proveedores por galería
+ */
+export const getProvidersByGallery = async (galeria) => {
+  try {
+    const providers = await getAllProviders();
+    return providers.filter(provider => 
+      provider.locales && provider.locales.some(local => local.galeria === galeria)
+    );
+  } catch (error) {
+    console.error('Error al filtrar por galería:', error);
+    throw new Error('Error al filtrar proveedores por galería: ' + error.message);
+  }
+};
+
+/**
+ * Obtener estadísticas de productos para un proveedor específico
+ * (Placeholder - se implementará cuando esté el sistema de productos)
+ */
+export const getProviderProductStats = async (providerId) => {
+  try {
+    // TODO: Implementar cuando esté el sistema de productos
+    // Por ahora retornamos datos de ejemplo
+    return {
+      totalComprados: 0,
+      totalVendidos: 0,
+      productosActivos: 0,
+      ultimaCompra: null,
+      ultimaVenta: null
+    };
+  } catch (error) {
+    console.error('Error al obtener estadísticas de productos del proveedor:', error);
+    return {
+      totalComprados: 0,
+      totalVendidos: 0,
+      productosActivos: 0,
+      ultimaCompra: null,
+      ultimaVenta: null
+    };
+  }
+};
+
+/**
+ * Obtener todas las categorías únicas
+ */
+export const getUniqueCategories = async () => {
+  try {
+    const providers = await getAllProviders();
+    const categories = new Set();
+    
+    providers.forEach(provider => {
+      if (provider.categoria) {
+        categories.add(provider.categoria);
+      }
+    });
+    
+    return Array.from(categories).sort();
+  } catch (error) {
+    console.error('Error al obtener categorías:', error);
+    return [];
+  }
+};
+
+/**
+ * Obtener todas las áreas únicas
+ */
+export const getUniqueAreas = async () => {
+  try {
+    const providers = await getAllProviders();
+    const areas = new Set();
+    
+    providers.forEach(provider => {
+      if (provider.locales && Array.isArray(provider.locales)) {
+        provider.locales.forEach(local => {
+          if (local.area) {
+            areas.add(local.area);
+          }
+        });
+      }
+    });
+    
+    return Array.from(areas).sort();
+  } catch (error) {
+    console.error('Error al obtener áreas:', error);
+    return [];
+  }
+};
+
+/**
+ * Obtener todas las galerías únicas
+ */
+export const getUniqueGalleries = async () => {
+  try {
+    const providers = await getAllProviders();
+    const galleries = new Set();
+    
+    providers.forEach(provider => {
+      if (provider.locales && Array.isArray(provider.locales)) {
+        provider.locales.forEach(local => {
+          if (local.galeria) {
+            galleries.add(local.galeria);
+          }
+        });
+      }
+    });
+    
+    return Array.from(galleries).sort();
+  } catch (error) {
+    console.error('Error al obtener galerías:', error);
+    return [];
   }
 };

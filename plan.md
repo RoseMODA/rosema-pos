@@ -200,6 +200,7 @@ Todos los campos son opcionales excepto el codigo de barras, nombre del articulo
 
 ---
 
+<<<<<<< HEAD
 ## Etapa 5: Gestión de Proveedores
 
 ### Objetivo
@@ -268,6 +269,28 @@ Sistema CRM básico para gestión de clientes.
 
 ---
 
+=======
+
+
+## Etapa 6: Gestión de Clientes
+
+### Objetivo
+
+Sistema CRM básico para gestión de clientes.
+
+### Funcionalidades CRUD
+
+- Ver, registrar, editar, eliminar clientes
+- Top clientes más frecuentes
+
+### Perfil de Cliente
+
+- Cantidad de compras realizadas
+- Tallas más compradas
+- Categorías favoritas
+- Historial de compras
+
+---
 
 ## Etapa 7: Estadísticas y Metas
 

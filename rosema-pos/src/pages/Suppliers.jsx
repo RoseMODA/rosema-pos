@@ -1,25 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import { useProviders } from '../hooks/useProviders';
+import ProviderForm from '../components/ProviderForm';
+import ProviderDetails from '../components/ProviderDetails';
 
 /**
- * Página de Proveedores del sistema POS Rosema
- * Sistema completo de gestión de proveedores conectado a Firestore
+ * Página completa de Proveedores del sistema POS Rosema
+ * Implementa todos los requisitos de la Etapa 5
  */
 const Suppliers = () => {
   const {
     providers,
     loading,
     error,
+    categories,
+    areas,
+    galleries,
     loadProviders,
     searchProvidersByTerm,
+    filterByCategory,
+    filterByArea,
+    filterByGallery,
     getProviderStatsLocal,
+    getProviderProductStatistics,
+    addProvider,
+    updateProviderData,
+    removeProvider,
     clearSearch
   } = useProviders();
 
+  // Estados locales
   const [searchTerm, setSearchTerm] = useState('');
   const [showResults, setShowResults] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedArea, setSelectedArea] = useState('');
-  const [selectedTags, setSelectedTags] = useState([]);
+  const [selectedGallery, setSelectedGallery] = useState('');
+  
+  // Estados de modales
+  const [showProviderForm, setShowProviderForm] = useState(false);
+  const [showProviderDetails, setShowProviderDetails] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState(null);
+  const [editingProvider, setEditingProvider] = useState(null);
+  const [providerProductStats, setProviderProductStats] = useState({});
 
   // Cargar proveedores al montar el componente
   useEffect(() => {
@@ -29,32 +50,177 @@ const Suppliers = () => {
   // Obtener estadísticas locales
   const stats = getProviderStatsLocal();
 
-  // Manejar búsqueda
+  /**
+   * Manejar búsqueda
+   */
   const handleSearch = async (term) => {
     setSearchTerm(term);
     if (term.trim()) {
       await searchProvidersByTerm(term);
       setShowResults(true);
+      // Limpiar filtros
+      setSelectedCategory('');
+      setSelectedArea('');
+      setSelectedGallery('');
     } else {
       await loadProviders();
       setShowResults(false);
     }
   };
 
-  // Limpiar búsqueda
+  /**
+   * Limpiar búsqueda y filtros
+   */
   const handleClearSearch = () => {
     setSearchTerm('');
     setShowResults(false);
+    setSelectedCategory('');
+    setSelectedArea('');
+    setSelectedGallery('');
     clearSearch();
     loadProviders();
+  };
+
+  /**
+   * Manejar filtro por categoría
+   */
+  const handleCategoryFilter = async (categoria) => {
+    setSelectedCategory(categoria);
+    setSelectedArea('');
+    setSelectedGallery('');
+    setSearchTerm('');
+    setShowResults(true);
+    
+    if (categoria) {
+      await filterByCategory(categoria);
+    } else {
+      await loadProviders();
+      setShowResults(false);
+    }
+  };
+
+  /**
+   * Manejar filtro por área
+   */
+  const handleAreaFilter = async (area) => {
+    setSelectedArea(area);
+    setSelectedCategory('');
+    setSelectedGallery('');
+    setSearchTerm('');
+    setShowResults(true);
+    
+    if (area) {
+      await filterByArea(area);
+    } else {
+      await loadProviders();
+      setShowResults(false);
+    }
+  };
+
+  /**
+   * Manejar filtro por galería
+   */
+  const handleGalleryFilter = async (galeria) => {
+    setSelectedGallery(galeria);
+    setSelectedCategory('');
+    setSelectedArea('');
+    setSearchTerm('');
+    setShowResults(true);
+    
+    if (galeria) {
+      await filterByGallery(galeria);
+    } else {
+      await loadProviders();
+      setShowResults(false);
+    }
+  };
+
+  /**
+   * Abrir modal de agregar proveedor
+   */
+  const handleAddProvider = () => {
+    setEditingProvider(null);
+    setShowProviderForm(true);
+  };
+
+  /**
+   * Abrir modal de editar proveedor
+   */
+  const handleEditProvider = (provider) => {
+    setEditingProvider(provider);
+    setShowProviderForm(true);
+    setShowProviderDetails(false);
+  };
+
+  /**
+   * Ver detalles del proveedor
+   */
+  const handleViewProvider = async (provider) => {
+    setSelectedProvider(provider);
+    
+    // Obtener estadísticas de productos
+    try {
+      const productStats = await getProviderProductStatistics(provider.id);
+      setProviderProductStats(productStats);
+    } catch (error) {
+      console.error('Error al obtener estadísticas de productos:', error);
+      setProviderProductStats({ totalComprados: 0, totalVendidos: 0 });
+    }
+    
+    setShowProviderDetails(true);
+  };
+
+  /**
+   * Guardar proveedor (crear o actualizar)
+   */
+  const handleSaveProvider = async (providerData) => {
+    try {
+      if (editingProvider) {
+        await updateProviderData(editingProvider.id, providerData);
+      } else {
+        await addProvider(providerData);
+      }
+      setShowProviderForm(false);
+      setEditingProvider(null);
+    } catch (error) {
+      console.error('Error al guardar proveedor:', error);
+      // El error ya se maneja en el hook
+    }
+  };
+
+  /**
+   * Eliminar proveedor
+   */
+  const handleDeleteProvider = async (providerId) => {
+    if (confirm('¿Estás seguro de que deseas eliminar este proveedor? Esta acción no se puede deshacer.')) {
+      try {
+        await removeProvider(providerId);
+        setShowProviderDetails(false);
+        setSelectedProvider(null);
+      } catch (error) {
+        console.error('Error al eliminar proveedor:', error);
+        // El error ya se maneja en el hook
+      }
+    }
+  };
+
+  /**
+   * Obtener texto del filtro activo
+   */
+  const getActiveFilterText = () => {
+    if (searchTerm) return `Búsqueda: "${searchTerm}"`;
+    if (selectedCategory) return `Categoría: ${selectedCategory}`;
+    if (selectedArea) return `Área: ${selectedArea}`;
+    if (selectedGallery) return `Galería: ${selectedGallery}`;
+    return '';
   };
 
   return (
     <div className="p-6">
       {/* Header de la página */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Proveedores</h1>
-        <p className="text-gray-600 mt-2">Gestión completa de proveedores</p>
+        <h1 className="text-3xl font-bold text-gray-900">Gestión de Proveedores</h1>
+        <p className="text-gray-600 mt-2">Sistema completo de gestión de proveedores</p>
       </div>
 
       {/* Barra de búsqueda */}
@@ -63,13 +229,13 @@ const Suppliers = () => {
           <div className="flex-1">
             <input
               type="text"
-              placeholder="Buscar proveedores por nombre, área o tags..."
+              placeholder="Buscar por nombre, tags, talles o dirección..."
               value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
             />
           </div>
-          {searchTerm && (
+          {(searchTerm || selectedCategory || selectedArea || selectedGallery) && (
             <button
               onClick={handleClearSearch}
               className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
@@ -80,23 +246,59 @@ const Suppliers = () => {
         </div>
       </div>
 
-      {/* Botones de acción */}
+      {/* Botones de acción y filtros */}
       <div className="flex flex-wrap gap-4 mb-6">
-        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+        <button 
+          onClick={handleAddProvider}
+          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
           Agregar Proveedor
         </button>
-        <button className="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition-colors">
-          Buscar por Área
-        </button>
-        <button className="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition-colors">
-          Filtrar por Tags
-        </button>
+
+        {/* Filtro por categoría */}
+        <select
+          value={selectedCategory}
+          onChange={(e) => handleCategoryFilter(e.target.value)}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+        >
+          <option value="">Todas las categorías</option>
+          {categories.map(categoria => (
+            <option key={categoria} value={categoria}>{categoria}</option>
+          ))}
+        </select>
+
+        {/* Filtro por área */}
+        <select
+          value={selectedArea}
+          onChange={(e) => handleAreaFilter(e.target.value)}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+        >
+          <option value="">Todas las áreas</option>
+          {areas.map(area => (
+            <option key={area} value={area}>{area}</option>
+          ))}
+        </select>
+
+        {/* Filtro por galería */}
+        <select
+          value={selectedGallery}
+          onChange={(e) => handleGalleryFilter(e.target.value)}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+        >
+          <option value="">Todas las galerías</option>
+          {galleries.map(galeria => (
+            <option key={galeria} value={galeria}>{galeria}</option>
+          ))}
+        </select>
       </div>
 
       {/* Estadísticas de proveedores */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
         <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <div className="text-3xl font-bold text-blue-600 mb-2">{stats.totalProviders}</div>
+          <div className="text-3xl font-bold text-red-600 mb-2">{stats.totalProviders}</div>
           <div className="text-gray-600">Total Proveedores</div>
         </div>
         <div className="bg-white p-6 rounded-lg shadow-sm border">
@@ -104,11 +306,11 @@ const Suppliers = () => {
           <div className="text-gray-600">Proveedores Activos</div>
         </div>
         <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <div className="text-3xl font-bold text-purple-600 mb-2">{Object.keys(stats.areas).length}</div>
+          <div className="text-3xl font-bold text-blue-600 mb-2">{Object.keys(stats.areas).length}</div>
           <div className="text-gray-600">Áreas Cubiertas</div>
         </div>
         <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <div className="text-3xl font-bold text-orange-600 mb-2">{Object.keys(stats.tags).length}</div>
+          <div className="text-3xl font-bold text-purple-600 mb-2">{Object.keys(stats.tags).length}</div>
           <div className="text-gray-600">Tags Únicos</div>
         </div>
       </div>
@@ -123,6 +325,7 @@ const Suppliers = () => {
       {/* Estado de carga */}
       {loading && (
         <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-2"></div>
           <div className="text-gray-600">Cargando proveedores...</div>
         </div>
       )}
@@ -133,9 +336,9 @@ const Suppliers = () => {
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-xl font-semibold text-gray-900">
               Directorio de Proveedores
-              {showResults && (
+              {(showResults || selectedCategory || selectedArea || selectedGallery) && (
                 <span className="text-sm font-normal text-gray-500 ml-2">
-                  ({providers.length} resultados)
+                  ({providers.length} resultados{getActiveFilterText() && ` - ${getActiveFilterText()}`})
                 </span>
               )}
             </h2>
@@ -148,46 +351,80 @@ const Suppliers = () => {
                   <div key={provider.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                     <div className="mb-3">
                       <h3 className="text-lg font-semibold text-gray-900">
-                        {provider.name || provider.nombre || 'Sin Nombre'}
+                        {provider.proveedor || 'Sin Nombre'}
                       </h3>
-                      {provider.area && (
-                        <p className="text-sm text-blue-600 font-medium">
-                          {provider.area}
-                        </p>
+                      {provider.categoria && (
+                        <span className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium mt-1">
+                          {provider.categoria}
+                        </span>
                       )}
                     </div>
                     
                     <div className="space-y-2 text-sm text-gray-600">
-                      {provider.address && (
+                      {/* Mostrar primer local */}
+                      {provider.locales && provider.locales[0] && (
+                        <>
+                          {provider.locales[0].area && (
+                            <p>
+                              <span className="font-medium">Área:</span> {provider.locales[0].area}
+                            </p>
+                          )}
+                          {provider.locales[0].direccion && (
+                            <p>
+                              <span className="font-medium">Dirección:</span> {provider.locales[0].direccion}
+                            </p>
+                          )}
+                          {provider.locales[0].galeria && (
+                            <p>
+                              <span className="font-medium">Galería:</span> {provider.locales[0].galeria}
+                            </p>
+                          )}
+                        </>
+                      )}
+                      
+                      {provider.whattsapp && (
                         <p>
-                          <span className="font-medium">Dirección:</span> {provider.address}
+                          <span className="font-medium">WhatsApp:</span> {provider.whattsapp}
                         </p>
                       )}
-                      {provider.direccion && (
-                        <p>
-                          <span className="font-medium">Dirección:</span> {provider.direccion}
-                        </p>
-                      )}
-                      {provider.whatsapp && (
-                        <p>
-                          <span className="font-medium">WhatsApp:</span> {provider.whatsapp}
-                        </p>
-                      )}
-                      {provider.contacto && (
-                        <p>
-                          <span className="font-medium">Contacto:</span> {provider.contacto}
-                        </p>
-                      )}
-                      {provider.website && (
+                      
+                      {provider.web && (
                         <p>
                           <span className="font-medium">Web:</span> 
-                          <a href={provider.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline ml-1">
-                            {provider.website}
+                          <a href={provider.web} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline ml-1">
+                            Ver sitio
                           </a>
                         </p>
                       )}
+
+                      {/* Calidad y precios */}
+                      <div className="flex gap-2 mt-2">
+                        {provider.calidad && (
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            provider.calidad === 'excelente' ? 'bg-green-100 text-green-800' :
+                            provider.calidad === 'buena' ? 'bg-blue-100 text-blue-800' :
+                            provider.calidad === 'media' ? 'bg-yellow-100 text-yellow-800' :
+                            provider.calidad === 'mala' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {provider.calidad}
+                          </span>
+                        )}
+                        {provider.precios && (
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            provider.precios === 'baratos' ? 'bg-green-100 text-green-800' :
+                            provider.precios === 'buenos' ? 'bg-blue-100 text-blue-800' :
+                            provider.precios === 'medios' || provider.precios === 'razonable' ? 'bg-yellow-100 text-yellow-800' :
+                            provider.precios === 'caro' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {provider.precios}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
+                    {/* Tags */}
                     {provider.tags && provider.tags.length > 0 && (
                       <div className="mt-3">
                         <div className="flex flex-wrap gap-1">
@@ -208,12 +445,19 @@ const Suppliers = () => {
                       </div>
                     )}
 
+                    {/* Botones de acción */}
                     <div className="mt-4 pt-3 border-t border-gray-100">
                       <div className="flex justify-between items-center">
-                        <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                        <button 
+                          onClick={() => handleViewProvider(provider)}
+                          className="text-red-600 hover:text-red-800 text-sm font-medium"
+                        >
                           Ver detalles
                         </button>
-                        <button className="text-gray-500 hover:text-gray-700 text-sm">
+                        <button 
+                          onClick={() => handleEditProvider(provider)}
+                          className="text-gray-500 hover:text-gray-700 text-sm"
+                        >
                           Editar
                         </button>
                       </div>
@@ -225,11 +469,23 @@ const Suppliers = () => {
               <div className="text-center py-12">
                 <div className="text-4xl mb-4">🏪</div>
                 <p className="text-gray-600 mb-2">
-                  {showResults ? 'No se encontraron proveedores' : 'No hay proveedores disponibles'}
+                  {showResults || selectedCategory || selectedArea || selectedGallery 
+                    ? 'No se encontraron proveedores' 
+                    : 'No hay proveedores disponibles'}
                 </p>
                 <p className="text-sm text-gray-500">
-                  {showResults ? 'Intenta con otros términos de búsqueda' : 'Agrega tu primer proveedor para comenzar'}
+                  {showResults || selectedCategory || selectedArea || selectedGallery
+                    ? 'Intenta con otros términos de búsqueda o filtros' 
+                    : 'Agrega tu primer proveedor para comenzar'}
                 </p>
+                {!showResults && !selectedCategory && !selectedArea && !selectedGallery && (
+                  <button
+                    onClick={handleAddProvider}
+                    className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    Agregar Primer Proveedor
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -249,7 +505,7 @@ const Suppliers = () => {
               .map(([tag, count]) => (
                 <span 
                   key={tag}
-                  className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm border border-blue-200 cursor-pointer hover:bg-blue-100 transition-colors"
+                  className="bg-red-50 text-red-700 px-3 py-1 rounded-full text-sm border border-red-200 cursor-pointer hover:bg-red-100 transition-colors"
                   onClick={() => handleSearch(tag)}
                 >
                   {tag} ({count})
@@ -273,7 +529,7 @@ const Suppliers = () => {
                 <div 
                   key={area}
                   className="bg-gray-50 p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
-                  onClick={() => handleSearch(area)}
+                  onClick={() => handleAreaFilter(area)}
                 >
                   <div className="font-medium text-gray-900">{area}</div>
                   <div className="text-sm text-gray-600">{count} proveedores</div>
@@ -282,6 +538,31 @@ const Suppliers = () => {
           </div>
         </div>
       )}
+
+      {/* Modales */}
+      <ProviderForm
+        provider={editingProvider}
+        isOpen={showProviderForm}
+        onClose={() => {
+          setShowProviderForm(false);
+          setEditingProvider(null);
+        }}
+        onSave={handleSaveProvider}
+        loading={loading}
+      />
+
+      <ProviderDetails
+        provider={selectedProvider}
+        isOpen={showProviderDetails}
+        onClose={() => {
+          setShowProviderDetails(false);
+          setSelectedProvider(null);
+          setProviderProductStats({});
+        }}
+        onEdit={handleEditProvider}
+        onDelete={handleDeleteProvider}
+        productStats={providerProductStats}
+      />
     </div>
   );
 };
