@@ -23,17 +23,47 @@ const COLLECTION_NAME = 'proveedores';
  */
 export const getAllProviders = async () => {
   try {
-    const querySnapshot = await getDocs(
-      query(collection(db, COLLECTION_NAME), orderBy('name'))
-    );
+    console.log('🔍 Intentando obtener proveedores de la colección:', COLLECTION_NAME);
     
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    // Primero intentamos sin ordenar para evitar errores de índice
+    const querySnapshot = await getDocs(collection(db, COLLECTION_NAME));
+    
+    console.log('📊 Proveedores encontrados:', querySnapshot.size);
+    
+    const providers = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      console.log('📄 Proveedor encontrado:', doc.id, data);
+      
+      return {
+        id: doc.id,
+        ...data,
+        // Mapear campos comunes que podrían tener nombres diferentes
+        name: data.name || data.nombre || data.razonSocial || 'Sin nombre',
+        address: data.address || data.direccion || data.domicilio || '',
+        contact: data.contact || data.contacto || data.telefono || data.whatsapp || '',
+        area: data.area || data.zona || data.barrio || '',
+        tags: data.tags || data.etiquetas || []
+      };
+    });
+    
+    console.log('✅ Proveedores procesados:', providers.length);
+    return providers;
   } catch (error) {
-    console.error('Error al obtener proveedores:', error);
-    throw new Error('No se pudieron cargar los proveedores');
+    console.error('❌ Error al obtener proveedores:', error);
+    console.error('Error details:', error.message);
+    
+    // Intentar obtener al menos un documento para ver la estructura
+    try {
+      const simpleQuery = await getDocs(collection(db, COLLECTION_NAME));
+      if (simpleQuery.size > 0) {
+        const firstDoc = simpleQuery.docs[0];
+        console.log('🔍 Estructura del primer proveedor:', firstDoc.data());
+      }
+    } catch (debugError) {
+      console.error('❌ Error en debug query:', debugError);
+    }
+    
+    throw new Error('No se pudieron cargar los proveedores: ' + error.message);
   }
 };
 

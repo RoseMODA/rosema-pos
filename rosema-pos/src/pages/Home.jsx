@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Link } from 'react-router-dom';
+import FirestoreDebug from '../components/FirestoreDebug';
 
 /**
  * Componente de página principal (Dashboard) del sistema POS Rosema
@@ -173,6 +174,11 @@ const Home = () => {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Componente de diagnóstico temporal */}
+      <div className="mt-8">
+        <FirestoreDebug />
       </div>
     </div>
   );

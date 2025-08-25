@@ -26,17 +26,45 @@ const COLLECTION_NAME = 'articulos';
  */
 export const getAllProducts = async () => {
   try {
-    const querySnapshot = await getDocs(
-      query(collection(db, COLLECTION_NAME), orderBy('name'))
-    );
+    console.log('🔍 Intentando obtener productos de la colección:', COLLECTION_NAME);
     
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    // Primero intentamos sin ordenar para evitar errores de índice
+    const querySnapshot = await getDocs(collection(db, COLLECTION_NAME));
+    
+    console.log('📊 Documentos encontrados:', querySnapshot.size);
+    
+    const products = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      console.log('📄 Documento encontrado:', doc.id, data);
+      
+      return {
+        id: doc.id,
+        ...data,
+        // Mapear campos comunes que podrían tener nombres diferentes
+        name: data.name || data.nombre || data.titulo || 'Sin nombre',
+        price: data.price || data.precio || data.salePrice || 0,
+        stock: data.stock || data.cantidad || data.existencia || 0
+      };
+    });
+    
+    console.log('✅ Productos procesados:', products.length);
+    return products;
   } catch (error) {
-    console.error('Error al obtener productos:', error);
-    throw new Error('No se pudieron cargar los productos');
+    console.error('❌ Error al obtener productos:', error);
+    console.error('Error details:', error.message);
+    
+    // Intentar obtener al menos un documento para ver la estructura
+    try {
+      const simpleQuery = await getDocs(collection(db, COLLECTION_NAME));
+      if (simpleQuery.size > 0) {
+        const firstDoc = simpleQuery.docs[0];
+        console.log('🔍 Estructura del primer documento:', firstDoc.data());
+      }
+    } catch (debugError) {
+      console.error('❌ Error en debug query:', debugError);
+    }
+    
+    throw new Error('No se pudieron cargar los productos: ' + error.message);
   }
 };
 
