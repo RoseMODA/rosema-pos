@@ -39,6 +39,9 @@ const Products = () => {
     categories: {}
   });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const [viewingProduct, setViewingProduct] = useState(null);
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [productToPrint, setProductToPrint] = useState(null);
 
   // Cargar datos al montar el componente
   useEffect(() => {
@@ -141,13 +144,10 @@ const Products = () => {
   /**
    * Manejar búsqueda
    */
-  const handleSearch = async (term) => {
+  const handleSearch = (term) => {
     setSearchTerm(term);
-    if (term.trim()) {
-      await searchProductsByTerm(term);
-    } else {
-      await loadProducts();
-    }
+    // La búsqueda se maneja en getFilteredAndSortedProducts()
+    // No necesitamos llamar a la API aquí
   };
 
   /**
@@ -173,9 +173,15 @@ const Products = () => {
    */
   const handleFormSubmit = async (productData) => {
     try {
+      let createdProduct;
       if (formMode === 'create') {
-        await addProduct(productData);
-        alert('Producto creado exitosamente');
+        createdProduct = await addProduct(productData);
+        // Mostrar opción de imprimir código después de crear
+        const shouldPrint = confirm('Producto creado exitosamente. ¿Deseas imprimir el código de barras?');
+        if (shouldPrint) {
+          setProductToPrint(createdProduct);
+          setShowPrintModal(true);
+        }
       } else {
         await updateProductData(editingProduct.id, productData);
         alert('Producto actualizado exitosamente');
@@ -200,6 +206,21 @@ const Products = () => {
     } catch (error) {
       alert('Error al eliminar producto: ' + error.message);
     }
+  };
+
+  /**
+   * Ver detalles del producto
+   */
+  const handleViewProduct = (product) => {
+    setViewingProduct(product);
+  };
+
+  /**
+   * Imprimir código de barras
+   */
+  const handlePrintBarcode = (product) => {
+    setProductToPrint(product);
+    setShowPrintModal(true);
   };
 
   /**
@@ -460,12 +481,31 @@ const Products = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                         <div className="flex items-center justify-center space-x-2">
                           <button
+                            onClick={() => handleViewProduct(product)}
+                            className="text-green-600 hover:text-green-900 transition-colors"
+                            title="Ver detalles"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          </button>
+                          <button
                             onClick={() => handleEditProduct(product)}
                             className="text-blue-600 hover:text-blue-900 transition-colors"
                             title="Editar"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handlePrintBarcode(product)}
+                            className="text-purple-600 hover:text-purple-900 transition-colors"
+                            title="Imprimir código"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                             </svg>
                           </button>
                           <button
@@ -528,6 +568,226 @@ const Products = () => {
                   className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
                 >
                   Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de ver producto */}
+      {viewingProduct && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Detalles del Producto
+              </h3>
+              <button
+                onClick={() => setViewingProduct(null)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Información básica */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Código de Barras</label>
+                  <p className="text-gray-900 font-mono text-lg">{viewingProduct.id}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Nombre del Artículo</label>
+                  <p className="text-gray-900 text-lg">{viewingProduct.articulo}</p>
+                </div>
+              </div>
+
+              {viewingProduct.descripcion && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Descripción</label>
+                  <p className="text-gray-900">{viewingProduct.descripcion}</p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Categoría</label>
+                  <p className="text-gray-900">{viewingProduct.categoria}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Temporada</label>
+                  <p className="text-gray-900">{viewingProduct.temporada || 'No especificada'}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Proveedor</label>
+                  <p className="text-gray-900">{getProviderName(viewingProduct.proveedorId)}</p>
+                </div>
+              </div>
+
+              {/* Subcategorías */}
+              {viewingProduct.subcategorias && viewingProduct.subcategorias.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-2">Subcategorías</label>
+                  <div className="flex flex-wrap gap-2">
+                    {viewingProduct.subcategorias.map(sub => (
+                      <span key={sub} className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">
+                        {sub}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Tags */}
+              {viewingProduct.tags && viewingProduct.tags.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-2">Tags</label>
+                  <div className="flex flex-wrap gap-2">
+                    {viewingProduct.tags.map(tag => (
+                      <span key={tag} className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Precios */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Precio de Costo</label>
+                  <p className="text-gray-900 text-lg font-semibold">${(viewingProduct.precioCosto || 0).toLocaleString()}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Precio de Venta Promedio</label>
+                  <p className="text-green-600 text-lg font-semibold">${getAveragePrice(viewingProduct).toLocaleString()}</p>
+                </div>
+              </div>
+
+              {/* Variantes */}
+              {viewingProduct.variantes && viewingProduct.variantes.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-3">Variantes</label>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border border-gray-200 rounded-lg">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Talla</th>
+                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Color</th>
+                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Stock</th>
+                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Precio Venta</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {viewingProduct.variantes.map((variante, index) => (
+                          <tr key={index} className="border-t border-gray-200">
+                            <td className="px-4 py-2">{variante.talla || 'N/A'}</td>
+                            <td className="px-4 py-2">{variante.color || 'N/A'}</td>
+                            <td className="px-4 py-2">
+                              <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                                variante.stock === 0 
+                                  ? 'bg-red-100 text-red-800'
+                                  : variante.stock <= 5 
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-green-100 text-green-800'
+                              }`}>
+                                {variante.stock || 0}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2">${(variante.precioVenta || 0).toLocaleString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Botones de acción */}
+              <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                <button
+                  onClick={() => handlePrintBarcode(viewingProduct)}
+                  className="btn-secondary flex items-center space-x-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                  <span>Imprimir Código</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setViewingProduct(null);
+                    handleEditProduct(viewingProduct);
+                  }}
+                  className="btn-rosema flex items-center space-x-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  <span>Editar</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de imprimir código de barras */}
+      {showPrintModal && productToPrint && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Imprimir Código de Barras
+              </h3>
+              <button
+                onClick={() => {
+                  setShowPrintModal(false);
+                  setProductToPrint(null);
+                }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-6">
+              <div className="text-center mb-6">
+                <div className="bg-gray-100 p-4 rounded-lg mb-4">
+                  <div className="text-sm text-gray-600 mb-2">{productToPrint.articulo}</div>
+                  <div className="font-mono text-2xl font-bold">{productToPrint.id}</div>
+                  <div className="text-sm text-gray-600 mt-2">${getAveragePrice(productToPrint).toLocaleString()}</div>
+                </div>
+                <p className="text-gray-600 text-sm">
+                  Vista previa del código de barras a imprimir
+                </p>
+              </div>
+
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    setShowPrintModal(false);
+                    setProductToPrint(null);
+                  }}
+                  className="flex-1 btn-secondary"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => {
+                    window.print();
+                    setShowPrintModal(false);
+                    setProductToPrint(null);
+                  }}
+                  className="flex-1 btn-rosema"
+                >
+                  Imprimir
                 </button>
               </div>
             </div>

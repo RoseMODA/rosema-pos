@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useProviders } from '../hooks/useProviders';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../services/firebase';
 
 /**
  * Componente modal para crear y editar productos
@@ -32,6 +34,9 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
   const [filteredProviders, setFilteredProviders] = useState([]);
   const [newTag, setNewTag] = useState('');
   const [newSubcategoria, setNewSubcategoria] = useState('');
+  const [imageFiles, setImageFiles] = useState([]);
+  const [imagePreview, setImagePreview] = useState([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   // Opciones predefinidas
   const categorias = ['mujer', 'hombre', 'niños-bebes', 'otros'];
@@ -165,7 +170,6 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
       talla: '',
       color: '',
       stock: 0,
-      stockMin: 0,
       precioVenta: formData.precioVentaSugerido || 0
     };
     setFormData(prev => ({
@@ -272,6 +276,84 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
   };
 
   /**
+   * Manejar selección de imágenes
+   */
+  const handleImageSelect = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    // Validar tipos de archivo
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    const validFiles = files.filter(file => validTypes.includes(file.type));
+    
+    if (validFiles.length !== files.length) {
+      alert('Solo se permiten archivos de imagen (JPG, PNG, WEBP)');
+    }
+
+    // Limitar a 5 imágenes máximo
+    const totalImages = imageFiles.length + validFiles.length;
+    if (totalImages > 5) {
+      alert('Máximo 5 imágenes permitidas');
+      return;
+    }
+
+    // Agregar archivos
+    setImageFiles(prev => [...prev, ...validFiles]);
+
+    // Crear previews
+    validFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(prev => [...prev, {
+          file,
+          url: e.target.result,
+          name: file.name
+        }]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  /**
+   * Eliminar imagen
+   */
+  const removeImage = (index) => {
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
+    setImagePreview(prev => prev.filter((_, i) => i !== index));
+  };
+
+  /**
+   * Subir imágenes a Firebase Storage
+   */
+  const uploadImages = async () => {
+    if (imageFiles.length === 0) return [];
+
+    setUploadingImages(true);
+    const uploadPromises = imageFiles.map(async (file) => {
+      const fileName = `productos/${formData.id}/${Date.now()}-${file.name}`;
+      const storageRef = ref(storage, fileName);
+      
+      try {
+        const snapshot = await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        return downloadURL;
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        throw error;
+      }
+    });
+
+    try {
+      const urls = await Promise.all(uploadPromises);
+      setUploadingImages(false);
+      return urls;
+    } catch (error) {
+      setUploadingImages(false);
+      throw error;
+    }
+  };
+
+  /**
    * Validar formulario
    */
   const validateForm = () => {
@@ -307,7 +389,20 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
 
     setLoading(true);
     try {
-      await onSubmit(formData);
+      // Subir imágenes si hay archivos nuevos
+      let imageUrls = formData.imagenes || [];
+      if (imageFiles.length > 0) {
+        const uploadedUrls = await uploadImages();
+        imageUrls = [...imageUrls, ...uploadedUrls];
+      }
+
+      // Preparar datos finales
+      const finalData = {
+        ...formData,
+        imagenes: imageUrls
+      };
+
+      await onSubmit(finalData);
       onClose();
     } catch (error) {
       console.error('Error al guardar producto:', error);
@@ -339,6 +434,9 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
     setErrors({});
     setProviderSearch('');
     setFilteredProviders([]);
+    setImageFiles([]);
+    setImagePreview([]);
+    setUploadingImages(false);
     onClose();
   };
 
@@ -641,7 +739,6 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
                       <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Talla</th>
                       <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Color</th>
                       <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Stock</th>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Stock Mín</th>
                       <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Precio Venta *</th>
                       <th className="px-4 py-2 text-center text-sm font-medium text-gray-700">Acciones</th>
                     </tr>
@@ -672,15 +769,6 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
                             type="number"
                             value={variante.stock}
                             onChange={(e) => updateVariante(index, 'stock', parseInt(e.target.value) || 0)}
-                            className="w-full input-rosema"
-                            min="0"
-                          />
-                        </td>
-                        <td className="px-4 py-2">
-                          <input
-                            type="number"
-                            value={variante.stockMin}
-                            onChange={(e) => updateVariante(index, 'stockMin', parseInt(e.target.value) || 0)}
                             className="w-full input-rosema"
                             min="0"
                           />
@@ -760,6 +848,92 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
             </div>
           </div>
 
+          {/* Imágenes */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Imágenes del Producto
+            </label>
+            
+            {/* Imágenes existentes */}
+            {formData.imagenes && formData.imagenes.length > 0 && (
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 mb-2">Imágenes actuales:</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {formData.imagenes.map((url, index) => (
+                    <div key={index} className="relative">
+                      <img
+                        src={url}
+                        alt={`Imagen ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newImages = formData.imagenes.filter((_, i) => i !== index);
+                          setFormData(prev => ({ ...prev, imagenes: newImages }));
+                        }}
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Preview de nuevas imágenes */}
+            {imagePreview.length > 0 && (
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 mb-2">Nuevas imágenes a subir:</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {imagePreview.map((preview, index) => (
+                    <div key={index} className="relative">
+                      <img
+                        src={preview.url}
+                        alt={preview.name}
+                        className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Input para seleccionar imágenes */}
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
+                id="image-upload"
+              />
+              <label
+                htmlFor="image-upload"
+                className="cursor-pointer flex flex-col items-center"
+              >
+                <svg className="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <span className="text-sm text-gray-600">
+                  Haz clic para seleccionar imágenes
+                </span>
+                <span className="text-xs text-gray-500 mt-1">
+                  JPG, PNG, WEBP (máximo 5 imágenes)
+                </span>
+              </label>
+            </div>
+          </div>
+
           {/* Botones de acción */}
           <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
             <button
@@ -773,9 +947,9 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
             <button
               type="submit"
               className="btn-rosema"
-              disabled={loading}
+              disabled={loading || uploadingImages}
             >
-              {loading ? 'Guardando...' : (mode === 'create' ? 'Crear Producto' : 'Actualizar Producto')}
+              {uploadingImages ? 'Subiendo imágenes...' : loading ? 'Guardando...' : (mode === 'create' ? 'Crear Producto' : 'Actualizar Producto')}
             </button>
           </div>
         </form>
