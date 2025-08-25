@@ -156,28 +156,99 @@ Implementar sistema completo de ventas con carrito, pagos y gestión de stock.
 
 Sistema CRUD completo para gestión de inventario y productos.
 
-### Campos de Producto
+### Campos de Producto (ver estructura en data/articulos.json)
+Los campos en la DB son: id, articulo, descripcion, categoria, subcategorias, temporada, proveedorId, precioCosto, variantes (talle, color, stock, stockMin, precioVenta), tags, imagenes.
 
-- Nombre
-- Precio de compra
-- Precio de venta
-- % ganancia (editable)
-- Categorías: mujer, hombre, niños, otros
-- Tags: invierno, fiesta, jeans, etc.
-- Stock con tallas y colores (hexadecimal)
-- Múltiples fotos con previsualización
-- Proveedor asociado (crear si no existe)
+#### Requisitos de UI al crear/editar producto:
+
+* **Código de barras** → se guarda en `id`. Validar que sea único.
+* **Nombre del artículo** → se guarda en `articulo`.
+* **Descripción** → `descripcion`.
+* **Categoría** → `categoria`. Debe desplegar lista de categorías existentes para seleccionar.
+* **Subcategorías** → `subcategorias`. Selección múltiple, desplegar lista de subcategorías existentes para seleccionar o creación de nuevas.
+* **Temporada** → `temporada`. Lista de valores existentes para seleccionar.
+* **Proveedor** → `proveedorId`. Es el proveedor asociado, Al estar escribiento que se sugiera nombre del proveedor (`proveedor`) que se parece y al seleccionar que guarde su `id`. En caso de que el proveedor no exista Debe permitir botón `+Nuevo proveedor` que abra el formulario de agregar proveedor completo.
+* **Costo por unidad** → `precioCosto`.
+* **Precio de venta sugerido** y **% de ganancia**:  
+  - Al ingresar `precioCosto`, mostrar junto a este campo dos inputs adicionales: **Precio de venta sugerido** y **%Ganancia**.  
+  - Estos tres campos deben estar sincronizados:  
+    - Si el usuario modifica `%Ganancia`, recalcular `precioVentaSugerido`.  
+    - Si el usuario modifica `precioVentaSugerido`, recalcular `%Ganancia`.  
+    - Si cambia `precioCosto`, actualizar ambos en base al último valor usado.  
+  - Botón **“Aplicar a todas las variantes”**: copia el `precioVentaSugerido` actual en el campo `precioVenta` de cada variante.  
+  - El usuario debe poder sobrescribir manualmente el `precioVenta` de una variante específica si es necesario.
+* **Variantes** (`variantes[]`): tabla dinámica con columnas  
+  `Talle`, `Color`, `Stock`, `Stock mínimo`, `Precio de venta`.  
+  - Cada fila debe poder agregarse o eliminarse con un botón “+” o “x”.  
+  - El campo `Precio de venta` se autocompleta con el valor de `precioVentaSugerido` al crear la variante, pero sigue siendo editable de forma independiente.
+
+* **Tags** → `tags[]`. Entrada múltiple con chips.
+* **Imágenes** → `imagenes[]`. Subida a Firebase Storage con preview antes de guardar. Guardar la URL en Firestore.
+
+Todos los campos son opcionales excepto el codigo de barras, nombre del articulo, categoria, proveedor, costo por unidad, y dentro de "variantes" todo es opcional excepto "precio de venta"
 
 ### Funcionalidades Adicionales
 
 - Imprimir código de barras del artículo
+- Botón rápido **+Agregar producto**.
 - Resumen estadístico:
   - Top productos más vendidos
-  - Tallas más vendidas por categoría
+  - Tallas más vendidas por categoría "mujer", "hombre" y "niños-bebes"
+- Búsqueda de productos por **código de barras (`id`)**, tags, talle, color y filtros (categoría, subcategorias, proveedor).
+- Mostar Listado de todos los articulos existentes con opcion ver, editar y eliminar.
+- opcion de ordenar Listado de los articulos por precio 
 
 ---
 
-## Etapa 5: Gestión de Clientes
+## Etapa 5: Gestión de Proveedores
+
+### Objetivo
+
+Sistema completo de gestión de proveedores con información detallada.
+
+### Campos de Proveedor (ver estructura en data/proveedores.json)
+Los campos en la DB son: id, proveedor, cuit, whattsapp, whattsapp2, catalogo, web, categoria, locales (direccion, area, galeria, pasillo, local), tags, instagram, tiktok, calidad, precios, notas, talles.
+
+#### Requisitos de UI al crear/editar proveedor:
+
+* **ID** → autogenerado (no se muestra en el formulario).
+* **Nombre del proveedor** → `proveedor`.
+* **CUIT** → `cuit`
+* **WhatsApp principal** → `whattsapp, es el numero de contacto
+* **WhatsApp alternativo** → `whattsapp2
+* **Catálogo (link)** → `catalogo`
+* **Página web** → `web`
+* **Categoría** → `categoria`. despliegue de Lista para seleccionar los existentes o `+Nueva`.
+* **Locales** (`locales[]`): tabla dinámica con campos `Dirección`, `Área`, `Galería`, `Pasillo`, `Local`. Boton para agregar "agregar" otros locales si es que los tienen.
+* **Tags** → `tags[]`. Entrada múltiple con chips.
+* **Instagram** → `instagram`.
+* **TikTok** → `tiktok`.
+* **Calidad** → `calidad` (selector o texto).
+* **Precios** → `precios` (selector).
+* **Notas** → `notas`.
+* **Talles** → `talles[]`. Entrada múltiple, numero o letras separadas por coma ,
+
+Todos los campos son opcionales excepto el nombre del proveedor
+
+
+### Funcionalidades
+
+- Botón rápido **+Agregar proveedor**.
+- Filtros por categoría, área o galería.
+- Listado de todos los proveedores existentes.
+- Acciones: **Ver, Editar, Eliminar**.
+- en "Ver" ademas de mostrar los datos completos del proveedor, debe agregar un campo extra donde muestre:
+        - Total Productos comprados del proveedor
+        - Total Productos vendidos del proveedor
+- barra de Búsqueda:
+  - Por nombre
+  - Por tags
+  - Por talles
+  - Por direccion
+
+---
+
+## Etapa 6: Gestión de Clientes
 
 ### Objetivo
 
@@ -197,38 +268,6 @@ Sistema CRM básico para gestión de clientes.
 
 ---
 
-## Etapa 6: Gestión de Proveedores
-
-### Objetivo
-
-Sistema completo de gestión de proveedores con información detallada.
-
-### Campos de Proveedor
-
-- Nombre
-- WhatsApp
-- Sitio web
-- Área (zona de la ciudad)
-- Dirección
-- Galería (opcional, es donde hay muchos vendedores juntos)
-- Número de local (opcional)
-- Tags (descriptivos de lo que proveen (ej: jeans, mujer, talles especiales, fiesta, sastrero, etc))
-- Redes sociales (Instagram y TikTok)
-- CUIL (opcional)
-- Ranking de calidad de las prendas
-- Notas adicionales
-
-### Funcionalidades
-
-- Ficha detallada mostrando:
-  - Productos comprados del proveedor
-  - Productos vendidos del proveedor
-- Filtros de búsqueda:
-  - Por nombre
-  - Por tags
-  - Por área geográfica
-
----
 
 ## Etapa 7: Estadísticas y Metas
 
