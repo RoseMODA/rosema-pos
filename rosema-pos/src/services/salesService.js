@@ -263,6 +263,28 @@ export const processSale = async (saleData) => {
 };
 
 /**
+ * Obtener todas las ventas
+ */
+export const getAllSales = async () => {
+  try {
+    const salesQuery = query(
+      collection(db, SALES_COLLECTION),
+      orderBy('createdAt', 'desc')
+    );
+    
+    const snapshot = await getDocs(salesQuery);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate() || new Date()
+    }));
+  } catch (error) {
+    console.error('Error obteniendo ventas:', error);
+    throw new Error('Error al obtener ventas');
+  }
+};
+
+/**
  * Obtener historial de ventas
  */
 export const getSalesHistory = async (filters = {}) => {
