@@ -3,13 +3,16 @@ import {
   getAllProducts,
   searchProducts,
   getProductById,
+  getProductByBarcode,
   createProduct,
   updateProduct,
   deleteProduct,
   updateProductStock,
+  updateVariantStock,
   createSampleProducts,
   getProductStats,
-  checkProductCodeExists
+  checkProductCodeExists,
+  subscribeToProducts
 } from '../services/productsService';
 
 /**
@@ -21,6 +24,7 @@ export const useProducts = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
+  const [realtimeProducts, setRealtimeProducts] = useState([]);
 
   /**
    * Cargar todos los productos
@@ -263,6 +267,57 @@ export const useProducts = () => {
   }, [products]);
 
   /**
+   * Buscar producto por código de barras
+   */
+  const getProductByCode = useCallback(async (barcode) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const product = await getProductByBarcode(barcode);
+      return product;
+    } catch (err) {
+      setError(err.message);
+      console.error('Error al buscar producto por código:', err);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /**
+   * Actualizar stock de variante específica
+   */
+  const updateVariantStockData = useCallback(async (productId, variant, quantitySold) => {
+    setError(null);
+    
+    try {
+      const updatedVariants = await updateVariantStock(productId, variant, quantitySold);
+      
+      // Actualizar el producto en el estado local si existe
+      setProducts(prev => 
+        prev.map(product => {
+          if (product.id === productId) {
+            const newTotalStock = updatedVariants.reduce((acc, v) => acc + (v.stock || 0), 0);
+            return { 
+              ...product, 
+              variantes: updatedVariants,
+              stock: newTotalStock
+            };
+          }
+          return product;
+        })
+      );
+      
+      return updatedVariants;
+    } catch (err) {
+      setError(err.message);
+      console.error('Error al actualizar stock de variante:', err);
+      throw err;
+    }
+  }, []);
+
+  /**
    * Validar código único
    */
   const validateProductCode = useCallback(async (code, excludeId = null) => {
@@ -274,14 +329,33 @@ export const useProducts = () => {
     }
   }, []);
 
-  // Cargar productos al montar el componente
+  // Suscripción en tiempo real a productos
   useEffect(() => {
-    // Solo cargar automáticamente si no hay productos y no estamos buscando
-    if (products.length === 0 && searchResults.length === 0) {
-      // No cargar automáticamente para evitar llamadas innecesarias
-      // loadProducts();
-    }
-  }, []);
+    console.log('🔄 Iniciando suscripción en tiempo real a productos...');
+    
+    const unsubscribe = subscribeToProducts((products) => {
+      console.log('📡 Productos actualizados en tiempo real:', products.length);
+      setRealtimeProducts(products);
+      
+      // Si estamos en modo búsqueda, actualizar también los resultados
+      if (searchResults.length > 0) {
+        const updatedResults = searchResults.map(result => 
+          products.find(p => p.id === result.id) || result
+        ).filter(Boolean);
+        setSearchResults(updatedResults);
+      }
+      
+      // Si tenemos productos cargados, actualizarlos también
+      if (products.length > 0) {
+        setProducts(products);
+      }
+    });
+
+    return () => {
+      console.log('🔌 Desconectando suscripción de productos...');
+      unsubscribe();
+    };
+  }, [searchResults]);
 
   return {
     // Estado
@@ -289,15 +363,18 @@ export const useProducts = () => {
     loading,
     error,
     searchResults,
+    realtimeProducts,
     
     // Funciones CRUD
     loadProducts,
     searchProductsByTerm,
     getProduct,
+    getProductByCode,
     addProduct,
     updateProductData,
     removeProduct,
     updateStock,
+    updateVariantStockData,
     
     // Utilidades
     clearSearch,

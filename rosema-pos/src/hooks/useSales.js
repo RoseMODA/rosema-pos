@@ -12,6 +12,7 @@ import {
   getSalesStats,
   generateReceiptData
 } from '../services/salesService';
+import { updateVariantStock } from '../services/productsService';
 
 /**
  * Hook personalizado para gestión de ventas con sesiones completamente independientes
@@ -261,7 +262,7 @@ export const useSales = () => {
       const saleData = {
         items: session.items.map(item => ({
           productId: item.productId,
-          name: item.name,
+          name: item.nombre || item.name,
           code: item.code,
           price: item.price,
           quantity: item.qty,
@@ -283,7 +284,29 @@ export const useSales = () => {
         commission: session.paymentMethod === PAYMENT_METHODS.CREDITO ? session.commission : null
       };
 
+      // Procesar la venta
       const completedSale = await processSale(saleData);
+      
+      // Actualizar stock de variantes vendidas
+      console.log('🔄 Actualizando stock de variantes vendidas...');
+      for (const item of session.items) {
+        if (item.productId && item.variant && !item.isQuickItem && !item.isReturn) {
+          try {
+            console.log(`📦 Actualizando stock para ${item.name}:`, {
+              productId: item.productId,
+              variant: item.variant,
+              quantity: item.qty
+            });
+            
+            await updateVariantStock(item.productId, item.variant, item.qty);
+            console.log(`✅ Stock actualizado para ${item.name}`);
+          } catch (stockError) {
+            console.error(`❌ Error actualizando stock para ${item.name}:`, stockError);
+            // Continuar con otros items aunque uno falle
+            // No fallar toda la venta por un error de stock
+          }
+        }
+      }
       
       // Marcar sesión como pagada y remover de abiertas
       updateSalesState(prevState => {
@@ -312,6 +335,7 @@ export const useSales = () => {
       // Actualizar historial
       setSalesHistory(prev => [completedSale, ...prev]);
 
+      console.log('✅ Venta procesada y stock actualizado exitosamente');
       return completedSale;
     } catch (err) {
       setError(err.message);
@@ -572,19 +596,33 @@ export const useSales = () => {
   const activeSession = getActiveSession();
   const totals = calculateSessionTotals(activeSession);
 
-  // Wrappers para la sesión activa
-  const addToCart = useCallback((product, quantity = 1, size = null, color = null) => {
+  // Wrappers para la sesión activa - Actualizado para manejar variantes
+  const addToCart = useCallback((product, quantity = 1, variant = null) => {
     if (!salesState.activeSessionId) return;
+    
+    if (!variant) {
+      alert('Debe seleccionar una variante para el producto');
+      return;
+    }
+    
+    // Validar stock de la variante
+    if (variant.stock < quantity) {
+      alert(`Stock insuficiente. Disponible: ${variant.stock}, Solicitado: ${quantity}`);
+      return;
+    }
+    
     return addItem(salesState.activeSessionId, {
       productId: product.id,
-      name: product.name,
-      code: product.code,
-      price: product.salePrice || product.price,
+      nombre: product.articulo || product.name,  // Usar campo 'articulo'
+      code: product.id,                          // Código de barras
+      price: variant.precioVenta,
       quantity,
-      size,
-      color,
-      stock: product.stock,
-      isReturn: product.isReturn,
+      variant: {
+        talla: variant.talla,
+        color: variant.color
+      },
+      stock: variant.stock,
+      isReturn: product.isReturn || false,
       isQuickItem: !product.id
     });
   }, [salesState.activeSessionId, addItem]);

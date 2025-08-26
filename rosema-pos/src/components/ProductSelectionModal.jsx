@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 
 /**
- * Modal para seleccionar talla y color al agregar un producto al carrito
+ * Modal para seleccionar variante (talla y color) al agregar un producto al carrito
+ * Actualizado para trabajar con la estructura de variantes de Firebase
  */
 const ProductSelectionModal = ({ 
   product, 
@@ -9,25 +10,29 @@ const ProductSelectionModal = ({
   onClose, 
   onAddToCart 
 }) => {
-  const [selectedSize, setSelectedSize] = useState('');
-  const [selectedColor, setSelectedColor] = useState('');
+  const [selectedVariant, setSelectedVariant] = useState(null);
   const [quantity, setQuantity] = useState(1);
 
   /**
    * Manejar confirmación de selección
    */
   const handleConfirm = () => {
-    if (product.sizes && product.sizes.length > 0 && !selectedSize) {
-      alert('Por favor seleccione una talla');
+    if (!selectedVariant) {
+      alert('Por favor seleccione una variante');
       return;
     }
 
-    if (product.colors && product.colors.length > 0 && !selectedColor) {
-      alert('Por favor seleccione un color');
+    if (quantity > selectedVariant.stock) {
+      alert(`Stock insuficiente. Disponible: ${selectedVariant.stock}`);
       return;
     }
 
-    onAddToCart(product, quantity, selectedSize, selectedColor);
+    if (quantity <= 0) {
+      alert('La cantidad debe ser mayor a 0');
+      return;
+    }
+
+    onAddToCart(product, quantity, selectedVariant);
     handleClose();
   };
 
@@ -35,13 +40,15 @@ const ProductSelectionModal = ({
    * Cerrar modal y limpiar selecciones
    */
   const handleClose = () => {
-    setSelectedSize('');
-    setSelectedColor('');
+    setSelectedVariant(null);
     setQuantity(1);
     onClose();
   };
 
   if (!show || !product) return null;
+
+  // Filtrar variantes con stock disponible
+  const availableVariants = product.variantes?.filter(v => v.stock > 0) || [];
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -65,112 +72,105 @@ const ProductSelectionModal = ({
         <div className="p-6 space-y-4">
           {/* Información del producto */}
           <div className="bg-gray-50 rounded-lg p-4">
-            <h4 className="font-medium text-gray-900">{product.name}</h4>
-            <p className="text-sm text-gray-600">Código: {product.code}</p>
-            <p className="text-lg font-semibold text-green-600 mt-1">
-              ${product.salePrice?.toLocaleString()}
-            </p>
+            <h4 className="font-medium text-gray-900">{product.articulo || product.name}</h4>
+            <p className="text-sm text-gray-600">Código: {product.id}</p>
+            {availableVariants.length === 0 && (
+              <p className="text-sm text-red-600 mt-1">Sin variantes disponibles</p>
+            )}
           </div>
 
-          {/* Selección de cantidad */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Cantidad
-            </label>
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                className="w-8 h-8 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded-full transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                </svg>
-              </button>
-              
-              <span className="w-12 text-center font-medium text-lg">{quantity}</span>
-              
-              <button
-                onClick={() => setQuantity(Math.min(product.stock || 999, quantity + 1))}
-                className="w-8 h-8 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded-full transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-              </button>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Stock disponible: {product.stock}
-            </p>
-          </div>
-
-          {/* Selección de talla */}
-          {product.sizes && product.sizes.length > 0 && (
+          {/* Lista de variantes disponibles */}
+          {availableVariants.length > 0 && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Talla *
+                Variantes Disponibles *
               </label>
-              <div className="grid grid-cols-4 gap-2">
-                {product.sizes.map((size, index) => (
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {availableVariants.map((variant, index) => (
                   <button
                     key={index}
-                    onClick={() => setSelectedSize(size)}
-                    className={`py-2 px-3 text-sm font-medium rounded-lg border transition-colors ${
-                      selectedSize === size
+                    onClick={() => setSelectedVariant(variant)}
+                    className={`w-full p-4 text-left rounded-lg border transition-colors ${
+                      selectedVariant === variant
                         ? 'bg-red-600 text-white border-red-600'
                         : 'bg-white text-gray-700 border-gray-300 hover:border-red-300'
                     }`}
                   >
-                    {size}
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="font-medium">
+                          Talla: {variant.talla}
+                          {variant.color && ` • Color: ${variant.color}`}
+                        </div>
+                        <div className="text-lg font-semibold text-green-600">
+                          ${variant.precioVenta?.toLocaleString()}
+                        </div>
+                      </div>
+                      <div className={`text-sm ${variant.stock <= 5 ? 'text-red-600' : 'text-gray-600'}`}>
+                        Stock: {variant.stock}
+                      </div>
+                    </div>
                   </button>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Selección de color */}
-          {product.colors && product.colors.length > 0 && (
+          {/* Selección de cantidad */}
+          {selectedVariant && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Color *
+                Cantidad
               </label>
-              <div className="flex flex-wrap gap-2">
-                {product.colors.map((color, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedColor(color)}
-                    className={`w-10 h-10 rounded-full border-2 transition-all ${
-                      selectedColor === color
-                        ? 'border-red-600 ring-2 ring-red-200'
-                        : 'border-gray-300 hover:border-gray-400'
-                    }`}
-                    style={{ backgroundColor: color }}
-                    title={color}
-                  >
-                    {selectedColor === color && (
-                      <svg className="w-6 h-6 text-white mx-auto" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                  </button>
-                ))}
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  className="w-8 h-8 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded-full transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                  </svg>
+                </button>
+                
+                <span className="w-12 text-center font-medium text-lg">{quantity}</span>
+                
+                <button
+                  onClick={() => setQuantity(Math.min(selectedVariant.stock, quantity + 1))}
+                  className="w-8 h-8 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded-full transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                </button>
               </div>
-              {selectedColor && (
-                <p className="text-sm text-gray-600 mt-2">
-                  Color seleccionado: {selectedColor}
-                </p>
-              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Stock disponible: {selectedVariant.stock}
+              </p>
             </div>
           )}
 
           {/* Total */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex justify-between items-center">
-              <span className="font-medium text-gray-900">Total:</span>
-              <span className="text-xl font-bold text-green-600">
-                ${(product.salePrice * quantity).toLocaleString()}
-              </span>
+          {selectedVariant && (
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="flex justify-between items-center">
+                <span className="font-medium text-gray-900">Total:</span>
+                <span className="text-xl font-bold text-green-600">
+                  ${(selectedVariant.precioVenta * quantity).toLocaleString()}
+                </span>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Mensaje si no hay variantes */}
+          {availableVariants.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+              </svg>
+              <p>No hay variantes disponibles</p>
+              <p className="text-sm">Todas las variantes están sin stock</p>
+            </div>
+          )}
         </div>
 
         {/* Botones */}
@@ -183,7 +183,8 @@ const ProductSelectionModal = ({
           </button>
           <button
             onClick={handleConfirm}
-            className="flex-1 btn-rosema"
+            disabled={!selectedVariant || availableVariants.length === 0}
+            className="flex-1 btn-rosema disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Agregar al Carrito
           </button>

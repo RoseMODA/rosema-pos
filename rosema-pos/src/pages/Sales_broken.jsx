@@ -11,7 +11,6 @@ import ProductSelectionModal from '../components/ProductSelectionModal';
  * Página principal del sistema de ventas
  * Implementa el diseño visual específico con layout de dos columnas
  * CON SELECTOR DE DESCUENTOS FIJOS Y REDONDEO A MÚLTIPLOS DE 500
- * ACTUALIZADO PARA MANEJAR VARIANTES DE PRODUCTOS
  */
 const Sales = () => {
   // Hooks personalizados
@@ -103,7 +102,7 @@ const Sales = () => {
   const productStats = getProductStats();
 
   /**
-   * Manejar búsqueda de productos (incluye búsqueda por código de barras)
+   * Manejar búsqueda de productos
    */
   const handleSearch = async (term) => {
     setSearchTerm(term);
@@ -284,7 +283,7 @@ const Sales = () => {
     const receiptData = {
       saleNumber: `PREV-${Date.now()}`, // Número temporal para vista previa
       items: cart.map(item => ({
-        name: item.nombre || item.name,
+        name: item.name,
         code: item.code || 'N/A',
         quantity: item.qty || item.quantity,
         price: item.price
@@ -441,7 +440,6 @@ const Sales = () => {
                           Crear productos de ejemplo
                         </button>
                       )}
-                    </div>
                   ) : (
                     <div className="divide-y divide-gray-200">
                       {products.map((product) => (
@@ -766,7 +764,6 @@ const Sales = () => {
           </div>
 
           {/* Lista de productos en el carrito */}
-          <div className="space-y-4 mb-6">
             {cart.map((item) => (
               <div key={item.lineId || item.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div className="flex-1">
@@ -857,8 +854,6 @@ const Sales = () => {
         isOpen={showReturnModal}
         onClose={() => setShowReturnModal(false)}
         onAddReturn={handleAddReturn}
-      />
-
       <PrintReceiptModal
         isOpen={showPrintModal}
         onClose={() => setShowPrintModal(false)}

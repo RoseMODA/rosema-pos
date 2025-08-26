@@ -11,40 +11,46 @@ import {
   where, 
   orderBy, 
   limit,
-  writeBatch
+  writeBatch,
+  onSnapshot
 } from 'firebase/firestore';
 import { db } from './firebase';
 
 /**
  * Servicio para gestión de productos en Firestore
- * Maneja CRUD de productos con stock, tallas y colores
+ * Maneja CRUD de productos con variantes de la colección 'articulos'
  */
 
 const COLLECTION_NAME = 'articulos';
 
 /**
- * Obtener todos los productos
+ * Obtener todos los productos de la colección 'articulos'
  */
 export const getAllProducts = async () => {
   try {
     console.log('🔍 Intentando obtener productos de la colección:', COLLECTION_NAME);
     
-    // Primero intentamos sin ordenar para evitar errores de índice
     const querySnapshot = await getDocs(collection(db, COLLECTION_NAME));
-    
     console.log('📊 Documentos encontrados:', querySnapshot.size);
     
     const products = querySnapshot.docs.map(doc => {
       const data = doc.data();
       console.log('📄 Documento encontrado:', doc.id, data);
       
+      // Calcular stock total sumando todas las variantes
+      const totalStock = Array.isArray(data.variantes) 
+        ? data.variantes.reduce((acc, variant) => acc + (variant.stock || 0), 0)
+        : 0;
+      
       return {
         id: doc.id,
         ...data,
-        // Mapear campos comunes que podrían tener nombres diferentes
-        name: data.name || data.nombre || data.titulo || 'Sin nombre',
-        price: data.price || data.precio || data.salePrice || 0,
-        stock: data.stock || data.cantidad || data.existencia || 0
+        // Mapear el campo 'articulo' como 'name' para compatibilidad
+        name: data.articulo || 'Sin nombre',
+        // Mantener el array de variantes original
+        variantes: data.variantes || [],
+        // Stock total calculado
+        stock: totalStock
       };
     });
     
@@ -70,7 +76,7 @@ export const getAllProducts = async () => {
 };
 
 /**
- * Buscar productos por término (nombre o código)
+ * Buscar productos por término (nombre o código de barras)
  */
 export const searchProducts = async (searchTerm) => {
   try {
@@ -80,40 +86,25 @@ export const searchProducts = async (searchTerm) => {
 
     const term = searchTerm.toLowerCase().trim();
     
-    // Buscar por código exacto
-    const codeQuery = query(
-      collection(db, COLLECTION_NAME),
-      where('code', '>=', term),
-      where('code', '<=', term + '\uf8ff'),
-      limit(10)
+    // Primero intentar búsqueda exacta por ID (código de barras)
+    try {
+      const exactProduct = await getProductByBarcode(term);
+      if (exactProduct) {
+        return [exactProduct];
+      }
+    } catch (error) {
+      // Si no se encuentra por código exacto, continuar con búsqueda por nombre
+      console.log('Producto no encontrado por código exacto, buscando por nombre...');
+    }
+    
+    // Buscar por nombre del artículo
+    const allProducts = await getAllProducts();
+    const filteredProducts = allProducts.filter(product => 
+      product.articulo?.toLowerCase().includes(term) ||
+      product.id?.toLowerCase().includes(term)
     );
-    
-    // Buscar por nombre
-    const nameQuery = query(
-      collection(db, COLLECTION_NAME),
-      where('searchName', '>=', term),
-      where('searchName', '<=', term + '\uf8ff'),
-      limit(10)
-    );
 
-    const [codeResults, nameResults] = await Promise.all([
-      getDocs(codeQuery),
-      getDocs(nameQuery)
-    ]);
-
-    const products = new Map();
-    
-    // Agregar resultados por código
-    codeResults.docs.forEach(doc => {
-      products.set(doc.id, { id: doc.id, ...doc.data() });
-    });
-    
-    // Agregar resultados por nombre
-    nameResults.docs.forEach(doc => {
-      products.set(doc.id, { id: doc.id, ...doc.data() });
-    });
-
-    return Array.from(products.values());
+    return filteredProducts.slice(0, 10); // Limitar a 10 resultados
   } catch (error) {
     console.error('Error al buscar productos:', error);
     throw new Error('Error en la búsqueda de productos');
@@ -121,22 +112,42 @@ export const searchProducts = async (searchTerm) => {
 };
 
 /**
- * Obtener producto por ID
+ * Obtener producto por código de barras (ID)
  */
-export const getProductById = async (productId) => {
+export const getProductByBarcode = async (barcode) => {
   try {
-    const docRef = doc(db, COLLECTION_NAME, productId);
+    const docRef = doc(db, COLLECTION_NAME, barcode);
     const docSnap = await getDoc(docRef);
     
     if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() };
+      const data = docSnap.data();
+      
+      // Calcular stock total
+      const totalStock = Array.isArray(data.variantes) 
+        ? data.variantes.reduce((acc, variant) => acc + (variant.stock || 0), 0)
+        : 0;
+      
+      return {
+        id: docSnap.id,
+        ...data,
+        name: data.articulo || 'Sin nombre',
+        variantes: data.variantes || [],
+        stock: totalStock
+      };
     } else {
       throw new Error('Producto no encontrado');
     }
   } catch (error) {
-    console.error('Error al obtener producto:', error);
+    console.error('Error al buscar producto por código:', error);
     throw error;
   }
+};
+
+/**
+ * Obtener producto por ID (mantener compatibilidad)
+ */
+export const getProductById = async (productId) => {
+  return await getProductByBarcode(productId);
 };
 
 /**
@@ -359,6 +370,73 @@ export const createSampleProducts = async () => {
 };
 
 /**
+ * Suscribirse a cambios en tiempo real de productos
+ */
+export const subscribeToProducts = (callback) => {
+  const q = collection(db, COLLECTION_NAME);
+  return onSnapshot(q, (querySnapshot) => {
+    const products = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      
+      // Calcular stock total
+      const totalStock = Array.isArray(data.variantes) 
+        ? data.variantes.reduce((acc, variant) => acc + (variant.stock || 0), 0)
+        : 0;
+      
+      return {
+        id: doc.id,
+        ...data,
+        name: data.articulo || 'Sin nombre',
+        variantes: data.variantes || [],
+        stock: totalStock
+      };
+    });
+    callback(products);
+  }, (error) => {
+    console.error('Error en suscripción a productos:', error);
+  });
+};
+
+/**
+ * Actualizar stock de variante específica
+ */
+export const updateVariantStock = async (productId, variantToUpdate, quantitySold) => {
+  try {
+    const docRef = doc(db, COLLECTION_NAME, productId);
+    const productDoc = await getDoc(docRef);
+    
+    if (!productDoc.exists()) {
+      throw new Error("Producto no encontrado");
+    }
+    
+    const productData = productDoc.data();
+    const variants = productData.variantes || [];
+    
+    const updatedVariants = variants.map(variant => {
+      if (variant.talla === variantToUpdate.talla && 
+          variant.color === variantToUpdate.color) {
+        if (variant.stock < quantitySold) {
+          throw new Error(`Stock insuficiente. Disponible: ${variant.stock}, Solicitado: ${quantitySold}`);
+        }
+        return { ...variant, stock: variant.stock - quantitySold };
+      }
+      return variant;
+    });
+    
+    await updateDoc(docRef, { 
+      variantes: updatedVariants, 
+      updatedAt: new Date() 
+    });
+    
+    console.log(`✅ Stock actualizado para producto ${productId}:`, variantToUpdate);
+    return updatedVariants;
+  } catch (error) {
+    console.error("Error actualizando stock de variante:", error);
+    throw error;
+  }
+};
+
+/**
  * Obtener estadísticas de productos
  */
 export const getProductStats = async () => {
@@ -375,7 +453,7 @@ export const getProductStats = async () => {
 
     // Contar por categorías
     products.forEach(product => {
-      const category = product.category || 'otros';
+      const category = product.categoria || 'otros';
       stats.categories[category] = (stats.categories[category] || 0) + 1;
     });
 
