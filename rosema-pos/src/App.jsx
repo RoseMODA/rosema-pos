@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Home from './pages/Home';
 import Statistics from './pages/Statistics';
 import Sales from './pages/Sales';
+import SalesNew from './pages/SalesNew';
 import Products from './pages/Products';
 import Customers from './pages/Customers';
 import Suppliers from './pages/Suppliers';
@@ -57,6 +58,7 @@ function App() {
             <Route index element={<Home />} />
             <Route path="statistics" element={<Statistics />} />
             <Route path="sales" element={<Sales />} />
+            <Route path="sales-new" element={<SalesNew />} />
             <Route path="products" element={<Products />} />
             <Route path="customers" element={<Customers />} />
             <Route path="suppliers" element={<Suppliers />} />

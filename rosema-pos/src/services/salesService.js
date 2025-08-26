@@ -19,10 +19,92 @@ import { updateMultipleProductsStock } from './productsService';
 /**
  * Servicio para gestión de ventas en Firestore
  * Maneja CRUD de ventas, historial y devoluciones
+ * Conectado con productos y variantes (talla, color, stock)
  */
 
-const SALES_COLLECTION = 'sales';
+const SALES_COLLECTION = 'ventas';
+const PRODUCTS_COLLECTION = 'productos';
 const PENDING_SALES_COLLECTION = 'pendingSales';
+
+/**
+ * Buscar productos por código de barras o nombre para ventas
+ */
+export const searchProductsForSale = async (searchTerm) => {
+  try {
+    if (!searchTerm.trim()) return [];
+
+    const productsQuery = query(collection(db, PRODUCTS_COLLECTION));
+    const snapshot = await getDocs(productsQuery);
+    
+    const products = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    const term = searchTerm.toLowerCase();
+    return products.filter(product => 
+      product.id.toLowerCase().includes(term) || 
+      (product.articulo && product.articulo.toLowerCase().includes(term))
+    );
+  } catch (error) {
+    console.error('Error buscando productos:', error);
+    throw new Error('Error al buscar productos');
+  }
+};
+
+/**
+ * Obtener producto por código de barras exacto
+ */
+export const getProductByBarcode = async (barcode) => {
+  try {
+    const docRef = doc(db, PRODUCTS_COLLECTION, barcode);
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists()) {
+      return {
+        id: docSnap.id,
+        ...docSnap.data()
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error obteniendo producto por código:', error);
+    throw new Error('Error al obtener producto');
+  }
+};
+
+/**
+ * Validar stock disponible para una variante específica
+ */
+export const validateVariantStock = async (productId, talla, color, requestedQuantity) => {
+  try {
+    const product = await getProductByBarcode(productId);
+    if (!product) {
+      throw new Error('Producto no encontrado');
+    }
+
+    const variante = product.variantes?.find(v => 
+      v.talla === talla && v.color === color
+    );
+
+    if (!variante) {
+      throw new Error(`Variante ${talla}/${color} no encontrada`);
+    }
+
+    if (variante.stock < requestedQuantity) {
+      throw new Error(`Stock insuficiente. Disponible: ${variante.stock}, Solicitado: ${requestedQuantity}`);
+    }
+
+    return {
+      available: true,
+      currentStock: variante.stock,
+      price: variante.precioVenta || product.precioCosto || 0
+    };
+  } catch (error) {
+    console.error('Error validando stock:', error);
+    throw error;
+  }
+};
 
 /**
  * Generar número de venta único
@@ -67,9 +149,11 @@ const generateSaleNumber = async () => {
 };
 
 /**
- * Procesar una venta completa
+ * Procesar una venta completa con variantes
  */
 export const processSale = async (saleData) => {
+  const batch = writeBatch(db);
+  
   try {
     const {
       items,
@@ -85,21 +169,36 @@ export const processSale = async (saleData) => {
       commission
     } = saleData;
 
+    // Validar stock disponible antes de procesar
+    for (const item of items) {
+      if (item.productId && !item.isQuickItem) {
+        await validateVariantStock(
+          item.productId, 
+          item.talla, 
+          item.color, 
+          item.quantity
+        );
+      }
+    }
+
     // Generar número de venta único
     const saleNumber = await generateSaleNumber();
 
-    // Crear la venta
+    // Crear la venta con estructura mejorada
     const sale = {
       saleNumber,
       items: items.map(item => ({
         productId: item.productId || null,
-        name: item.name,
-        code: item.code || null,
+        productName: item.productName || item.name,
+        articulo: item.articulo || item.name,
+        code: item.code || item.productId,
+        talla: item.talla || null,
+        color: item.color || null,
         price: item.price,
         quantity: item.quantity,
-        size: item.size || null,
-        color: item.color || null,
         subtotal: item.price * item.quantity,
+        proveedorId: item.proveedorId || null,
+        providerName: item.providerName || null,
         isReturn: item.isReturn || false,
         isQuickItem: item.isQuickItem || false
       })),
@@ -116,39 +215,50 @@ export const processSale = async (saleData) => {
       installments: installments || null,
       commission: commission || null,
       saleDate: new Date(),
-      createdAt: new Date(),
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
       status: 'completed'
     };
 
     // Guardar la venta
-    const docRef = await addDoc(collection(db, SALES_COLLECTION), sale);
-    
-    // Actualizar stock de productos (solo para productos registrados)
-    const stockUpdates = [];
-    items.forEach(item => {
-      if (item.productId && !item.isQuickItem) {
-        const stockChange = item.isReturn ? item.quantity : -item.quantity;
-        stockUpdates.push({
-          productId: item.productId,
-          stockChange: stockChange,
-          currentStock: item.currentStock || 0
-        });
-      }
-    });
+    const saleRef = await addDoc(collection(db, SALES_COLLECTION), sale);
 
-    if (stockUpdates.length > 0) {
-      const finalStockUpdates = stockUpdates.map(update => ({
-        productId: update.productId,
-        newStock: Math.max(0, update.currentStock + update.stockChange)
-      }));
-      
-      await updateMultipleProductsStock(finalStockUpdates);
+    // Actualizar stock de variantes específicas
+    for (const item of items) {
+      if (item.productId && !item.isQuickItem) {
+        const productRef = doc(db, PRODUCTS_COLLECTION, item.productId);
+        const productSnap = await getDoc(productRef);
+        
+        if (productSnap.exists()) {
+          const product = productSnap.data();
+          
+          // Actualizar stock de la variante específica
+          const updatedVariantes = product.variantes.map(variante => {
+            if (variante.talla === item.talla && variante.color === item.color) {
+              const stockChange = item.isReturn ? item.quantity : -item.quantity;
+              return {
+                ...variante,
+                stock: Math.max(0, variante.stock + stockChange)
+              };
+            }
+            return variante;
+          });
+
+          batch.update(productRef, { 
+            variantes: updatedVariantes,
+            updatedAt: Timestamp.now()
+          });
+        }
+      }
     }
 
-    return { id: docRef.id, ...sale };
+    // Ejecutar todas las actualizaciones
+    await batch.commit();
+
+    return { id: saleRef.id, ...sale };
   } catch (error) {
     console.error('Error al procesar venta:', error);
-    throw new Error('No se pudo procesar la venta');
+    throw error;
   }
 };
 
