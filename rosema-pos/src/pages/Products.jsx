@@ -30,7 +30,7 @@ const Products = () => {
   const [formMode, setFormMode] = useState('create');
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('name');
+  const [sortBy, setSortBy] = useState('created');
   const [sortOrder, setSortOrder] = useState('asc');
   const [stats, setStats] = useState({
     totalProducts: 0,
@@ -82,6 +82,11 @@ const Products = () => {
       let aValue, bValue;
       
       switch (sortBy) {
+        case 'created':
+          // Ordenar por fecha de creación (más recientes primero)
+          aValue = a.createdAt ? new Date(a.createdAt.seconds ? a.createdAt.seconds * 1000 : a.createdAt) : new Date(0);
+          bValue = b.createdAt ? new Date(b.createdAt.seconds ? b.createdAt.seconds * 1000 : b.createdAt) : new Date(0);
+          return bValue - aValue; // Más recientes primero
         case 'name':
           aValue = a.articulo || '';
           bValue = b.articulo || '';
@@ -99,8 +104,10 @@ const Products = () => {
           bValue = b.categoria || '';
           break;
         default:
-          aValue = a.articulo || '';
-          bValue = b.articulo || '';
+          // Por defecto, ordenar por fecha de creación
+          aValue = a.createdAt ? new Date(a.createdAt.seconds ? a.createdAt.seconds * 1000 : a.createdAt) : new Date(0);
+          bValue = b.createdAt ? new Date(b.createdAt.seconds ? b.createdAt.seconds * 1000 : b.createdAt) : new Date(0);
+          return bValue - aValue;
       }
 
       if (typeof aValue === 'string') {
@@ -325,6 +332,7 @@ const Products = () => {
             onChange={(e) => setSortBy(e.target.value)}
             className="input-rosema"
           >
+            <option value="created">Más Recientes</option>
             <option value="name">Ordenar por Nombre</option>
             <option value="price">Ordenar por Precio</option>
             <option value="stock">Ordenar por Stock</option>
@@ -420,6 +428,9 @@ const Products = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Stock
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Fecha Creación
+                  </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Acciones
                   </th>
@@ -478,6 +489,20 @@ const Products = () => {
                         }`}>
                           {totalStock} unidades
                         </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {product.createdAt ? (
+                          <div>
+                            <div className="font-medium">
+                              {new Date(product.createdAt.seconds ? product.createdAt.seconds * 1000 : product.createdAt).toLocaleDateString('es-ES')}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {new Date(product.createdAt.seconds ? product.createdAt.seconds * 1000 : product.createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-sm">Sin fecha</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                         <div className="flex items-center justify-center space-x-2">
@@ -652,6 +677,30 @@ const Products = () => {
                       <span key={tag} className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm">
                         {tag}
                       </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Imágenes del producto */}
+              {viewingProduct.imagenes && viewingProduct.imagenes.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-3">Imágenes del Producto</label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {viewingProduct.imagenes.map((url, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={url}
+                          alt={`${viewingProduct.articulo} - Imagen ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-75 transition-opacity"
+                          onClick={() => window.open(url, '_blank')}
+                        />
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-lg transition-all flex items-center justify-center">
+                          <svg className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          </svg>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>

@@ -309,21 +309,79 @@ export const getProvidersByGallery = async (galeria) => {
 
 /**
  * Obtener estadísticas de productos para un proveedor específico
- * (Placeholder - se implementará cuando esté el sistema de productos)
  */
 export const getProviderProductStats = async (providerId) => {
   try {
-    // TODO: Implementar cuando esté el sistema de productos
-    // Por ahora retornamos datos de ejemplo
-    return {
-      totalComprados: 0,
-      totalVendidos: 0,
-      productosActivos: 0,
-      ultimaCompra: null,
-      ultimaVenta: null
+    console.log('🔍 Obteniendo estadísticas de productos para proveedor:', providerId);
+    
+    // Obtener productos del proveedor
+    const productsQuery = query(
+      collection(db, 'productos'),
+      where('proveedorId', '==', providerId)
+    );
+    
+    const productsSnapshot = await getDocs(productsQuery);
+    const products = productsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    console.log('📦 Productos encontrados para el proveedor:', products.length);
+
+    // Calcular estadísticas
+    const totalProductos = products.length;
+    const productosActivos = products.filter(p => {
+      const totalStock = p.variantes?.reduce((sum, v) => sum + (v.stock || 0), 0) || 0;
+      return totalStock > 0;
+    }).length;
+
+    // Obtener ventas relacionadas con estos productos (si existe la colección de ventas)
+    let totalVendidos = 0;
+    let ultimaVenta = null;
+    
+    try {
+      const ventasQuery = query(collection(db, 'ventas'));
+      const ventasSnapshot = await getDocs(ventasQuery);
+      
+      ventasSnapshot.docs.forEach(doc => {
+        const venta = doc.data();
+        if (venta.items) {
+          venta.items.forEach(item => {
+            const product = products.find(p => p.id === item.productId);
+            if (product) {
+              totalVendidos += item.quantity || 0;
+              const ventaDate = venta.createdAt ? new Date(venta.createdAt.seconds * 1000) : null;
+              if (!ultimaVenta || (ventaDate && ventaDate > ultimaVenta)) {
+                ultimaVenta = ventaDate;
+              }
+            }
+          });
+        }
+      });
+    } catch (ventasError) {
+      console.log('ℹ️ No se encontró colección de ventas o error al acceder:', ventasError.message);
+    }
+
+    // Calcular última compra (fecha de creación del producto más reciente)
+    const ultimaCompra = products.length > 0 ? 
+      products.reduce((latest, product) => {
+        const productDate = product.createdAt ? 
+          new Date(product.createdAt.seconds ? product.createdAt.seconds * 1000 : product.createdAt) : null;
+        return (!latest || (productDate && productDate > latest)) ? productDate : latest;
+      }, null) : null;
+
+    const stats = {
+      totalComprados: totalProductos,
+      totalVendidos: totalVendidos,
+      productosActivos: productosActivos,
+      ultimaCompra: ultimaCompra,
+      ultimaVenta: ultimaVenta
     };
+
+    console.log('📊 Estadísticas calculadas:', stats);
+    return stats;
   } catch (error) {
-    console.error('Error al obtener estadísticas de productos del proveedor:', error);
+    console.error('❌ Error al obtener estadísticas de productos del proveedor:', error);
     return {
       totalComprados: 0,
       totalVendidos: 0,

@@ -84,6 +84,14 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
         tags: product.tags || [],
         imagenes: product.imagenes || []
       });
+      
+      // Buscar y establecer el nombre del proveedor
+      if (product.proveedorId && providers.length > 0) {
+        const provider = providers.find(p => p.id === product.proveedorId);
+        if (provider) {
+          setProviderSearch(provider.proveedor);
+        }
+      }
     } else if (mode === 'create') {
       // Resetear formulario para crear nuevo producto
       setFormData({
@@ -101,8 +109,9 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
         tags: [],
         imagenes: []
       });
+      setProviderSearch('');
     }
-  }, [product, mode]);
+  }, [product, mode, providers]);
 
   /**
    * Calcular precio de venta sugerido
