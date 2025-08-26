@@ -12,7 +12,7 @@ import {
   getSalesStats,
   generateReceiptData
 } from '../services/salesService';
-import { updateVariantStock } from '../services/productsService';
+import { updateVariantStock, incrementVariantStock } from '../services/productsService';
 
 /**
  * Hook personalizado para gestión de ventas con sesiones completamente independientes
@@ -287,21 +287,34 @@ export const useSales = () => {
       // Procesar la venta
       const completedSale = await processSale(saleData);
       
-      // Actualizar stock de variantes vendidas
-      console.log('🔄 Actualizando stock de variantes vendidas...');
+      // Actualizar stock de variantes (ventas y devoluciones)
+      console.log('🔄 Actualizando stock de variantes...');
       for (const item of session.items) {
-        if (item.productId && item.variant && !item.isQuickItem && !item.isReturn) {
+        if (item.productId && item.variant && !item.isQuickItem) {
           try {
-            console.log(`📦 Actualizando stock para ${item.name}:`, {
-              productId: item.productId,
-              variant: item.variant,
-              quantity: item.qty
-            });
-            
-            await updateVariantStock(item.productId, item.variant, item.qty);
-            console.log(`✅ Stock actualizado para ${item.name}`);
+            if (item.isReturn) {
+              // Para devoluciones: incrementar stock
+              console.log(`🔄 Incrementando stock para devolución ${item.nombre || item.name}:`, {
+                productId: item.productId,
+                variant: item.variant,
+                quantity: item.qty
+              });
+              
+              await incrementVariantStock(item.productId, item.variant, item.qty);
+              console.log(`✅ Stock incrementado para devolución ${item.nombre || item.name}`);
+            } else {
+              // Para ventas normales: descontar stock
+              console.log(`📦 Descontando stock para venta ${item.nombre || item.name}:`, {
+                productId: item.productId,
+                variant: item.variant,
+                quantity: item.qty
+              });
+              
+              await updateVariantStock(item.productId, item.variant, item.qty);
+              console.log(`✅ Stock descontado para venta ${item.nombre || item.name}`);
+            }
           } catch (stockError) {
-            console.error(`❌ Error actualizando stock para ${item.name}:`, stockError);
+            console.error(`❌ Error actualizando stock para ${item.nombre || item.name}:`, stockError);
             // Continuar con otros items aunque uno falle
             // No fallar toda la venta por un error de stock
           }
@@ -711,7 +724,12 @@ export const useSales = () => {
     
     // Funciones legacy (mantener para compatibilidad)
     addQuickItem: (itemData) => salesState.activeSessionId && addItem(salesState.activeSessionId, { ...itemData, isQuickItem: true }),
-    addReturnItem: (returnData) => salesState.activeSessionId && addItem(salesState.activeSessionId, { ...returnData, isReturn: true, price: -Math.abs(returnData.price) }),
+    addReturnItem: (returnData) => salesState.activeSessionId && addItem(salesState.activeSessionId, { 
+      ...returnData, 
+      isReturn: true, 
+      price: -Math.abs(returnData.price), // Precio negativo para restar del total
+      qty: returnData.quantity || 1
+    }),
     deletePendingSaleData: cancelSession,
     savePendingSaleData: () => Promise.resolve(null), // No necesario con localStorage
     loadPendingSaleData: () => Promise.resolve(null), // No necesario con localStorage

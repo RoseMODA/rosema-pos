@@ -9,6 +9,7 @@ import {
   deleteProduct,
   updateProductStock,
   updateVariantStock,
+  incrementVariantStock,
   createSampleProducts,
   getProductStats,
   checkProductCodeExists,
@@ -286,7 +287,7 @@ export const useProducts = () => {
   }, []);
 
   /**
-   * Actualizar stock de variante específica
+   * Actualizar stock de variante específica (descontar)
    */
   const updateVariantStockData = useCallback(async (productId, variant, quantitySold) => {
     setError(null);
@@ -313,6 +314,38 @@ export const useProducts = () => {
     } catch (err) {
       setError(err.message);
       console.error('Error al actualizar stock de variante:', err);
+      throw err;
+    }
+  }, []);
+
+  /**
+   * Incrementar stock de variante específica (para devoluciones)
+   */
+  const incrementVariantStockData = useCallback(async (productId, variant, quantityReturned) => {
+    setError(null);
+    
+    try {
+      const updatedVariants = await incrementVariantStock(productId, variant, quantityReturned);
+      
+      // Actualizar el producto en el estado local si existe
+      setProducts(prev => 
+        prev.map(product => {
+          if (product.id === productId) {
+            const newTotalStock = updatedVariants.reduce((acc, v) => acc + (v.stock || 0), 0);
+            return { 
+              ...product, 
+              variantes: updatedVariants,
+              stock: newTotalStock
+            };
+          }
+          return product;
+        })
+      );
+      
+      return updatedVariants;
+    } catch (err) {
+      setError(err.message);
+      console.error('Error al incrementar stock de variante:', err);
       throw err;
     }
   }, []);
@@ -375,6 +408,7 @@ export const useProducts = () => {
     removeProduct,
     updateStock,
     updateVariantStockData,
+    incrementVariantStockData,
     
     // Utilidades
     clearSearch,

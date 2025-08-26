@@ -76,7 +76,8 @@ export const getAllProducts = async () => {
 };
 
 /**
- * Buscar productos por término (nombre o código de barras)
+ * Buscar productos por término (nombre, código de barras o tags)
+ * Prioriza coincidencias exactas por ID
  */
 export const searchProducts = async (searchTerm) => {
   try {
@@ -85,26 +86,48 @@ export const searchProducts = async (searchTerm) => {
     }
 
     const term = searchTerm.toLowerCase().trim();
-    
-    // Primero intentar búsqueda exacta por ID (código de barras)
-    try {
-      const exactProduct = await getProductByBarcode(term);
-      if (exactProduct) {
-        return [exactProduct];
-      }
-    } catch (error) {
-      // Si no se encuentra por código exacto, continuar con búsqueda por nombre
-      console.log('Producto no encontrado por código exacto, buscando por nombre...');
-    }
-    
-    // Buscar por nombre del artículo
     const allProducts = await getAllProducts();
-    const filteredProducts = allProducts.filter(product => 
-      product.articulo?.toLowerCase().includes(term) ||
-      product.id?.toLowerCase().includes(term)
-    );
+    
+    // Separar productos por tipo de coincidencia
+    const exactIdMatches = [];
+    const partialIdMatches = [];
+    const nameMatches = [];
+    const tagMatches = [];
+    
+    allProducts.forEach(product => {
+      const productId = product.id?.toLowerCase() || '';
+      const productName = product.articulo?.toLowerCase() || '';
+      const productTags = Array.isArray(product.tags) 
+        ? product.tags.map(tag => tag.toLowerCase()).join(' ')
+        : '';
+      
+      // Coincidencia exacta por ID (máxima prioridad)
+      if (productId === term) {
+        exactIdMatches.push(product);
+      }
+      // Coincidencia parcial por ID
+      else if (productId.includes(term)) {
+        partialIdMatches.push(product);
+      }
+      // Coincidencia por nombre
+      else if (productName.includes(term)) {
+        nameMatches.push(product);
+      }
+      // Coincidencia por tags
+      else if (productTags.includes(term)) {
+        tagMatches.push(product);
+      }
+    });
+    
+    // Combinar resultados priorizando coincidencias exactas
+    const results = [
+      ...exactIdMatches,
+      ...partialIdMatches,
+      ...nameMatches,
+      ...tagMatches
+    ];
 
-    return filteredProducts.slice(0, 10); // Limitar a 10 resultados
+    return results.slice(0, 10); // Limitar a 10 resultados
   } catch (error) {
     console.error('Error al buscar productos:', error);
     throw new Error('Error en la búsqueda de productos');
@@ -398,7 +421,7 @@ export const subscribeToProducts = (callback) => {
 };
 
 /**
- * Actualizar stock de variante específica
+ * Actualizar stock de variante específica (descontar)
  */
 export const updateVariantStock = async (productId, variantToUpdate, quantitySold) => {
   try {
@@ -428,10 +451,46 @@ export const updateVariantStock = async (productId, variantToUpdate, quantitySol
       updatedAt: new Date() 
     });
     
-    console.log(`✅ Stock actualizado para producto ${productId}:`, variantToUpdate);
+    console.log(`✅ Stock descontado para producto ${productId}:`, variantToUpdate);
     return updatedVariants;
   } catch (error) {
     console.error("Error actualizando stock de variante:", error);
+    throw error;
+  }
+};
+
+/**
+ * Incrementar stock de variante específica (para devoluciones)
+ */
+export const incrementVariantStock = async (productId, variantToUpdate, quantityReturned) => {
+  try {
+    const docRef = doc(db, COLLECTION_NAME, productId);
+    const productDoc = await getDoc(docRef);
+    
+    if (!productDoc.exists()) {
+      throw new Error("Producto no encontrado");
+    }
+    
+    const productData = productDoc.data();
+    const variants = productData.variantes || [];
+    
+    const updatedVariants = variants.map(variant => {
+      if (variant.talla === variantToUpdate.talla && 
+          variant.color === variantToUpdate.color) {
+        return { ...variant, stock: variant.stock + quantityReturned };
+      }
+      return variant;
+    });
+    
+    await updateDoc(docRef, { 
+      variantes: updatedVariants, 
+      updatedAt: new Date() 
+    });
+    
+    console.log(`✅ Stock incrementado para producto ${productId}:`, variantToUpdate);
+    return updatedVariants;
+  } catch (error) {
+    console.error("Error incrementando stock de variante:", error);
     throw error;
   }
 };
