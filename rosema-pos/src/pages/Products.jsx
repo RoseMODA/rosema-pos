@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useProducts } from '../hooks/useProducts';
 import { useProviders } from '../hooks/useProviders';
 import ProductForm from '../components/ProductForm';
+import BarcodeModal from '../components/BarcodeModal';
 
 /**
  * Página de Productos del sistema POS Rosema
@@ -737,63 +738,14 @@ const Products = () => {
       )}
 
       {/* Modal de imprimir código de barras */}
-      {showPrintModal && productToPrint && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Imprimir Código de Barras
-              </h3>
-              <button
-                onClick={() => {
-                  setShowPrintModal(false);
-                  setProductToPrint(null);
-                }}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="p-6">
-              <div className="text-center mb-6">
-                <div className="bg-gray-100 p-4 rounded-lg mb-4">
-                  <div className="text-sm text-gray-600 mb-2">{productToPrint.articulo}</div>
-                  <div className="font-mono text-2xl font-bold">{productToPrint.id}</div>
-                  <div className="text-sm text-gray-600 mt-2">${getAveragePrice(productToPrint).toLocaleString()}</div>
-                </div>
-                <p className="text-gray-600 text-sm">
-                  Vista previa del código de barras a imprimir
-                </p>
-              </div>
-
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => {
-                    setShowPrintModal(false);
-                    setProductToPrint(null);
-                  }}
-                  className="flex-1 btn-secondary"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={() => {
-                    window.print();
-                    setShowPrintModal(false);
-                    setProductToPrint(null);
-                  }}
-                  className="flex-1 btn-rosema"
-                >
-                  Imprimir
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <BarcodeModal
+        isOpen={showPrintModal}
+        onClose={() => {
+          setShowPrintModal(false);
+          setProductToPrint(null);
+        }}
+        product={productToPrint}
+      />
     </div>
   );
 };
