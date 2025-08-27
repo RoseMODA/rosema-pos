@@ -15,10 +15,12 @@ import {
   
 } from 'firebase/firestore';
 import { db } from './firebase';
+import { updateCustomerStats } from './customersService';
 
 /**
  * Servicio para gestión de ventas en Firestore
  * CORREGIDO: Usa 'articulos' como colección de productos según tu BD
+ * INTEGRADO: Actualización automática de estadísticas de clientes
  */
 
 const SALES_COLLECTION = 'ventas';
@@ -87,7 +89,6 @@ export const getProductByBarcode = getProductById;
  */
 export const validateVariantStock = async (productId, talle, color, requestedQuantity) => {
   try {
-
     console.log(`🔍 Validando stock para producto ID: ${productId}, talle: ${talle}, color: ${color}, cantidad: ${requestedQuantity}`);
     
     const product = await getProductById(productId);
@@ -170,6 +171,7 @@ const generateSaleNumber = async () => {
 /**
  * Procesar una venta completa con variantes
  * CORREGIDO: Usa colección 'articulos' y manejo correcto de variantes
+ * INTEGRADO: Actualización automática de estadísticas de clientes
  */
 export const processSale = async (saleData) => {
   const batch = writeBatch(db);
@@ -212,10 +214,8 @@ export const processSale = async (saleData) => {
         productId: item.productId || null,
         productName: item.productName || item.name,
         articulo: item.articulo || item.name,
-
         code: item.code || item.productId,
         talle: item.size || null, // mapear 'size' a 'talle' para BD
-
         color: item.color || null,
         price: item.price,
         quantity: item.quantity,
@@ -281,6 +281,18 @@ export const processSale = async (saleData) => {
 
     // Ejecutar todas las actualizaciones
     await batch.commit();
+
+    // ✅ NUEVO: Actualizar estadísticas de cliente automáticamente
+    if (customerName && customerName.trim()) {
+      try {
+        console.log('👤 Actualizando estadísticas de cliente:', customerName);
+        await updateCustomerStats(customerName, sale);
+        console.log('✅ Estadísticas de cliente actualizadas');
+      } catch (customerError) {
+        console.error('⚠️ Error al actualizar estadísticas de cliente:', customerError);
+        // No lanzar error para no interrumpir el proceso de venta
+      }
+    }
 
     console.log('✅ Venta procesada exitosamente');
     return { id: saleRef.id, ...sale };
