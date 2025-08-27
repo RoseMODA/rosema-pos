@@ -15,6 +15,7 @@ import { db } from './firebase';
 /**
  * Servicio para gestión de proveedores en Firestore
  * Implementa todos los requisitos de la Etapa 5
+ * CORREGIDO: Usa colección 'articulos' para estadísticas de productos
  */
 
 const COLLECTION_NAME = 'proveedores';
@@ -309,15 +310,19 @@ export const getProvidersByGallery = async (galeria) => {
 
 /**
  * Obtener estadísticas de productos para un proveedor específico
+ * CORREGIDO: Usa colección 'articulos' y 'ventas' correctas
  */
 export const getProviderProductStats = async (providerId) => {
   try {
     console.log('🔍 Obteniendo estadísticas de productos para proveedor:', providerId);
     
-    // Obtener productos del proveedor
+    // Convertir providerId a número para comparación
+    const providerIdNum = parseInt(providerId);
+    
+    // Obtener productos del proveedor desde la colección 'articulos'
     const productsQuery = query(
-      collection(db, 'productos'),
-      where('proveedorId', '==', providerId)
+      collection(db, 'articulos'),
+      where('proveedorId', '==', providerIdNum)
     );
     
     const productsSnapshot = await getDocs(productsQuery);
@@ -328,16 +333,17 @@ export const getProviderProductStats = async (providerId) => {
 
     console.log('📦 Productos encontrados para el proveedor:', products.length);
 
-    // Calcular estadísticas
+    // Calcular estadísticas de productos
     const totalProductos = products.length;
     const productosActivos = products.filter(p => {
       const totalStock = p.variantes?.reduce((sum, v) => sum + (v.stock || 0), 0) || 0;
       return totalStock > 0;
     }).length;
 
-    // Obtener ventas relacionadas con estos productos (si existe la colección de ventas)
+    // Obtener ventas relacionadas con estos productos
     let totalVendidos = 0;
     let ultimaVenta = null;
+    let ingresosTotales = 0;
     
     try {
       const ventasQuery = query(collection(db, 'ventas'));
@@ -345,28 +351,37 @@ export const getProviderProductStats = async (providerId) => {
       
       ventasSnapshot.docs.forEach(doc => {
         const venta = doc.data();
-        if (venta.items) {
+        if (venta.items && Array.isArray(venta.items)) {
           venta.items.forEach(item => {
+            // Buscar si este item pertenece a un producto del proveedor
             const product = products.find(p => p.id === item.productId);
-            if (product) {
+            if (product && !item.isReturn && !item.isQuickItem) {
               totalVendidos += item.quantity || 0;
-              const ventaDate = venta.createdAt ? new Date(venta.createdAt.seconds * 1000) : null;
-              if (!ultimaVenta || (ventaDate && ventaDate > ultimaVenta)) {
+              ingresosTotales += (item.price * item.quantity) || 0;
+              
+              // Actualizar última venta
+              const ventaDate = venta.saleDate ? 
+                (venta.saleDate.seconds ? new Date(venta.saleDate.seconds * 1000) : new Date(venta.saleDate)) : 
+                (venta.createdAt ? new Date(venta.createdAt.seconds * 1000) : null);
+              
+              if (ventaDate && (!ultimaVenta || ventaDate > ultimaVenta)) {
                 ultimaVenta = ventaDate;
               }
             }
           });
         }
       });
+      
+      console.log(`💰 Total vendidos del proveedor ${providerId}: ${totalVendidos} unidades, $${ingresosTotales.toLocaleString()}`);
     } catch (ventasError) {
-      console.log('ℹ️ No se encontró colección de ventas o error al acceder:', ventasError.message);
+      console.log('ℹ️ Error al acceder a ventas:', ventasError.message);
     }
 
     // Calcular última compra (fecha de creación del producto más reciente)
     const ultimaCompra = products.length > 0 ? 
       products.reduce((latest, product) => {
         const productDate = product.createdAt ? 
-          new Date(product.createdAt.seconds ? product.createdAt.seconds * 1000 : product.createdAt) : null;
+          (product.createdAt.seconds ? new Date(product.createdAt.seconds * 1000) : new Date(product.createdAt)) : null;
         return (!latest || (productDate && productDate > latest)) ? productDate : latest;
       }, null) : null;
 
@@ -374,11 +389,13 @@ export const getProviderProductStats = async (providerId) => {
       totalComprados: totalProductos,
       totalVendidos: totalVendidos,
       productosActivos: productosActivos,
+      ingresosTotales: ingresosTotales,
       ultimaCompra: ultimaCompra,
-      ultimaVenta: ultimaVenta
+      ultimaVenta: ultimaVenta,
+      productos: products // Incluir lista de productos para referencia
     };
 
-    console.log('📊 Estadísticas calculadas:', stats);
+    console.log('📊 Estadísticas calculadas para proveedor:', stats);
     return stats;
   } catch (error) {
     console.error('❌ Error al obtener estadísticas de productos del proveedor:', error);
@@ -386,8 +403,10 @@ export const getProviderProductStats = async (providerId) => {
       totalComprados: 0,
       totalVendidos: 0,
       productosActivos: 0,
+      ingresosTotales: 0,
       ultimaCompra: null,
-      ultimaVenta: null
+      ultimaVenta: null,
+      productos: []
     };
   }
 };

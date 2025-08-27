@@ -53,17 +53,59 @@ const ProviderDetails = ({
         <div className="p-6 space-y-6">
           {/* Estadísticas de productos */}
           <div className="bg-gray-50 rounded-lg p-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">Estadísticas de Productos</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">Estadísticas de Productos y Ventas</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{productStats.totalComprados}</div>
-                <div className="text-sm text-gray-600">Total Productos Comprados</div>
+                <div className="text-2xl font-bold text-blue-600">{productStats.totalComprados || 0}</div>
+                <div className="text-sm text-gray-600">Productos Comprados</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">{productStats.totalVendidos}</div>
-                <div className="text-sm text-gray-600">Total Productos Vendidos</div>
+                <div className="text-2xl font-bold text-green-600">{productStats.totalVendidos || 0}</div>
+                <div className="text-sm text-gray-600">Productos Vendidos</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600">{productStats.productosActivos || 0}</div>
+                <div className="text-sm text-gray-600">Con Stock</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">
+                  ${(productStats.ingresosTotales || 0).toLocaleString()}
+                </div>
+                <div className="text-sm text-gray-600">Ingresos Totales</div>
               </div>
             </div>
+            
+            {/* Fechas de última actividad */}
+            {(productStats.ultimaCompra || productStats.ultimaVenta) && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  {productStats.ultimaCompra && (
+                    <div>
+                      <span className="font-medium text-gray-700">Última Compra:</span>
+                      <p className="text-gray-900">
+                        {new Date(productStats.ultimaCompra).toLocaleDateString('es-ES', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                  )}
+                  {productStats.ultimaVenta && (
+                    <div>
+                      <span className="font-medium text-gray-700">Última Venta:</span>
+                      <p className="text-gray-900">
+                        {new Date(productStats.ultimaVenta).toLocaleDateString('es-ES', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Información de contacto */}
