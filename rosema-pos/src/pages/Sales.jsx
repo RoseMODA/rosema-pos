@@ -44,7 +44,7 @@ const Sales = () => {
     addToCart,
     updateCartItemQuantity,
     removeFromCart,
-    completeSale,
+    finalizeSession,
     setPaymentMethod,
     setDiscountPercent,
     setCashReceived,
@@ -232,7 +232,7 @@ const Sales = () => {
         return; // El usuario canceló
       }
 
-      const sale = await completeSale();
+      const sale = await finalizeSession(activeSessionId);
       alert('Venta procesada exitosamente');
       console.log('Venta completada:', sale);
     } catch (error) {
