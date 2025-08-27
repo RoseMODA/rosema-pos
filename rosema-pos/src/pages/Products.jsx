@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+`import React, { useState, useEffect } from 'react';
 import { useProducts } from '../hooks/useProducts';
 import { useProviders } from '../hooks/useProviders';
 import ProductForm from '../components/ProductForm';
-import BarcodeModal from '../components/BarcodeModal';
+import BarcodePrinter from '../components/BarcodePrinter';
 
 /**
  * Página de Productos del sistema POS Rosema
  * Sistema CRUD completo para gestión de inventario (Etapa 4)
+ * ACTUALIZADO: Integra BarcodePrinter optimizado para impresoras térmicas Xprinter
  */
 const Products = () => {
   const {
@@ -224,7 +225,7 @@ const Products = () => {
   };
 
   /**
-   * Imprimir código de barras
+   * Imprimir código de barras - ACTUALIZADO para usar BarcodePrinter
    */
   const handlePrintBarcode = (product) => {
     setProductToPrint(product);
@@ -527,7 +528,7 @@ const Products = () => {
                           <button
                             onClick={() => handlePrintBarcode(product)}
                             className="text-purple-600 hover:text-purple-900 transition-colors"
-                            title="Imprimir código"
+                            title="Imprimir código de barras (Xprinter)"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -603,7 +604,6 @@ const Products = () => {
       {/* Modal de ver producto */}
       {viewingProduct && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">
                 Detalles del Producto
@@ -630,130 +630,6 @@ const Products = () => {
                   <p className="text-gray-900 text-lg">{viewingProduct.articulo}</p>
                 </div>
               </div>
-
-              {viewingProduct.descripcion && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">Descripción</label>
-                  <p className="text-gray-900">{viewingProduct.descripcion}</p>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">Categoría</label>
-                  <p className="text-gray-900">{viewingProduct.categoria}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">Temporada</label>
-                  <p className="text-gray-900">{viewingProduct.temporada || 'No especificada'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">Proveedor</label>
-                  <p className="text-gray-900">{getProviderName(viewingProduct.proveedorId)}</p>
-                </div>
-              </div>
-
-              {/* Subcategorías */}
-              {viewingProduct.subcategorias && viewingProduct.subcategorias.length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-2">Subcategorías</label>
-                  <div className="flex flex-wrap gap-2">
-                    {viewingProduct.subcategorias.map(sub => (
-                      <span key={sub} className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">
-                        {sub}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Tags */}
-              {viewingProduct.tags && viewingProduct.tags.length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-2">Tags</label>
-                  <div className="flex flex-wrap gap-2">
-                    {viewingProduct.tags.map(tag => (
-                      <span key={tag} className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Imágenes del producto */}
-              {viewingProduct.imagenes && viewingProduct.imagenes.length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-3">Imágenes del Producto</label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {viewingProduct.imagenes.map((url, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={url}
-                          alt={`${viewingProduct.articulo} - Imagen ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-75 transition-opacity"
-                          onClick={() => window.open(url, '_blank')}
-                        />
-                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-lg transition-all flex items-center justify-center">
-                          <svg className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                          </svg>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Precios */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">Precio de Costo</label>
-                  <p className="text-gray-900 text-lg font-semibold">${(viewingProduct.precioCosto || 0).toLocaleString()}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">Precio de Venta Promedio</label>
-                  <p className="text-green-600 text-lg font-semibold">${getAveragePrice(viewingProduct).toLocaleString()}</p>
-                </div>
-              </div>
-
-              {/* Variantes */}
-              {viewingProduct.variantes && viewingProduct.variantes.length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-3">Variantes</label>
-                  <div className="overflow-x-auto">
-                    <table className="w-full border border-gray-200 rounded-lg">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Talla</th>
-                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Color</th>
-                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Stock</th>
-                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Precio Venta</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {viewingProduct.variantes.map((variante, index) => (
-                          <tr key={index} className="border-t border-gray-200">
-                            <td className="px-4 py-2">{variante.talle || 'N/A'}</td>
-                            <td className="px-4 py-2">{variante.color || 'N/A'}</td>
-                            <td className="px-4 py-2">
-                              <span className={`px-2 py-1 text-xs font-semibold rounded-full ${variante.stock === 0
-                                  ? 'bg-red-100 text-red-800'
-                                  : variante.stock <= 5
-                                    ? 'bg-yellow-100 text-yellow-800'
-                                    : 'bg-green-100 text-green-800'
-                                }`}>
-                                {variante.stock || 0}
-                              </span>
-                            </td>
-                            <td className="px-4 py-2">${(variante.precioVenta || 0).toLocaleString()}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
 
               {/* Botones de acción */}
               <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
@@ -784,14 +660,17 @@ const Products = () => {
         </div>
       )}
 
-      {/* Modal de imprimir código de barras */}
-      <BarcodeModal
+      {/* Modal de imprimir código de barras - ACTUALIZADO para Xprinter */}
+      <BarcodePrinter
         isOpen={showPrintModal}
         onClose={() => {
           setShowPrintModal(false);
           setProductToPrint(null);
         }}
         product={productToPrint}
+        barcodeValue={productToPrint?.id}
+        productName={productToPrint?.articulo}
+        price={productToPrint?.precioCosto}
       />
     </div>
   );
