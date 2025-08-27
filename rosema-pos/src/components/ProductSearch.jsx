@@ -7,16 +7,16 @@ import ProductSelectionModal from './ProductSelectionModal';
  * Permite buscar productos por nombre o código y agregarlos al carrito
  */
 const ProductSearch = ({ onAddToCart, disabled = false }) => {
-  const { 
-    products, 
-    loading, 
-    error, 
-    searchProductsByTerm, 
+  const {
+    products,
+    loading,
+    error,
+    searchProductsByTerm,
     clearSearch,
     createSampleData,
     getProductStats
   } = useProducts();
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showResults, setShowResults] = useState(false);
@@ -48,7 +48,7 @@ const ProductSearch = ({ onAddToCart, disabled = false }) => {
       alert('Producto sin stock disponible');
       return;
     }
-    
+
     // Si el producto tiene tallas o colores, mostrar modal de selección
     if ((product.sizes && product.sizes.length > 0) || (product.colors && product.colors.length > 0)) {
       setSelectedProduct(product);
@@ -57,7 +57,7 @@ const ProductSearch = ({ onAddToCart, disabled = false }) => {
       // Si no tiene opciones, agregar directamente
       onAddToCart(product, 1, null, null);
     }
-    
+
     setSearchTerm('');
     setShowResults(false);
   };
@@ -103,7 +103,7 @@ const ProductSearch = ({ onAddToCart, disabled = false }) => {
             disabled={disabled || loading}
             className="input-rosema pr-10"
           />
-          
+
           {/* Icono de búsqueda */}
           <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
             {loading ? (
@@ -129,27 +129,25 @@ const ProductSearch = ({ onAddToCart, disabled = false }) => {
                   <div
                     key={product.id}
                     onClick={() => handleProductSelect(product)}
-                    className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
-                      product.stock <= 0 ? 'opacity-50' : ''
-                    }`}
+                    className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${product.stock <= 0 ? 'opacity-50' : ''
+                      }`}
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <h4 className="font-medium text-gray-900">
                           {product.name}
                         </h4>
-                        {product.code && (
+                        {product.id && (
                           <p className="text-sm text-gray-500">
-                            Código: {product.code}
+                            Código: {product.id}
                           </p>
                         )}
                         <div className="flex items-center space-x-4 mt-1">
                           <span className="text-lg font-semibold text-green-600">
                             ${product.salePrice?.toLocaleString()}
                           </span>
-                          <span className={`text-sm ${
-                            product.stock <= 5 ? 'text-red-600' : 'text-gray-600'
-                          }`}>
+                          <span className={`text-sm ${product.stock <= 5 ? 'text-red-600' : 'text-gray-600'
+                            }`}>
                             Stock: {product.stock}
                           </span>
                           {product.category && (
@@ -159,14 +157,14 @@ const ProductSearch = ({ onAddToCart, disabled = false }) => {
                           )}
                         </div>
                       </div>
-                      
+
                       {product.stock <= 0 && (
                         <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">
                           Sin Stock
                         </span>
                       )}
                     </div>
-                    
+
                     {/* Tallas y colores disponibles */}
                     {(product.sizes || product.colors) && (
                       <div className="mt-2 flex flex-wrap gap-2">
@@ -183,7 +181,7 @@ const ProductSearch = ({ onAddToCart, disabled = false }) => {
                             )}
                           </div>
                         )}
-                        
+
                         {product.colors && (
                           <div className="flex items-center space-x-1">
                             <span className="text-xs text-gray-500">Colores:</span>
@@ -214,8 +212,8 @@ const ProductSearch = ({ onAddToCart, disabled = false }) => {
 
       {/* Acciones adicionales */}
       <div className="flex justify-between items-center pt-4 border-t border-gray-200">
-        
-        
+
+
         {/* Botón para crear datos de ejemplo (solo en desarrollo) */}
         {process.env.NODE_ENV === 'development' && productStats.totalProducts === 0 && (
           <button

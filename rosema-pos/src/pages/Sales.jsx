@@ -21,7 +21,7 @@ const Sales = () => {
     searchProductsByTerm,
     createSampleData,
     getProductStats,
-    getProductByCode
+    getProductByBarcode
   } = useProducts();
 
   const {
@@ -135,7 +135,7 @@ const Sales = () => {
   const handleBarcodeScan = async (barcode) => {
     try {
       console.log('🔍 Buscando producto por código:', barcode);
-      const product = await getProductByCode(barcode);
+      const product = await getProductByBarcode(barcode);
       if (!product) {
         alert('Producto no encontrado');
         return;
@@ -232,6 +232,7 @@ const Sales = () => {
         return; // El usuario canceló
       }
 
+
       const sale = await finalizeSession(activeSessionId);
       alert('Venta procesada exitosamente');
       console.log('Venta completada:', sale);
@@ -299,7 +300,7 @@ const Sales = () => {
       saleNumber: `PREV-${Date.now()}`, // Número temporal para vista previa
       items: cart.map(item => ({
         name: item.nombre || item.name,
-        code: item.code || item.id || 'N/A',
+        code: item.productId || item.id || 'N/A',
         quantity: item.qty || item.quantity || 1,
         price: item.price || 0,
         // Incluir información de variantes
@@ -788,7 +789,7 @@ const Sales = () => {
                 <div className="flex-1">
                   <h4 className="font-medium text-gray-900">{item.nombre || item.name}</h4>
                   <div className="text-sm text-gray-600 space-y-1">
-                    <p>Código: {item.code || "N/A"}</p>
+                    <p>Código: {item.productId}</p>
                     <p>
                       <span className="font-medium">Talle:</span> {item.variant?.talle || "N/A"}
                       {item.variant?.color && (

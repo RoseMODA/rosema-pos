@@ -11,7 +11,8 @@ import {
   orderBy, 
   limit,
   writeBatch,
-  Timestamp
+  Timestamp,
+  
 } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -86,6 +87,7 @@ export const getProductByBarcode = getProductById;
  */
 export const validateVariantStock = async (productId, talle, color, requestedQuantity) => {
   try {
+
     console.log(`🔍 Validando stock para producto ID: ${productId}, talle: ${talle}, color: ${color}, cantidad: ${requestedQuantity}`);
     
     const product = await getProductById(productId);
@@ -210,8 +212,10 @@ export const processSale = async (saleData) => {
         productId: item.productId || null,
         productName: item.productName || item.name,
         articulo: item.articulo || item.name,
+
         code: item.code || item.productId,
         talle: item.size || null, // mapear 'size' a 'talle' para BD
+
         color: item.color || null,
         price: item.price,
         quantity: item.quantity,
