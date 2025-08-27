@@ -20,6 +20,7 @@ import { updateMultipleProductsStock } from './productsService';
  * Servicio para gestión de ventas en Firestore
  * Maneja CRUD de ventas, historial y devoluciones
  * Conectado con productos y variantes (talla, color, stock)
+ * CORREGIDO: Usa 'size' en lugar de 'talle' para compatibilidad con useSales.js
  */
 
 const SALES_COLLECTION = 'ventas';
@@ -150,6 +151,7 @@ const generateSaleNumber = async () => {
 
 /**
  * Procesar una venta completa con variantes
+ * CORREGIDO: Usa 'size' en lugar de 'talle' para compatibilidad
  */
 export const processSale = async (saleData) => {
   const batch = writeBatch(db);
@@ -160,8 +162,6 @@ export const processSale = async (saleData) => {
       paymentMethod,
       discount,
       total,
-      cashReceived,
-      change,
       customerName,
       clientId,
       cardName,
@@ -169,12 +169,15 @@ export const processSale = async (saleData) => {
       commission
     } = saleData;
 
+    console.log('🔄 Procesando venta con items:', items);
+
     // Validar stock disponible antes de procesar
     for (const item of items) {
       if (item.productId && !item.isQuickItem) {
+        console.log(`🔍 Validando stock para producto ${item.productId}, talle: ${item.size}, color: ${item.color}`);
         await validateVariantStock(
           item.productId, 
-          item.talle, 
+          item.size, // ✅ CORREGIDO: usar 'size' en lugar de 'talle'
           item.color, 
           item.quantity
         );
@@ -192,7 +195,7 @@ export const processSale = async (saleData) => {
         productName: item.productName || item.name,
         articulo: item.articulo || item.name,
         code: item.code || item.productId,
-        talle: item.talle || null,
+        talle: item.size || null, // ✅ CORREGIDO: mapear 'size' a 'talle' para BD
         color: item.color || null,
         price: item.price,
         quantity: item.quantity,
@@ -206,8 +209,7 @@ export const processSale = async (saleData) => {
       discount: discount || 0,
       subtotal: items.reduce((sum, item) => sum + (item.price * item.quantity), 0),
       total,
-      cashReceived: cashReceived || 0,
-      change: change || 0,
+      // REMOVIDO: cashReceived y change - solo para ayuda visual
       customerName: customerName || '',
       clientId: clientId || null,
       // Campos adicionales para crédito
@@ -220,12 +222,15 @@ export const processSale = async (saleData) => {
       status: 'completed'
     };
 
+    console.log('💾 Guardando venta:', sale);
+
     // Guardar la venta
     const saleRef = await addDoc(collection(db, SALES_COLLECTION), sale);
 
     // Actualizar stock de variantes específicas
     for (const item of items) {
       if (item.productId && !item.isQuickItem) {
+        console.log(`📦 Actualizando stock para producto ${item.productId}`);
         const productRef = doc(db, PRODUCTS_COLLECTION, item.productId);
         const productSnap = await getDoc(productRef);
         
@@ -234,8 +239,9 @@ export const processSale = async (saleData) => {
           
           // Actualizar stock de la variante específica
           const updatedVariantes = product.variantes.map(variante => {
-            if (variante.talle === item.talle && variante.color === item.color) {
+            if (variante.talle === item.size && variante.color === item.color) { // ✅ CORREGIDO: comparar con 'item.size'
               const stockChange = item.isReturn ? item.quantity : -item.quantity;
+              console.log(`📊 Stock change para ${variante.talle}/${variante.color}: ${stockChange}`);
               return {
                 ...variante,
                 stock: Math.max(0, variante.stock + stockChange)
@@ -248,6 +254,8 @@ export const processSale = async (saleData) => {
             variantes: updatedVariantes,
             updatedAt: Timestamp.now()
           });
+        } else {
+          console.warn(`⚠️ Producto ${item.productId} no encontrado para actualizar stock`);
         }
       }
     }
@@ -255,9 +263,10 @@ export const processSale = async (saleData) => {
     // Ejecutar todas las actualizaciones
     await batch.commit();
 
+    console.log('✅ Venta procesada exitosamente');
     return { id: saleRef.id, ...sale };
   } catch (error) {
-    console.error('Error al procesar venta:', error);
+    console.error('❌ Error al procesar venta:', error);
     throw error;
   }
 };
@@ -572,8 +581,6 @@ export const generateReceiptData = (sale) => {
     discount: sale.discount || 0,
     total: sale.total || 0,
     paymentMethod: sale.paymentMethod || 'Efectivo',
-    cashReceived: sale.cashReceived || 0,
-    change: sale.change || 0,
     customerName: sale.customerName || '',
     storeInfo: {
       name: 'Rosema',
