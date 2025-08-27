@@ -1,4 +1,4 @@
-`import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useProducts } from '../hooks/useProducts';
 import { useProviders } from '../hooks/useProviders';
 import ProductForm from '../components/ProductForm';
@@ -155,8 +155,6 @@ const Products = () => {
    */
   const handleSearch = (term) => {
     setSearchTerm(term);
-    // La búsqueda se maneja en getFilteredAndSortedProducts()
-    // No necesitamos llamar a la API aquí
   };
 
   /**
@@ -197,10 +195,10 @@ const Products = () => {
       }
       setShowProductForm(false);
       setEditingProduct(null);
-      await loadProducts(); // Recargar lista
+      await loadProducts();
     } catch (error) {
       console.error('Error al guardar producto:', error);
-      throw error; // Re-lanzar para que ProductForm maneje el error
+      throw error;
     }
   };
 
@@ -300,7 +298,6 @@ const Products = () => {
       {/* Filtros y búsqueda */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {/* Búsqueda */}
           <div className="relative">
             <input
               type="text"
@@ -314,7 +311,6 @@ const Products = () => {
             </svg>
           </div>
 
-          {/* Filtro por categoría */}
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
@@ -327,7 +323,6 @@ const Products = () => {
             <option value="otros">Otros</option>
           </select>
 
-          {/* Ordenar por */}
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
@@ -340,7 +335,6 @@ const Products = () => {
             <option value="category">Ordenar por Categoría</option>
           </select>
 
-          {/* Orden */}
           <select
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value)}
@@ -481,12 +475,13 @@ const Products = () => {
                         ${averagePrice.toLocaleString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${totalStock === 0
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          totalStock === 0
                             ? 'bg-red-100 text-red-800'
                             : totalStock <= 5
                               ? 'bg-yellow-100 text-yellow-800'
                               : 'bg-green-100 text-green-800'
-                          }`}>
+                        }`}>
                           {totalStock} unidades
                         </span>
                       </td>
