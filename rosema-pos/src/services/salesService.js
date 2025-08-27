@@ -14,17 +14,14 @@ import {
   Timestamp
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { updateMultipleProductsStock } from './productsService';
 
 /**
  * Servicio para gestión de ventas en Firestore
- * Maneja CRUD de ventas, historial y devoluciones
- * Conectado con productos y variantes (talla, color, stock)
- * CORREGIDO: Usa 'size' en lugar de 'talle' para compatibilidad con useSales.js
+ * CORREGIDO: Usa 'articulos' como colección de productos según tu BD
  */
 
 const SALES_COLLECTION = 'ventas';
-const PRODUCTS_COLLECTION = 'productos';
+const PRODUCTS_COLLECTION = 'articulos'; // ✅ CORREGIDO: usar 'articulos' como en tu BD
 const PENDING_SALES_COLLECTION = 'pendingSales';
 
 /**
@@ -54,55 +51,74 @@ export const searchProductsForSale = async (searchTerm) => {
 };
 
 /**
- * Obtener producto por código de barras exacto
+ * Obtener producto por código de barras exacto (ID)
+ * ✅ CORREGIDO: Función renombrada y actualizada para tu BD
  */
-export const getProductByBarcode = async (barcode) => {
+export const getProductById = async (productId) => {
   try {
-    const docRef = doc(db, PRODUCTS_COLLECTION, barcode);
+    console.log(`🔍 Buscando producto por ID: ${productId}`);
+    const docRef = doc(db, PRODUCTS_COLLECTION, productId);
     const docSnap = await getDoc(docRef);
     
     if (docSnap.exists()) {
-      return {
+      const product = {
         id: docSnap.id,
         ...docSnap.data()
       };
+      console.log(`✅ Producto encontrado:`, product);
+      return product;
     }
+    console.log(`❌ Producto no encontrado con ID: ${productId}`);
     return null;
   } catch (error) {
-    console.error('Error obteniendo producto por código:', error);
+    console.error('Error obteniendo producto por ID:', error);
     throw new Error('Error al obtener producto');
   }
 };
+
+/**
+ * Alias para compatibilidad
+ */
+export const getProductByBarcode = getProductById;
 
 /**
  * Validar stock disponible para una variante específica
  */
 export const validateVariantStock = async (productId, talle, color, requestedQuantity) => {
   try {
-    const product = await getProductByBarcode(productId);
+    console.log(`🔍 Validando stock para producto ID: ${productId}, talle: ${talle}, color: ${color}, cantidad: ${requestedQuantity}`);
+    
+    const product = await getProductById(productId);
     if (!product) {
-      throw new Error('Producto no encontrado');
+      console.error(`❌ Producto no encontrado con ID: ${productId}`);
+      throw new Error(`Producto no encontrado: ${productId}`);
     }
+
+    console.log(`📦 Producto encontrado:`, product.articulo, `Variantes:`, product.variantes);
 
     const variante = product.variantes?.find(v => 
       v.talle === talle && v.color === color
     );
 
     if (!variante) {
-      throw new Error(`Variante ${talle}/${color} no encontrada`);
+      console.error(`❌ Variante no encontrada. Buscando: ${talle}/${color}`);
+      console.log(`📋 Variantes disponibles:`, product.variantes?.map(v => `${v.talle}/${v.color}`));
+      throw new Error(`Variante ${talle}/${color} no encontrada en producto ${product.articulo}`);
     }
 
     if (variante.stock < requestedQuantity) {
+      console.error(`❌ Stock insuficiente. Disponible: ${variante.stock}, Solicitado: ${requestedQuantity}`);
       throw new Error(`Stock insuficiente. Disponible: ${variante.stock}, Solicitado: ${requestedQuantity}`);
     }
 
+    console.log(`✅ Validación exitosa. Stock disponible: ${variante.stock}`);
     return {
       available: true,
       currentStock: variante.stock,
       price: variante.precioVenta || product.precioCosto || 0
     };
   } catch (error) {
-    console.error('Error validando stock:', error);
+    console.error('❌ Error validando stock:', error);
     throw error;
   }
 };
@@ -151,7 +167,7 @@ const generateSaleNumber = async () => {
 
 /**
  * Procesar una venta completa con variantes
- * CORREGIDO: Usa 'size' en lugar de 'talle' para compatibilidad
+ * CORREGIDO: Usa colección 'articulos' y manejo correcto de variantes
  */
 export const processSale = async (saleData) => {
   const batch = writeBatch(db);
@@ -177,7 +193,7 @@ export const processSale = async (saleData) => {
         console.log(`🔍 Validando stock para producto ${item.productId}, talle: ${item.size}, color: ${item.color}`);
         await validateVariantStock(
           item.productId, 
-          item.size, // ✅ CORREGIDO: usar 'size' en lugar de 'talle'
+          item.size, // usar 'size' que viene del frontend
           item.color, 
           item.quantity
         );
@@ -195,7 +211,7 @@ export const processSale = async (saleData) => {
         productName: item.productName || item.name,
         articulo: item.articulo || item.name,
         code: item.code || item.productId,
-        talle: item.size || null, // ✅ CORREGIDO: mapear 'size' a 'talle' para BD
+        talle: item.size || null, // mapear 'size' a 'talle' para BD
         color: item.color || null,
         price: item.price,
         quantity: item.quantity,
@@ -209,7 +225,6 @@ export const processSale = async (saleData) => {
       discount: discount || 0,
       subtotal: items.reduce((sum, item) => sum + (item.price * item.quantity), 0),
       total,
-      // REMOVIDO: cashReceived y change - solo para ayuda visual
       customerName: customerName || '',
       clientId: clientId || null,
       // Campos adicionales para crédito
@@ -239,7 +254,7 @@ export const processSale = async (saleData) => {
           
           // Actualizar stock de la variante específica
           const updatedVariantes = product.variantes.map(variante => {
-            if (variante.talle === item.size && variante.color === item.color) { // ✅ CORREGIDO: comparar con 'item.size'
+            if (variante.talle === item.size && variante.color === item.color) {
               const stockChange = item.isReturn ? item.quantity : -item.quantity;
               console.log(`📊 Stock change para ${variante.talle}/${variante.color}: ${stockChange}`);
               return {
@@ -432,9 +447,6 @@ export const deleteSale = async (saleId) => {
 
     // Eliminar la venta
     await deleteDoc(doc(db, SALES_COLLECTION, saleId));
-    
-    // Restaurar stock (esto requeriría obtener el stock actual de cada producto)
-    // Por simplicidad, se omite la implementación completa aquí
     
     return saleId;
   } catch (error) {
