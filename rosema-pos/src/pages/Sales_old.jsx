@@ -224,7 +224,7 @@ const Sales = () => {
       saleNumber: `PREV-${Date.now()}`, // Número temporal para vista previa
       items: cart.map(item => ({
         name: item.name,
-        code: item.code || 'N/A',
+        code: item.productId || 'N/A',
         quantity: item.qty || item.quantity,
         price: item.price
       })),
@@ -391,9 +391,9 @@ const Sales = () => {
                               <h4 className="font-medium text-gray-900">
                                 {product.name}
                               </h4>
-                              {product.code && (
+                              {product.id && (
                                 <p className="text-sm text-gray-500">
-                                  Código: {product.code}
+                                  Código: {product.id}
                                 </p>
                               )}
                               <div className="flex items-center space-x-4 mt-1">

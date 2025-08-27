@@ -11,7 +11,7 @@ const ReturnModal = ({ isOpen, onClose, onAddReturn }) => {
   const {
     loading: productsLoading,
     searchProductsByTerm,
-    getProductByCode
+    getProductByBarcode
   } = useProducts();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -48,7 +48,7 @@ const ReturnModal = ({ isOpen, onClose, onAddReturn }) => {
   const handleBarcodeScan = async (barcode) => {
     try {
       console.log('🔍 Buscando producto por código para devolución:', barcode);
-      const product = await getProductByCode(barcode);
+      const product = await getProductByBarcode(barcode);
       if (!product) {
         alert('Producto no encontrado');
         return;

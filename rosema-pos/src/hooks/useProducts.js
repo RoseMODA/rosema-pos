@@ -270,7 +270,7 @@ export const useProducts = () => {
   /**
    * Buscar producto por código de barras
    */
-  const getProductByCode = useCallback(async (barcode) => {
+  const getProductByBarcode = useCallback(async (barcode) => {
     setLoading(true);
     setError(null);
     
@@ -402,7 +402,7 @@ export const useProducts = () => {
     loadProducts,
     searchProductsByTerm,
     getProduct,
-    getProductByCode,
+    getProductByBarcode,
     addProduct,
     updateProductData,
     removeProduct,

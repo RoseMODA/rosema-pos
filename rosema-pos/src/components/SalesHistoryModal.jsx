@@ -145,7 +145,7 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
       saleNumber: sale.id.slice(-8).toUpperCase(), // Últimos 8 caracteres del ID como número de venta
       items: sale.items?.map(item => ({
         name: item.name,
-        code: item.code,
+
         quantity: item.quantity,
         price: item.price
       })) || [],

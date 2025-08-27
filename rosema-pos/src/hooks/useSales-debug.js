@@ -39,7 +39,7 @@ const debugFinalizeSession = (session) => {
       const mappedItem = {
         productId: item.productId,
         name: item.nombre || item.name,
-        code: item.code,
+        
         price: item.price,
         quantity: item.qty,
         size: item.variant?.talle,  // Esto debería ser "unico" para tu ejemplo

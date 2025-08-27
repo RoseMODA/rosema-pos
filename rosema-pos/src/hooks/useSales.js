@@ -271,18 +271,17 @@ export const useSales = () => {
           });
 
           return {
-            productId: item.productId,
-            name: item.nombre || item.name,
-            code: item.code,
-            price: item.price,
-            quantity: item.qty,
-            // ✅ CORREGIDO: Mapeo directo de talle y color
-            size: item.variant?.talle,
-            color: item.variant?.color,
-            subtotal: item.price * item.qty,
-            isReturn: item.isReturn || false,
-            isQuickItem: item.isQuickItem || false
+          productId: item.productId,          // viene de "id"
+          name: item.nombre,                 // viene de "articulo"                      
+          price: item.price,                  // viene de "precioVenta"
+          quantity: item.qty,
+          size: item.variant?.talle,
+          color: item.variant?.color,
+          subtotal: item.price * item.qty,
+          isReturn: item.isReturn || false,
+          isQuickItem: item.isQuickItem || false
           };
+
         }),
         paymentMethod: session.paymentMethod,
         discount: totals.discountValue,
@@ -354,7 +353,7 @@ export const useSales = () => {
       productId: itemData.productId || null,
       name: itemData.name,
       nombre: itemData.name, // Para compatibilidad
-      code: itemData.code || null,
+      
       price: itemData.price,
       qty: itemData.quantity || 1,
       variant: {
@@ -596,12 +595,12 @@ export const useSales = () => {
   // Wrappers para la sesión activa - CORREGIDO para manejar variantes
   const addToCart = useCallback((product, quantity = 1, variant = null) => {
     if (!salesState.activeSessionId) return;
-    
+
     if (!variant) {
       alert('Debe seleccionar una variante para el producto');
       return;
     }
-    
+
     // Validar stock de la variante
     if (variant.stock < quantity) {
       alert(`Stock insuficiente. Disponible: ${variant.stock}, Solicitado: ${quantity}`);
@@ -610,23 +609,25 @@ export const useSales = () => {
 
     console.log('🔍 DEBUG: addToCart llamado con:', {
       productId: product.id,
-      variant: variant,
-      quantity: quantity
+      codigo: product.id,    // 👈 ahora mostramos código real
+      variant,
+      quantity
     });
-    
+
     return addItem(salesState.activeSessionId, {
-      productId: product.id,
-      name: product.articulo || product.name,
-      code: product.id,
-      price: variant.precioVenta,
+      productId: product.id,                       // 👈 "id" de la base
+      name: product.articulo,                      // 👈 "articulo" es el nombre
+      code: product.id,   // el id de la base es el código de barras
+      price: variant.precioVenta || product.precioVenta, // 👈 fallback si no tiene precio en la variante
       quantity,
-      size: variant.talle,    // ✅ CORREGIDO: pasar talle directamente
-      color: variant.color,   // ✅ CORREGIDO: pasar color directamente
+      size: variant.talle,                         // talle
+      color: variant.color,                        // color
       stock: variant.stock,
       isReturn: product.isReturn || false,
-      isQuickItem: !product.id
+      isQuickItem: !product.id                     // seguirá false salvo ítems manuales
     });
   }, [salesState.activeSessionId, addItem]);
+
 
   const updateCartItemQuantity = useCallback((lineId, newQuantity) => {
     if (!salesState.activeSessionId) return;

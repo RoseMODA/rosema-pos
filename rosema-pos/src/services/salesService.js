@@ -11,7 +11,8 @@ import {
   orderBy, 
   limit,
   writeBatch,
-  Timestamp
+  Timestamp,
+  
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { updateMultipleProductsStock } from './productsService';
@@ -79,7 +80,15 @@ export const getProductByBarcode = async (barcode) => {
  */
 export const validateVariantStock = async (productId, talle, color, requestedQuantity) => {
   try {
-    const product = await getProductByBarcode(productId);
+      console.log('processSale > Validando stock:', {
+        productId,
+        talle,
+        color,
+        requestedQuantity
+      });
+
+
+    const product = await getProductById(productId);
     if (!product) {
       throw new Error('Producto no encontrado');
     }
@@ -194,7 +203,7 @@ export const processSale = async (saleData) => {
         productId: item.productId || null,
         productName: item.productName || item.name,
         articulo: item.articulo || item.name,
-        code: item.code || item.productId,
+        
         talle: item.size || null, // ✅ CORREGIDO: mapear 'size' a 'talle' para BD
         color: item.color || null,
         price: item.price,

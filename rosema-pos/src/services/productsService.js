@@ -12,7 +12,8 @@ import {
   orderBy, 
   limit,
   writeBatch,
-  onSnapshot
+  onSnapshot,
+  
 } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -139,38 +140,44 @@ export const searchProducts = async (searchTerm) => {
  */
 export const getProductByBarcode = async (barcode) => {
   try {
-    const docRef = doc(db, COLLECTION_NAME, barcode);
-    const docSnap = await getDoc(docRef);
-    
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      
-      // Calcular stock total
-      const totalStock = Array.isArray(data.variantes) 
-        ? data.variantes.reduce((acc, variant) => acc + (variant.stock || 0), 0)
-        : 0;
-      
-      return {
-        id: docSnap.id,
-        ...data,
-        name: data.articulo || 'Sin nombre',
-        variantes: data.variantes || [],
-        stock: totalStock
-      };
-    } else {
-      throw new Error('Producto no encontrado');
+    console.log("🔎 Buscando producto en Firestore por campo id:", barcode);
+
+    const q = query(collection(db, COLLECTION_NAME), where("id", "==", barcode));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      throw new Error("Producto no encontrado");
     }
+
+    const docSnap = querySnapshot.docs[0];
+    const data = docSnap.data();
+
+    const totalStock = Array.isArray(data.variantes)
+      ? data.variantes.reduce((acc, v) => acc + (v.stock || 0), 0)
+      : 0;
+
+    return {
+      id: docSnap.id,            // el UID de Firestore
+      codigo: data.id,           // el código de barras que usaste
+      ...data,
+      name: data.articulo || "Sin nombre",
+      variantes: data.variantes || [],
+      stock: totalStock,
+    };
   } catch (error) {
-    console.error('Error al buscar producto por código:', error);
+    console.error("Error al buscar producto por código:", error);
     throw error;
   }
 };
+
 
 /**
  * Obtener producto por ID (mantener compatibilidad)
  */
 export const getProductById = async (productId) => {
-  return await getProductByBarcode(productId);
+  const productRef = doc(db, articulos, productId);
+  const snap = await getDoc(productRef);
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 };
 
 /**
