@@ -372,6 +372,7 @@ export const useSales = () => {
       lineId: generateId(),
       productId: itemData.productId || null,
       name: itemData.name,
+      nombre: itemData.name, // Para compatibilidad
       code: itemData.code || null,
       price: itemData.price,
       qty: itemData.quantity || 1,
@@ -626,14 +627,12 @@ export const useSales = () => {
     
     return addItem(salesState.activeSessionId, {
       productId: product.id,
-      nombre: product.articulo || product.name,  // Usar campo 'articulo'
+      name: product.articulo || product.name,    // Usar campo 'articulo'
       code: product.id,                          // Código de barras
       price: variant.precioVenta,
       quantity,
-      variant: {
-        talle: variant.talle,
-        color: variant.color
-      },
+      size: variant.talle,                       // ✅ CORREGIDO: pasar talle como 'size'
+      color: variant.color,                      // ✅ CORREGIDO: pasar color directamente
       stock: variant.stock,
       isReturn: product.isReturn || false,
       isQuickItem: !product.id
