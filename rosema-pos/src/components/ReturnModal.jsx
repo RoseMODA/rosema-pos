@@ -5,29 +5,39 @@ import ReturnProductModal from './ReturnProductModal';
 /**
  * Modal para realizar cambios de prenda (devoluciones)
  * Actualizado para manejar variantes de productos
+ * CORREGIDO: Mantiene resultados de búsqueda independientes
  */
 const ReturnModal = ({ isOpen, onClose, onAddReturn }) => {
   const {
-    products,
     loading: productsLoading,
     searchProductsByTerm,
     getProductByCode
   } = useProducts();
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
   const [showResults, setShowResults] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showReturnProductModal, setShowReturnProductModal] = useState(false);
 
   /**
    * Manejar búsqueda de productos (prioriza coincidencias exactas por ID)
+   * CORREGIDO: Mantiene los resultados en estado local
    */
   const handleSearch = async (term) => {
     setSearchTerm(term);
     if (term.trim()) {
-      await searchProductsByTerm(term);
-      setShowResults(true);
+      try {
+        const results = await searchProductsByTerm(term);
+        setSearchResults(results);
+        setShowResults(true);
+      } catch (error) {
+        console.error('Error en búsqueda:', error);
+        setSearchResults([]);
+        setShowResults(false);
+      }
     } else {
+      setSearchResults([]);
       setShowResults(false);
     }
   };
@@ -67,6 +77,7 @@ const ReturnModal = ({ isOpen, onClose, onAddReturn }) => {
     setSelectedProduct(product);
     setShowReturnProductModal(true);
     setSearchTerm('');
+    setSearchResults([]);
     setShowResults(false);
   };
 
@@ -85,6 +96,7 @@ const ReturnModal = ({ isOpen, onClose, onAddReturn }) => {
    */
   const handleClose = () => {
     setSearchTerm('');
+    setSearchResults([]);
     setShowResults(false);
     setSelectedProduct(null);
     setShowReturnProductModal(false);
@@ -100,18 +112,14 @@ const ReturnModal = ({ isOpen, onClose, onAddReturn }) => {
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-              <svg className="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
+              <span className="text-red-600 mr-2">🔄</span>
               Cambio de Prenda
             </h3>
             <button
               onClick={handleClose}
               className="text-gray-400 hover:text-gray-600 transition-colors"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <span className="text-2xl">&times;</span>
             </button>
           </div>
 
@@ -119,9 +127,7 @@ const ReturnModal = ({ isOpen, onClose, onAddReturn }) => {
             {/* Instrucciones */}
             <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="flex items-start">
-                <svg className="w-5 h-5 text-blue-600 mt-0.5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <span className="text-blue-600 mt-0.5 mr-2">ℹ️</span>
                 <div>
                   <p className="text-sm text-blue-800 font-medium">Flujo de Cambio de Prenda</p>
                   <p className="text-xs text-blue-700 mt-1">
@@ -147,9 +153,7 @@ const ReturnModal = ({ isOpen, onClose, onAddReturn }) => {
                   onChange={(e) => handleSearch(e.target.value)}
                   className="w-full input-rosema pl-10"
                 />
-                <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">🔍</span>
 
                 {/* Resultados de búsqueda */}
                 {showResults && (
@@ -159,13 +163,13 @@ const ReturnModal = ({ isOpen, onClose, onAddReturn }) => {
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-600 mx-auto"></div>
                         <p className="mt-2 text-sm text-gray-500">Buscando productos...</p>
                       </div>
-                    ) : products.length === 0 ? (
+                    ) : searchResults.length === 0 ? (
                       <div className="p-4 text-center text-gray-500">
                         <p>No se encontraron productos</p>
                       </div>
                     ) : (
                       <div className="divide-y divide-gray-200">
-                        {products.map((product) => (
+                        {searchResults.map((product) => (
                           <div
                             key={product.id}
                             onClick={() => handleProductSelect(product)}
@@ -205,9 +209,7 @@ const ReturnModal = ({ isOpen, onClose, onAddReturn }) => {
             {/* Información importante */}
             <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
               <div className="flex items-start">
-                <svg className="w-5 h-5 text-orange-600 mt-0.5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
+                <span className="text-orange-600 mt-0.5 mr-2">⚠️</span>
                 <div>
                   <p className="text-sm text-orange-800 font-medium">Política de Cambios</p>
                   <p className="text-xs text-orange-700 mt-1">
@@ -223,7 +225,7 @@ const ReturnModal = ({ isOpen, onClose, onAddReturn }) => {
             <div className="flex justify-end">
               <button
                 onClick={handleClose}
-                className="btn-secondary"
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg transition-colors"
               >
                 Cerrar
               </button>

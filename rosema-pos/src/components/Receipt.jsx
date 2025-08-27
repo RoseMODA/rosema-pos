@@ -176,21 +176,7 @@ const Receipt = ({
               </div>
             </div>
 
-            {/* Información de pago adicional */}
-            {sale.paymentMethod === 'Efectivo' && sale.cashReceived > 0 && (
-              <div className="border-t border-gray-300 pt-3 mb-4 print:pt-2 print:mb-3">
-                <div className="space-y-1 text-sm print:text-xs">
-                  <div className="flex justify-between">
-                    <span>Recibido:</span>
-                    <span>{formatPrice(sale.cashReceived)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Vuelto:</span>
-                    <span>{formatPrice(sale.change || 0)}</span>
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* Información de pago adicional - REMOVIDO: No mostrar efectivo recibido ni vuelto en el recibo */}
 
             {/* Información adicional */}
             <div className="text-center text-sm text-gray-600 print:text-xs">
