@@ -4,11 +4,11 @@ import React, { useState } from 'react';
  * Modal para seleccionar variante (talla y color) al agregar un producto al carrito
  * Actualizado para trabajar con la estructura de variantes de Firebase
  */
-const ProductSelectionModal = ({ 
-  product, 
-  show, 
-  onClose, 
-  onAddToCart 
+const ProductSelectionModal = ({
+  product,
+  show,
+  onClose,
+  onAddToCart
 }) => {
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [quantity, setQuantity] = useState(1);
@@ -90,16 +90,15 @@ const ProductSelectionModal = ({
                   <button
                     key={index}
                     onClick={() => setSelectedVariant(variant)}
-                    className={`w-full p-4 text-left rounded-lg border transition-colors ${
-                      selectedVariant === variant
-                        ? 'bg-red-600 text-white border-red-600'
-                        : 'bg-white text-gray-700 border-gray-300 hover:border-red-300'
-                    }`}
+                    className={`w-full p-4 text-left rounded-lg border transition-colors ${selectedVariant === variant
+                      ? 'bg-red-600 text-white border-red-600'
+                      : 'bg-white text-gray-700 border-gray-300 hover:border-red-300'
+                      }`}
                   >
                     <div className="flex justify-between items-start">
                       <div>
                         <div className="font-medium">
-                          Talla: {variant.talla}
+                          Talle: {variant.talle}
                           {variant.color && ` • Color: ${variant.color}`}
                         </div>
                         <div className="text-lg font-semibold text-green-600">
@@ -131,9 +130,9 @@ const ProductSelectionModal = ({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
                   </svg>
                 </button>
-                
+
                 <span className="w-12 text-center font-medium text-lg">{quantity}</span>
-                
+
                 <button
                   onClick={() => setQuantity(Math.min(selectedVariant.stock, quantity + 1))}
                   className="w-8 h-8 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded-full transition-colors"

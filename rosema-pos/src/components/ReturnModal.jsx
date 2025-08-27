@@ -7,9 +7,9 @@ import ReturnProductModal from './ReturnProductModal';
  * Actualizado para manejar variantes de productos
  */
 const ReturnModal = ({ isOpen, onClose, onAddReturn }) => {
-  const { 
-    products, 
-    loading: productsLoading, 
+  const {
+    products,
+    loading: productsLoading,
     searchProductsByTerm,
     getProductByCode
   } = useProducts();
@@ -43,7 +43,7 @@ const ReturnModal = ({ isOpen, onClose, onAddReturn }) => {
         alert('Producto no encontrado');
         return;
       }
-      
+
       handleProductSelect(product);
     } catch (error) {
       console.error('Error al buscar producto por código:', error);
@@ -56,7 +56,7 @@ const ReturnModal = ({ isOpen, onClose, onAddReturn }) => {
    */
   const handleProductSelect = (product) => {
     console.log('📦 Producto seleccionado para devolución:', product);
-    
+
     if (!product.variantes || product.variantes.length === 0) {
       alert('El producto no tiene variantes disponibles');
       return;
@@ -125,9 +125,9 @@ const ReturnModal = ({ isOpen, onClose, onAddReturn }) => {
                 <div>
                   <p className="text-sm text-blue-800 font-medium">Flujo de Cambio de Prenda</p>
                   <p className="text-xs text-blue-700 mt-1">
-                    1. Escanee o busque el código de barras del producto a devolver<br/>
-                    2. Seleccione la variante exacta (talla y color)<br/>
-                    3. Configure el descuento aplicado si corresponde<br/>
+                    1. Escanee o busque el código de barras del producto a devolver<br />
+                    2. Seleccione la variante exacta (talle y color)<br />
+                    3. Configure el descuento aplicado si corresponde<br />
                     4. El stock se incrementará automáticamente al finalizar
                   </p>
                 </div>
@@ -211,8 +211,8 @@ const ReturnModal = ({ isOpen, onClose, onAddReturn }) => {
                 <div>
                   <p className="text-sm text-orange-800 font-medium">Política de Cambios</p>
                   <p className="text-xs text-orange-700 mt-1">
-                    • Se pueden seleccionar variantes sin stock (para devoluciones)<br/>
-                    • El valor se ajusta según el descuento aplicado en la venta original<br/>
+                    • Se pueden seleccionar variantes sin stock (para devoluciones)<br />
+                    • El valor se ajusta según el descuento aplicado en la venta original<br />
                     • El stock se incrementa automáticamente al finalizar la operación
                   </p>
                 </div>

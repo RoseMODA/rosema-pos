@@ -61,7 +61,7 @@ const SalesHistory = () => {
       const todayStats = await getSalesStats('today');
       const weekStats = await getSalesStats('week');
       const monthStats = await getSalesStats('month');
-      
+
       setStats({
         today: todayStats,
         week: weekStats,
@@ -81,7 +81,7 @@ const SalesHistory = () => {
     // Filtro por fecha
     if (filters.startDate) {
       const startDate = new Date(filters.startDate);
-      filtered = filtered.filter(sale => 
+      filtered = filtered.filter(sale =>
         new Date(sale.createdAt) >= startDate
       );
     }
@@ -89,7 +89,7 @@ const SalesHistory = () => {
     if (filters.endDate) {
       const endDate = new Date(filters.endDate);
       endDate.setHours(23, 59, 59, 999); // Incluir todo el día
-      filtered = filtered.filter(sale => 
+      filtered = filtered.filter(sale =>
         new Date(sale.createdAt) <= endDate
       );
     }
@@ -200,7 +200,7 @@ const SalesHistory = () => {
             {stats.today?.totalSales || 0} transacciones
           </div>
         </div>
-        
+
         <div className="bg-white rounded-lg shadow-md p-6 text-center">
           <div className="text-3xl font-bold text-blue-600 mb-2">
             ${stats.week?.totalRevenue?.toLocaleString() || 0}
@@ -210,7 +210,7 @@ const SalesHistory = () => {
             {stats.week?.totalSales || 0} transacciones
           </div>
         </div>
-        
+
         <div className="bg-white rounded-lg shadow-md p-6 text-center">
           <div className="text-3xl font-bold text-purple-600 mb-2">
             ${stats.month?.totalRevenue?.toLocaleString() || 0}
@@ -413,8 +413,8 @@ const SalesHistory = () => {
                           {sale.items?.slice(0, 2).map((item, index) => (
                             <div key={index} className="truncate">
                               {item.quantity}x {item.productName || item.articulo}
-                              {item.talla && item.color && (
-                                <span className="text-gray-500"> ({item.talla}/{item.color})</span>
+                              {item.talle && item.color && (
+                                <span className="text-gray-500"> ({item.talle}/{item.color})</span>
                               )}
                             </div>
                           ))}
@@ -426,13 +426,12 @@ const SalesHistory = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          sale.paymentMethod === 'Efectivo' 
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${sale.paymentMethod === 'Efectivo'
                             ? 'bg-green-100 text-green-800'
                             : sale.paymentMethod === 'Tarjeta'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-purple-100 text-purple-800'
-                        }`}>
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-purple-100 text-purple-800'
+                          }`}>
                           {sale.paymentMethod}
                         </span>
                       </td>
@@ -459,24 +458,23 @@ const SalesHistory = () => {
                   >
                     Anterior
                   </button>
-                  
+
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                     const page = i + 1;
                     return (
                       <button
                         key={page}
                         onClick={() => setCurrentPage(page)}
-                        className={`px-3 py-1 border rounded text-sm ${
-                          currentPage === page
+                        className={`px-3 py-1 border rounded text-sm ${currentPage === page
                             ? 'bg-red-600 text-white border-red-600'
                             : 'border-gray-300 hover:bg-gray-50'
-                        }`}
+                          }`}
                       >
                         {page}
                       </button>
                     );
                   })}
-                  
+
                   <button
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}

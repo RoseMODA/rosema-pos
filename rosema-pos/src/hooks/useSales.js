@@ -266,7 +266,7 @@ export const useSales = () => {
           code: item.code,
           price: item.price,
           quantity: item.qty,
-          size: item.variant?.talla,
+          size: item.variant?.talle,
           color: item.variant?.color,
           subtotal: item.price * item.qty,
           isReturn: item.isReturn || false,
@@ -376,7 +376,7 @@ export const useSales = () => {
       price: itemData.price,
       qty: itemData.quantity || 1,
       variant: {
-        talla: itemData.size || null,
+        talle: itemData.size || null,
         color: itemData.color || null
       },
       stock: itemData.stock || null,
@@ -388,7 +388,7 @@ export const useSales = () => {
     const existingIndex = !lineItem.isQuickItem && lineItem.productId ? 
       session.items.findIndex(item => 
         item.productId === lineItem.productId &&
-        item.variant?.talla === lineItem.variant?.talla &&
+        item.variant?.talle === lineItem.variant?.talle &&
         item.variant?.color === lineItem.variant?.color &&
         !item.isReturn &&
         !item.isQuickItem
@@ -631,7 +631,7 @@ export const useSales = () => {
       price: variant.precioVenta,
       quantity,
       variant: {
-        talla: variant.talla,
+        talle: variant.talle,
         color: variant.color
       },
       stock: variant.stock,

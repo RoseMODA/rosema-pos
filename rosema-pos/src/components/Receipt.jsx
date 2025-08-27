@@ -112,7 +112,7 @@ const Receipt = ({
                     <div className="flex justify-between text-gray-600 ml-2">
                       <span>
                         {item.quantity} x {formatPrice(item.price)}
-                        {item.size && ` • Talla: ${item.size}`}
+                        {item.talle && ` • Talle: ${item.talle}`}
                         {item.color && ` • Color: ${item.color}`}
                         {item.isQuickItem && ''}
                       </span>

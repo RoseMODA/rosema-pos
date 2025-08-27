@@ -15,15 +15,15 @@ import ProductSelectionModal from '../components/ProductSelectionModal';
  */
 const Sales = () => {
   // Hooks personalizados
-  const { 
-    products, 
-    loading: productsLoading, 
-    searchProductsByTerm, 
+  const {
+    products,
+    loading: productsLoading,
+    searchProductsByTerm,
     createSampleData,
     getProductStats,
     getProductByCode
   } = useProducts();
-  
+
   const {
     sessions,
     activeSessionId,
@@ -58,6 +58,7 @@ const Sales = () => {
 
   // Estados locales
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
   const [showResults, setShowResults] = useState(false);
   const [showQuickItemModal, setShowQuickItemModal] = useState(false);
   const [showReturnModal, setShowReturnModal] = useState(false);
@@ -67,6 +68,8 @@ const Sales = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showProductSelectionModal, setShowProductSelectionModal] = useState(false);
 
+
+
   // Función para redondear al múltiplo de 500 más cercano
   const roundToNearest500 = (amount) => {
     return Math.round(amount / 500) * 500;
@@ -75,12 +78,12 @@ const Sales = () => {
   // Función para calcular totales de cualquier sesión con redondeo
   const calculateTotal = (session) => {
     if (!session) return { subtotal: 0, discountValue: 0, total: 0 };
-    
+
     const subtotal = session.items.reduce((sum, item) => sum + item.price * item.qty, 0);
     const discountValue = subtotal * (session.discountPercent / 100);
     const totalBeforeRounding = subtotal - discountValue;
     const total = roundToNearest500(totalBeforeRounding);
-    
+
     return {
       subtotal,
       discountValue,
@@ -107,13 +110,24 @@ const Sales = () => {
    */
   const handleSearch = async (term) => {
     setSearchTerm(term);
+
     if (term.trim()) {
-      await searchProductsByTerm(term);
+      const results = await searchProductsByTerm(term);
+
+      // Priorizar coincidencia exacta con código de barras
+      const exactMatch = results.find(p => p.codigoBarras === term);
+      const sortedResults = exactMatch
+        ? [exactMatch, ...results.filter(p => p.codigoBarras !== term)]
+        : results;
+
+      setSearchResults(sortedResults);
       setShowResults(true);
     } else {
+      setSearchResults([]);
       setShowResults(false);
     }
   };
+
 
   /**
    * Manejar escaneo de código de barras (cuando el escáner escribe en la barra de búsqueda)
@@ -126,7 +140,7 @@ const Sales = () => {
         alert('Producto no encontrado');
         return;
       }
-      
+
       handleProductSelect(product);
     } catch (error) {
       console.error('Error al buscar producto por código:', error);
@@ -139,7 +153,7 @@ const Sales = () => {
    */
   const handleProductSelect = (product) => {
     console.log('📦 Producto seleccionado:', product);
-    
+
     if (!product.variantes || product.variantes.length === 0) {
       alert('El producto no tiene variantes disponibles');
       return;
@@ -147,7 +161,7 @@ const Sales = () => {
 
     // Filtrar variantes con stock disponible
     const availableVariants = product.variantes.filter(v => v.stock > 0);
-    
+
     if (availableVariants.length === 0) {
       alert('Producto sin stock disponible en ninguna variante');
       return;
@@ -213,7 +227,7 @@ const Sales = () => {
 
       // Mostrar confirmación antes de procesar la venta
       const confirmMessage = `¿Confirmar venta por $${totals.total.toLocaleString()}?\n\nMétodo de pago: ${paymentMethod}\nDescuento: ${discountPercent}%\nTotal: $${totals.total.toLocaleString()}`;
-      
+
       if (!confirm(confirmMessage)) {
         return; // El usuario canceló
       }
@@ -311,9 +325,9 @@ const Sales = () => {
           <h1 className="text-2xl font-bold text-gray-900">Gestión de Ventas</h1>
           <p className="text-gray-600">Busca productos y agrégalos al carrito para procesar una venta</p>
         </div>
-        
+
         <div className="flex space-x-3">
-          <button 
+          <button
             onClick={handleNewSale}
             className="btn-rosema flex items-center space-x-2"
           >
@@ -322,8 +336,8 @@ const Sales = () => {
             </svg>
             <span>Nueva Venta</span>
           </button>
-          
-          <button 
+
+          <button
             onClick={() => setShowHistoryModal(true)}
             className="btn-secondary flex items-center space-x-2"
           >
@@ -345,32 +359,28 @@ const Sales = () => {
             <div key={client.id} className="flex items-center">
               <button
                 onClick={() => handleClientChange(client.id)}
-                className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
-                  activeSessionId === client.id
-                    ? 'bg-gray-800 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
+                className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${activeSessionId === client.id
+                  ? 'bg-gray-800 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
               >
                 {client.name}
               </button>
-              
+
               {/* Indicador de total y botón eliminar */}
-              <div className={`flex items-center px-2 py-2 ${
-                activeSessionId === client.id ? 'bg-gray-800' : 'bg-gray-200'
-              } rounded-t-lg`}>
-                <span className={`text-sm mr-2 ${
-                  activeSessionId === client.id ? 'text-white' : 'text-gray-600'
-                }`}>
+              <div className={`flex items-center px-2 py-2 ${activeSessionId === client.id ? 'bg-gray-800' : 'bg-gray-200'
+                } rounded-t-lg`}>
+                <span className={`text-sm mr-2 ${activeSessionId === client.id ? 'text-white' : 'text-gray-600'
+                  }`}>
                   ${sessionTotals.total.toLocaleString()}
                 </span>
                 {pendingSales.length > 1 && (
                   <button
                     onClick={() => handleDeleteClient(client.id)}
-                    className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${
-                      activeSessionId === client.id 
-                        ? 'bg-red-600 hover:bg-red-700 text-white' 
-                        : 'bg-red-500 hover:bg-red-600 text-white'
-                    }`}
+                    className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${activeSessionId === client.id
+                      ? 'bg-red-600 hover:bg-red-700 text-white'
+                      : 'bg-red-500 hover:bg-red-600 text-white'
+                      }`}
                   >
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -385,10 +395,10 @@ const Sales = () => {
 
       {/* Layout principal de dos columnas */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
+
         {/* Columna izquierda - Búsqueda y productos */}
         <div className="space-y-6">
-          
+
           {/* Sección de búsqueda */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between mb-4">
@@ -398,8 +408,8 @@ const Sales = () => {
                 </svg>
                 Buscar Productos
               </h3>
-              
-              <button 
+
+              <button
                 onClick={() => setShowQuickItemModal(true)}
                 className="btn-rosema text-sm flex items-center space-x-1"
               >
@@ -409,7 +419,7 @@ const Sales = () => {
                 <span>Artículo Rápido</span>
               </button>
             </div>
-            
+
             <div className="relative">
               <input
                 type="text"
@@ -430,7 +440,7 @@ const Sales = () => {
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-600 mx-auto"></div>
                       <p className="mt-2 text-sm text-gray-500">Buscando productos...</p>
                     </div>
-                  ) : products.length === 0 ? (
+                  ) : searchResults.length === 0 ? (
                     <div className="p-4 text-center text-gray-500">
                       <p>No se encontraron productos</p>
                       {productStats.totalProducts === 0 && (
@@ -444,13 +454,12 @@ const Sales = () => {
                     </div>
                   ) : (
                     <div className="divide-y divide-gray-200">
-                      {products.map((product) => (
+                      {searchResults.map((product) => (
                         <div
                           key={product.id}
                           onClick={() => handleProductSelect(product)}
-                          className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
-                            product.stock <= 0 ? 'opacity-50' : ''
-                          }`}
+                          className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${product.stock <= 0 ? 'opacity-50' : ''
+                            }`}
                         >
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
@@ -468,9 +477,8 @@ const Sales = () => {
                                     'Sin precio'
                                   )}
                                 </span>
-                                <span className={`text-sm ${
-                                  product.stock <= 5 ? 'text-red-600' : 'text-gray-600'
-                                }`}>
+                                <span className={`text-sm ${product.stock <= 5 ? 'text-red-600' : 'text-gray-600'
+                                  }`}>
                                   Stock: {product.stock}
                                 </span>
                                 {product.categoria && (
@@ -480,14 +488,14 @@ const Sales = () => {
                                 )}
                               </div>
                             </div>
-                            
+
                             {product.stock <= 0 && (
                               <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">
                                 Sin Stock
                               </span>
                             )}
                           </div>
-                          
+
                           {/* Variantes disponibles */}
                           {product.variantes && product.variantes.length > 0 && (
                             <div className="mt-2 flex flex-wrap gap-2">
@@ -495,7 +503,7 @@ const Sales = () => {
                                 <span className="text-xs text-gray-500">Variantes:</span>
                                 {product.variantes.slice(0, 3).map((variant, index) => (
                                   <span key={index} className="text-xs bg-blue-100 text-blue-600 px-1 py-0.5 rounded">
-                                    {variant.talla}{variant.color ? ` - ${variant.color}` : ''} ({variant.stock})
+                                    {variant.talle}{variant.color ? ` - ${variant.color}` : ''} ({variant.stock})
                                   </span>
                                 ))}
                                 {product.variantes.length > 3 && (
@@ -514,7 +522,7 @@ const Sales = () => {
           </div>
 
           {/* Botón de cambio de prenda */}
-          <button 
+          <button
             onClick={() => setShowReturnModal(true)}
             className="w-full bg-gray-800 hover:bg-gray-900 text-white font-medium py-3 px-4 rounded-lg transition-colors"
           >
@@ -573,7 +581,7 @@ const Sales = () => {
                   <span>Subtotal:</span>
                   <span>${totals.subtotal.toLocaleString()}</span>
                 </div>
-                
+
                 {totals.discountValue > 0 && (
                   <div className="flex justify-between text-sm text-green-600">
                     <span>Descuento ({discountPercent}%):</span>
@@ -643,7 +651,7 @@ const Sales = () => {
                       min="0"
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Comisión (%)
@@ -716,7 +724,7 @@ const Sales = () => {
 
             {/* Botones de acción */}
             <div className="flex space-x-3">
-              <button 
+              <button
                 onClick={handlePrintReceipt}
                 className="flex-1 btn-secondary flex items-center justify-center space-x-2"
               >
@@ -725,8 +733,8 @@ const Sales = () => {
                 </svg>
                 <span>Imprimir recibo</span>
               </button>
-              
-              <button 
+
+              <button
                 onClick={handleProcessSale}
                 disabled={salesLoading || cart.length === 0}
                 className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
@@ -746,7 +754,7 @@ const Sales = () => {
               </svg>
               Carrito de Compra
             </h3>
-            
+
             <button className="w-8 h-8 bg-gray-800 hover:bg-gray-900 text-white rounded-lg flex items-center justify-center transition-colors">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -774,7 +782,7 @@ const Sales = () => {
                   <div className="text-sm text-gray-600 space-y-1">
                     <p>Código: {item.code || "N/A"}</p>
                     <p>
-                      <span className="font-medium">Talla:</span> {item.variant?.talla || "N/A"}
+                      <span className="font-medium">Talle:</span> {item.variant?.talle || "N/A"}
                       {item.variant?.color && (
                         <span className="ml-2">
                           <span className="font-medium">Color:</span> {item.variant.color}
@@ -791,7 +799,7 @@ const Sales = () => {
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center space-x-3 ml-4">
                   {/* Controles de cantidad */}
                   <button
@@ -802,9 +810,9 @@ const Sales = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
                     </svg>
                   </button>
-                  
+
                   <span className="w-8 text-center font-medium">{item.qty || item.quantity}</span>
-                  
+
                   <button
                     onClick={() => updateCartItemQuantity(item.lineId || item.id, (item.qty || item.quantity) + 1)}
                     className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center transition-colors"
@@ -813,7 +821,7 @@ const Sales = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
                   </button>
-                  
+
                   {/* Botón eliminar */}
                   <button
                     onClick={() => removeFromCart(item.lineId || item.id)}

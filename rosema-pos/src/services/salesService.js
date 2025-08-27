@@ -76,7 +76,7 @@ export const getProductByBarcode = async (barcode) => {
 /**
  * Validar stock disponible para una variante específica
  */
-export const validateVariantStock = async (productId, talla, color, requestedQuantity) => {
+export const validateVariantStock = async (productId, talle, color, requestedQuantity) => {
   try {
     const product = await getProductByBarcode(productId);
     if (!product) {
@@ -84,11 +84,11 @@ export const validateVariantStock = async (productId, talla, color, requestedQua
     }
 
     const variante = product.variantes?.find(v => 
-      v.talla === talla && v.color === color
+      v.talle === talle && v.color === color
     );
 
     if (!variante) {
-      throw new Error(`Variante ${talla}/${color} no encontrada`);
+      throw new Error(`Variante ${talle}/${color} no encontrada`);
     }
 
     if (variante.stock < requestedQuantity) {
@@ -174,7 +174,7 @@ export const processSale = async (saleData) => {
       if (item.productId && !item.isQuickItem) {
         await validateVariantStock(
           item.productId, 
-          item.talla, 
+          item.talle, 
           item.color, 
           item.quantity
         );
@@ -192,7 +192,7 @@ export const processSale = async (saleData) => {
         productName: item.productName || item.name,
         articulo: item.articulo || item.name,
         code: item.code || item.productId,
-        talla: item.talla || null,
+        talle: item.talle || null,
         color: item.color || null,
         price: item.price,
         quantity: item.quantity,
@@ -234,7 +234,7 @@ export const processSale = async (saleData) => {
           
           // Actualizar stock de la variante específica
           const updatedVariantes = product.variantes.map(variante => {
-            if (variante.talla === item.talla && variante.color === item.color) {
+            if (variante.talle === item.talle && variante.color === item.color) {
               const stockChange = item.isReturn ? item.quantity : -item.quantity;
               return {
                 ...variante,

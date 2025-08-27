@@ -80,7 +80,7 @@ const Products = () => {
     // Ordenar
     filtered.sort((a, b) => {
       let aValue, bValue;
-      
+
       switch (sortBy) {
         case 'created':
           // Ordenar por fecha de creación (más recientes primero)
@@ -111,7 +111,7 @@ const Products = () => {
       }
 
       if (typeof aValue === 'string') {
-        return sortOrder === 'asc' 
+        return sortOrder === 'asc'
           ? aValue.localeCompare(bValue)
           : bValue.localeCompare(aValue);
       } else {
@@ -255,9 +255,9 @@ const Products = () => {
           <h1 className="text-3xl font-bold text-gray-900">Productos</h1>
           <p className="text-gray-600 mt-2">Gestión de inventario y catálogo</p>
         </div>
-        
+
         <div className="flex space-x-3">
-          <button 
+          <button
             onClick={handleCreateProduct}
             className="btn-rosema flex items-center space-x-2"
           >
@@ -266,7 +266,7 @@ const Products = () => {
             </svg>
             <span>Agregar Producto</span>
           </button>
-          
+
           <button className="btn-secondary flex items-center space-x-2">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -440,7 +440,7 @@ const Products = () => {
                 {filteredProducts.map((product) => {
                   const totalStock = getTotalStock(product);
                   const averagePrice = getAveragePrice(product);
-                  
+
                   return (
                     <tr key={product.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -480,13 +480,12 @@ const Products = () => {
                         ${averagePrice.toLocaleString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          totalStock === 0 
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${totalStock === 0
                             ? 'bg-red-100 text-red-800'
-                            : totalStock <= 5 
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-green-100 text-green-800'
-                        }`}>
+                            : totalStock <= 5
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-green-100 text-green-800'
+                          }`}>
                           {totalStock} unidades
                         </span>
                       </td>
@@ -735,16 +734,15 @@ const Products = () => {
                       <tbody>
                         {viewingProduct.variantes.map((variante, index) => (
                           <tr key={index} className="border-t border-gray-200">
-                            <td className="px-4 py-2">{variante.talla || 'N/A'}</td>
+                            <td className="px-4 py-2">{variante.talle || 'N/A'}</td>
                             <td className="px-4 py-2">{variante.color || 'N/A'}</td>
                             <td className="px-4 py-2">
-                              <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                                variante.stock === 0 
+                              <span className={`px-2 py-1 text-xs font-semibold rounded-full ${variante.stock === 0
                                   ? 'bg-red-100 text-red-800'
-                                  : variante.stock <= 5 
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-green-100 text-green-800'
-                              }`}>
+                                  : variante.stock <= 5
+                                    ? 'bg-yellow-100 text-yellow-800'
+                                    : 'bg-green-100 text-green-800'
+                                }`}>
                                 {variante.stock || 0}
                               </span>
                             </td>

@@ -40,18 +40,18 @@ function App() {
     <div className="App">
       <Routes>
         {/* Ruta de login */}
-        <Route 
-          path="/login" 
+        <Route
+          path="/login"
           element={
             (isAuthenticated && !isDevelopment) ? <Navigate to="/" replace /> : <Login />
-          } 
+          }
         />
-        
+
         {/* MODO DESARROLLO: Ruta directa a ventas sin autenticación */}
         {isDevelopment && (
           <Route path="/sales-dev" element={<Sales />} />
         )}
-        
+
         {/* Rutas protegidas - solo accesibles si está autenticado */}
         {(isAuthenticated || isDevelopment) ? (
           <Route path="/" element={<Layout />}>
@@ -68,13 +68,13 @@ function App() {
         ) : (
           <Route path="*" element={<Navigate to="/login" replace />} />
         )}
-        
+
         {/* Ruta por defecto */}
-        <Route 
-          path="*" 
+        <Route
+          path="*"
           element={
             <Navigate to={(isAuthenticated || isDevelopment) ? "/" : "/login"} replace />
-          } 
+          }
         />
       </Routes>
     </div>

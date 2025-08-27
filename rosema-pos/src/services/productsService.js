@@ -436,7 +436,7 @@ export const updateVariantStock = async (productId, variantToUpdate, quantitySol
     const variants = productData.variantes || [];
     
     const updatedVariants = variants.map(variant => {
-      if (variant.talla === variantToUpdate.talla && 
+      if (variant.talle === variantToUpdate.talle && 
           variant.color === variantToUpdate.color) {
         if (variant.stock < quantitySold) {
           throw new Error(`Stock insuficiente. Disponible: ${variant.stock}, Solicitado: ${quantitySold}`);
@@ -475,7 +475,7 @@ export const incrementVariantStock = async (productId, variantToUpdate, quantity
     const variants = productData.variantes || [];
     
     const updatedVariants = variants.map(variant => {
-      if (variant.talla === variantToUpdate.talla && 
+      if (variant.talle === variantToUpdate.talle && 
           variant.color === variantToUpdate.color) {
         return { ...variant, stock: variant.stock + quantityReturned };
       }

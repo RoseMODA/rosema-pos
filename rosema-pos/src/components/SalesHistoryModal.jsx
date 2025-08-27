@@ -6,12 +6,12 @@ import PrintReceiptModal from './PrintReceiptModal';
  * Modal para mostrar el historial de ventas
  */
 const SalesHistoryModal = ({ isOpen, onClose }) => {
-  const { 
-    salesHistory, 
-    loading, 
-    loadSalesHistory, 
+  const {
+    salesHistory,
+    loading,
+    loadSalesHistory,
     searchSalesHistory,
-    deleteSaleFromHistory 
+    deleteSaleFromHistory
   } = useSales();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,7 +37,7 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
    */
   const handleSearch = async (term = searchTerm) => {
     setSearchTerm(term);
-    
+
     if (term.trim()) {
       await searchSalesHistory(term);
     } else {
@@ -51,7 +51,7 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
    */
   const applyFilters = async () => {
     const filters = { limit: 50 };
-    
+
     // Filtro por fechas
     if (startDate) {
       filters.startDate = new Date(startDate);
@@ -61,12 +61,12 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
       endDateTime.setHours(23, 59, 59, 999); // Incluir todo el día
       filters.endDate = endDateTime;
     }
-    
+
     // Filtro por método de pago
     if (paymentFilter !== 'all') {
       filters.paymentMethod = paymentFilter;
     }
-    
+
     await loadSalesHistory(filters);
   };
 
@@ -458,7 +458,7 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
                           )}
                           {(item.size || item.color) && (
                             <p className="text-sm text-gray-500">
-                              {item.size && `Talla: ${item.size}`}
+                              {item.size && `Talle: ${item.size}`}
                               {item.size && item.color && ' | '}
                               {item.color && `Color: ${item.color}`}
                             </p>

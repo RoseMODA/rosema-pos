@@ -9,7 +9,7 @@ import { storage } from '../services/firebase';
  */
 const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create' }) => {
   const { providers, loadProviders, addProvider } = useProviders();
-  
+
   // Estados del formulario
   const [formData, setFormData] = useState({
     id: '', // Código de barras
@@ -84,7 +84,7 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
         tags: product.tags || [],
         imagenes: product.imagenes || []
       });
-      
+
       // Buscar y establecer el nombre del proveedor
       if (product.proveedorId && providers.length > 0) {
         const provider = providers.find(p => p.id === product.proveedorId);
@@ -176,7 +176,7 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
    */
   const addVariante = () => {
     const newVariante = {
-      talla: '',
+      talle: '',
       color: '',
       stock: 0,
       precioVenta: formData.precioVentaSugerido || 0
@@ -294,7 +294,7 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
     // Validar tipos de archivo
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     const validFiles = files.filter(file => validTypes.includes(file.type));
-    
+
     if (validFiles.length !== files.length) {
       alert('Solo se permiten archivos de imagen (JPG, PNG, WEBP)');
     }
@@ -341,7 +341,7 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
     const uploadPromises = imageFiles.map(async (file) => {
       const fileName = `productos/${formData.id}/${Date.now()}-${file.name}`;
       const storageRef = ref(storage, fileName);
-      
+
       try {
         const snapshot = await uploadBytes(storageRef, file);
         const downloadURL = await getDownloadURL(snapshot.ref);
@@ -391,7 +391,7 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
    */
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -581,11 +581,10 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
                   key={sub}
                   type="button"
                   onClick={() => addSubcategoria(sub)}
-                  className={`px-3 py-1 text-sm rounded-full border transition-colors ${
-                    formData.subcategorias.includes(sub)
-                      ? 'bg-blue-500 text-white border-blue-500'
-                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                  }`}
+                  className={`px-3 py-1 text-sm rounded-full border transition-colors ${formData.subcategorias.includes(sub)
+                    ? 'bg-blue-500 text-white border-blue-500'
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                    }`}
                 >
                   {sub}
                 </button>
@@ -758,8 +757,8 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
                         <td className="px-4 py-2">
                           <input
                             type="text"
-                            value={variante.talla}
-                            onChange={(e) => updateVariante(index, 'talla', e.target.value)}
+                            value={variante.talle}
+                            onChange={(e) => updateVariante(index, 'talle', e.target.value)}
                             className="w-full input-rosema"
                             placeholder="XS, S, M..."
                           />
@@ -862,7 +861,7 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Imágenes del Producto
             </label>
-            
+
             {/* Imágenes existentes */}
             {formData.imagenes && formData.imagenes.length > 0 && (
               <div className="mb-4">

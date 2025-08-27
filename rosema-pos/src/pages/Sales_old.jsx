@@ -13,14 +13,14 @@ import PrintReceiptModal from '../components/PrintReceiptModal';
  */
 const Sales = () => {
   // Hooks personalizados
-  const { 
-    products, 
-    loading: productsLoading, 
-    searchProductsByTerm, 
+  const {
+    products,
+    loading: productsLoading,
+    searchProductsByTerm,
     createSampleData,
-    getProductStats 
+    getProductStats
   } = useProducts();
-  
+
   const {
     sessions,
     activeSessionId,
@@ -66,19 +66,19 @@ const Sales = () => {
   // Función para calcular totales de cualquier sesión
   const calculateTotal = (session) => {
     if (!session) return { subtotal: 0, discountValue: 0, total: 0 };
-    
+
     const subtotal = session.items.reduce((sum, item) => sum + item.price * item.qty, 0);
-    
+
     let total = subtotal;
     if (session.discountAmount) {
       total -= session.discountAmount;
     } else if (session.discountPercent) {
       total -= subtotal * (session.discountPercent / 100);
     }
-    
+
     return {
       subtotal,
-      discountValue: session.discountPercent > 0 
+      discountValue: session.discountPercent > 0
         ? subtotal * (session.discountPercent / 100)
         : session.discountAmount,
       total: total < 0 ? 0 : total
@@ -120,7 +120,7 @@ const Sales = () => {
       alert('Producto sin stock disponible');
       return;
     }
-    
+
     addToCart(product, 1, null, null);
     setSearchTerm('');
     setShowResults(false);
@@ -250,9 +250,9 @@ const Sales = () => {
           <h1 className="text-2xl font-bold text-gray-900">Gestión de Ventas</h1>
           <p className="text-gray-600">Busca productos y agrégalos al carrito para procesar una venta</p>
         </div>
-        
+
         <div className="flex space-x-3">
-          <button 
+          <button
             onClick={handleNewSale}
             className="btn-rosema flex items-center space-x-2"
           >
@@ -261,8 +261,8 @@ const Sales = () => {
             </svg>
             <span>Nueva Venta</span>
           </button>
-          
-          <button 
+
+          <button
             onClick={() => setShowHistoryModal(true)}
             className="btn-secondary flex items-center space-x-2"
           >
@@ -284,32 +284,28 @@ const Sales = () => {
             <div key={client.id} className="flex items-center">
               <button
                 onClick={() => handleClientChange(client.id)}
-                className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
-                  activeSessionId === client.id
-                    ? 'bg-gray-800 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
+                className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${activeSessionId === client.id
+                  ? 'bg-gray-800 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
               >
                 {client.name}
               </button>
-              
+
               {/* Indicador de total y botón eliminar */}
-              <div className={`flex items-center px-2 py-2 ${
-                activeSessionId === client.id ? 'bg-gray-800' : 'bg-gray-200'
-              } rounded-t-lg`}>
-                <span className={`text-sm mr-2 ${
-                  activeSessionId === client.id ? 'text-white' : 'text-gray-600'
-                }`}>
+              <div className={`flex items-center px-2 py-2 ${activeSessionId === client.id ? 'bg-gray-800' : 'bg-gray-200'
+                } rounded-t-lg`}>
+                <span className={`text-sm mr-2 ${activeSessionId === client.id ? 'text-white' : 'text-gray-600'
+                  }`}>
                   ${sessionTotals.total.toLocaleString()}
                 </span>
                 {pendingSales.length > 1 && (
                   <button
                     onClick={() => handleDeleteClient(client.id)}
-                    className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${
-                      activeSessionId === client.id 
-                        ? 'bg-red-600 hover:bg-red-700 text-white' 
-                        : 'bg-red-500 hover:bg-red-600 text-white'
-                    }`}
+                    className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${activeSessionId === client.id
+                      ? 'bg-red-600 hover:bg-red-700 text-white'
+                      : 'bg-red-500 hover:bg-red-600 text-white'
+                      }`}
                   >
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -324,10 +320,10 @@ const Sales = () => {
 
       {/* Layout principal de dos columnas */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
+
         {/* Columna izquierda - Búsqueda y productos */}
         <div className="space-y-6">
-          
+
           {/* Sección de búsqueda */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between mb-4">
@@ -337,8 +333,8 @@ const Sales = () => {
                 </svg>
                 Buscar Productos
               </h3>
-              
-              <button 
+
+              <button
                 onClick={() => setShowQuickItemModal(true)}
                 className="btn-rosema text-sm flex items-center space-x-1"
               >
@@ -348,7 +344,7 @@ const Sales = () => {
                 <span>Artículo Rápido</span>
               </button>
             </div>
-            
+
             <div className="relative">
               <input
                 type="text"
@@ -387,9 +383,8 @@ const Sales = () => {
                         <div
                           key={product.id}
                           onClick={() => handleProductSelect(product)}
-                          className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
-                            product.stock <= 0 ? 'opacity-50' : ''
-                          }`}
+                          className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${product.stock <= 0 ? 'opacity-50' : ''
+                            }`}
                         >
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
@@ -405,9 +400,8 @@ const Sales = () => {
                                 <span className="text-lg font-semibold text-green-600">
                                   ${product.salePrice?.toLocaleString()}
                                 </span>
-                                <span className={`text-sm ${
-                                  product.stock <= 5 ? 'text-red-600' : 'text-gray-600'
-                                }`}>
+                                <span className={`text-sm ${product.stock <= 5 ? 'text-red-600' : 'text-gray-600'
+                                  }`}>
                                   Stock: {product.stock}
                                 </span>
                                 {product.category && (
@@ -417,14 +411,14 @@ const Sales = () => {
                                 )}
                               </div>
                             </div>
-                            
+
                             {product.stock <= 0 && (
                               <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">
                                 Sin Stock
                               </span>
                             )}
                           </div>
-                          
+
                           {/* Tallas y colores disponibles */}
                           {(product.sizes || product.colors) && (
                             <div className="mt-2 flex flex-wrap gap-2">
@@ -441,7 +435,7 @@ const Sales = () => {
                                   )}
                                 </div>
                               )}
-                              
+
                               {product.colors && (
                                 <div className="flex items-center space-x-1">
                                   <span className="text-xs text-gray-500">Colores:</span>
@@ -470,7 +464,7 @@ const Sales = () => {
           </div>
 
           {/* Botón de cambio de prenda */}
-          <button 
+          <button
             onClick={() => setShowReturnModal(true)}
             className="w-full bg-gray-800 hover:bg-gray-900 text-white font-medium py-3 px-4 rounded-lg transition-colors"
           >
@@ -582,7 +576,7 @@ const Sales = () => {
                   <span>Subtotal:</span>
                   <span>${totals.subtotal.toLocaleString()}</span>
                 </div>
-                
+
                 {totals.discountValue > 0 && (
                   <div className="flex justify-between text-sm text-green-600">
                     <span>
@@ -654,7 +648,7 @@ const Sales = () => {
                       min="0"
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Comisión (%)
@@ -728,7 +722,7 @@ d">
 
             {/* Botones de acción */}
             <div className="flex space-x-3">
-              <button 
+              <button
                 onClick={handlePrintReceipt}
                 className="flex-1 btn-secondary flex items-center justify-center space-x-2"
               >
@@ -737,8 +731,8 @@ d">
                 </svg>
                 <span>Imprimir recibo</span>
               </button>
-              
-              <button 
+
+              <button
                 onClick={handleProcessSale}
                 disabled={salesLoading || cart.length === 0}
                 className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
@@ -758,7 +752,7 @@ d">
               </svg>
               Carrito de Compra
             </h3>
-            
+
             <button className="w-8 h-8 bg-gray-800 hover:bg-gray-900 text-white rounded-lg flex items-center justify-center transition-colors">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -784,13 +778,13 @@ d">
                 <div className="flex-1">
                   <h4 className="font-medium text-gray-900">{item.name}</h4>
                   <p className="text-sm text-gray-600">
-                    Código: {item.code || "N/A"} | Talla: {item.variant?.talla || item.size || "N/A"} | Color: {item.variant?.color || item.color || "N/A"}
+                    Código: {item.code || "N/A"} | Talle: {item.variant?.talle || item.size || "N/A"} | Color: {item.variant?.color || item.color || "N/A"}
                   </p>
                   <p className="text-lg font-semibold text-green-600">
                     ${item.price.toLocaleString()}
                   </p>
                 </div>
-                
+
                 <div className="flex items-center space-x-3">
                   {/* Controles de cantidad */}
                   <button
@@ -801,9 +795,9 @@ d">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
                     </svg>
                   </button>
-                  
+
                   <span className="w-8 text-center font-medium">{item.qty || item.quantity}</span>
-                  
+
                   <button
                     onClick={() => updateCartItemQuantity(item.lineId || item.id, (item.qty || item.quantity) + 1)}
                     className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center transition-colors"
@@ -812,7 +806,7 @@ d">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
                   </button>
-                  
+
                   {/* Botón eliminar */}
                   <button
                     onClick={() => removeFromCart(item.lineId || item.id)}

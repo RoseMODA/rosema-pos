@@ -4,9 +4,9 @@ import React, { useState } from 'react';
  * Componente del carrito de ventas
  * Muestra los productos agregados, permite modificar cantidades y calcular totales
  */
-const SalesCart = ({ 
-  cart, 
-  discount, 
+const SalesCart = ({
+  cart,
+  discount,
   paymentMethod,
   subtotal,
   discountAmount,
@@ -50,7 +50,7 @@ const SalesCart = ({
       alert('Ingrese una etiqueta para la venta en espera');
       return;
     }
-    
+
     onCreatePendingSale(pendingSaleLabel.trim());
     setPendingSaleLabel('');
     setShowPendingSaleModal(false);
@@ -92,11 +92,11 @@ const SalesCart = ({
                 <h4 className="font-medium text-gray-900">{item.name}</h4>
                 <div className="flex items-center space-x-2 text-sm text-gray-600">
                   {item.code && <span>Código: {item.code}</span>}
-                  {item.size && <span>Talla: {item.size}</span>}
+                  {item.size && <span>Talle: {item.size}</span>}
                   {item.color && (
                     <div className="flex items-center space-x-1">
                       <span>Color:</span>
-                      <div 
+                      <div
                         className="w-3 h-3 rounded-full border border-gray-300"
                         style={{ backgroundColor: item.color }}
                       ></div>
@@ -131,9 +131,9 @@ const SalesCart = ({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
                   </svg>
                 </button>
-                
+
                 <span className="w-8 text-center font-medium">{item.quantity}</span>
-                
+
                 <button
                   onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
                   disabled={loading || (item.stock !== null && item.quantity >= item.stock)}
@@ -143,7 +143,7 @@ const SalesCart = ({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
                 </button>
-                
+
                 <button
                   onClick={() => onRemoveItem(item.id)}
                   disabled={loading}
@@ -167,7 +167,7 @@ const SalesCart = ({
               <span>Subtotal:</span>
               <span>{formatPrice(subtotal)}</span>
             </div>
-            
+
             {discount.value > 0 && (
               <div className="flex justify-between text-sm text-green-600">
                 <span>
@@ -176,7 +176,7 @@ const SalesCart = ({
                 <span>-{formatPrice(discountAmount)}</span>
               </div>
             )}
-            
+
             <div className="flex justify-between text-lg font-semibold border-t border-gray-200 pt-2">
               <span>Total:</span>
               <span className="text-green-600">{formatPrice(total)}</span>
@@ -222,7 +222,7 @@ const SalesCart = ({
               >
                 Venta en Espera
               </button>
-              
+
               <button
                 onClick={onCompleteSale}
                 disabled={loading}
@@ -248,7 +248,7 @@ const SalesCart = ({
           <div className="bg-white rounded-lg p-6 w-96 max-w-90vw">
 
             <h3 className="text-lg font-semibold mb-4">Aplicar Descuento</h3>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -264,7 +264,7 @@ const SalesCart = ({
                   <option value="fixed">Monto Fijo ($)</option>
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Valor
@@ -282,7 +282,7 @@ const SalesCart = ({
                 />
               </div>
             </div>
-            
+
             <div className="flex space-x-3 mt-6">
               <button
                 onClick={() => setShowDiscountModal(false)}
@@ -313,7 +313,7 @@ const SalesCart = ({
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-96 max-w-90vw">
             <h3 className="text-lg font-semibold mb-4">Crear Venta en Espera</h3>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -327,12 +327,12 @@ const SalesCart = ({
                   className="input-rosema"
                 />
               </div>
-              
+
               <div className="text-sm text-gray-600">
                 <p>Esta venta se guardará temporalmente y podrá ser completada más tarde.</p>
               </div>
             </div>
-            
+
             <div className="flex space-x-3 mt-6">
               <button
                 onClick={() => {

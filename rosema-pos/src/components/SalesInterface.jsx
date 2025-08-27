@@ -13,13 +13,13 @@ const SalesInterface = ({ onSaleComplete }) => {
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showVariants, setShowVariants] = useState(false);
-  
+
   // Estados de pago
   const [paymentMethod, setPaymentMethod] = useState('Efectivo');
   const [discount, setDiscount] = useState(0);
   const [cashReceived, setCashReceived] = useState('');
   const [customerName, setCustomerName] = useState('');
-  
+
   // Estados de validación
   const [errors, setErrors] = useState({});
   const [stockWarnings, setStockWarnings] = useState({});
@@ -39,7 +39,7 @@ const SalesInterface = ({ onSaleComplete }) => {
    */
   const handleSearch = async (term) => {
     setSearchTerm(term);
-    
+
     if (!term.trim()) {
       setSearchResults([]);
       return;
@@ -47,7 +47,7 @@ const SalesInterface = ({ onSaleComplete }) => {
 
     try {
       setLoading(true);
-      
+
       // Primero buscar por código exacto
       const exactProduct = await getProductByBarcode(term.trim());
       if (exactProduct) {
@@ -87,14 +87,14 @@ const SalesInterface = ({ onSaleComplete }) => {
       // Validar stock
       const stockValidation = await validateVariantStock(
         selectedProduct.id,
-        variante.talla,
+        variante.talle,
         variante.color,
         quantity
       );
 
       if (!stockValidation.available) {
         setStockWarnings({
-          [variante.talla + variante.color]: 'Stock insuficiente'
+          [variante.talle + variante.color]: 'Stock insuficiente'
         });
         return;
       }
@@ -104,11 +104,11 @@ const SalesInterface = ({ onSaleComplete }) => {
 
       // Crear item del carrito
       const cartItem = {
-        id: `${selectedProduct.id}-${variante.talla}-${variante.color}`,
+        id: `${selectedProduct.id}-${variante.talle}-${variante.color}`,
         productId: selectedProduct.id,
         productName: selectedProduct.articulo,
         articulo: selectedProduct.articulo,
-        talla: variante.talla,
+        talle: variante.talle,
         color: variante.color,
         price: variante.precioVenta || selectedProduct.precioCosto || 0,
         quantity: quantity,
@@ -121,20 +121,20 @@ const SalesInterface = ({ onSaleComplete }) => {
 
       // Verificar si ya existe en el carrito
       const existingItemIndex = cart.findIndex(item => item.id === cartItem.id);
-      
+
       if (existingItemIndex >= 0) {
         // Actualizar cantidad
         const updatedCart = [...cart];
         const newQuantity = updatedCart[existingItemIndex].quantity + quantity;
-        
+
         // Validar stock total
         if (newQuantity > variante.stock) {
           setStockWarnings({
-            [variante.talla + variante.color]: `Solo hay ${variante.stock} unidades disponibles`
+            [variante.talle + variante.color]: `Solo hay ${variante.stock} unidades disponibles`
           });
           return;
         }
-        
+
         updatedCart[existingItemIndex].quantity = newQuantity;
         updatedCart[existingItemIndex].subtotal = updatedCart[existingItemIndex].price * newQuantity;
         setCart(updatedCart);
@@ -147,7 +147,7 @@ const SalesInterface = ({ onSaleComplete }) => {
       setStockWarnings({});
       setSelectedProduct(null);
       setShowVariants(false);
-      
+
       // Enfocar búsqueda para siguiente producto
       if (searchInputRef.current) {
         searchInputRef.current.focus();
@@ -155,7 +155,7 @@ const SalesInterface = ({ onSaleComplete }) => {
     } catch (error) {
       console.error('Error agregando al carrito:', error);
       setStockWarnings({
-        [variante.talla + variante.color]: error.message
+        [variante.talle + variante.color]: error.message
       });
     }
   };
@@ -185,7 +185,7 @@ const SalesInterface = ({ onSaleComplete }) => {
           });
           return item;
         }
-        
+
         return {
           ...item,
           quantity: newQuantity,
@@ -194,7 +194,7 @@ const SalesInterface = ({ onSaleComplete }) => {
       }
       return item;
     });
-    
+
     setCart(updatedCart);
     setStockWarnings({});
   };
@@ -206,7 +206,7 @@ const SalesInterface = ({ onSaleComplete }) => {
     const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
     const discountAmount = (subtotal * discount) / 100;
     const total = subtotal - discountAmount;
-    
+
     return { subtotal, discountAmount, total };
   };
 
@@ -221,7 +221,7 @@ const SalesInterface = ({ onSaleComplete }) => {
       }
 
       const { total } = calculateTotals();
-      
+
       if (paymentMethod === 'Efectivo' && (!cashReceived || parseFloat(cashReceived) < total)) {
         setErrors({ payment: 'El monto recibido debe ser mayor o igual al total' });
         return;
@@ -241,7 +241,7 @@ const SalesInterface = ({ onSaleComplete }) => {
       };
 
       const result = await processSale(saleData);
-      
+
       // Limpiar formulario
       setCart([]);
       setDiscount(0);
@@ -250,14 +250,14 @@ const SalesInterface = ({ onSaleComplete }) => {
       setSearchTerm('');
       setSelectedProduct(null);
       setShowVariants(false);
-      
+
       // Notificar venta completada
       if (onSaleComplete) {
         onSaleComplete(result);
       }
 
       alert('Venta procesada exitosamente');
-      
+
       // Enfocar búsqueda
       if (searchInputRef.current) {
         searchInputRef.current.focus();
@@ -281,7 +281,7 @@ const SalesInterface = ({ onSaleComplete }) => {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             Buscar Productos
           </h3>
-          
+
           <div className="relative">
             <input
               ref={searchInputRef}
@@ -359,7 +359,7 @@ const SalesInterface = ({ onSaleComplete }) => {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="font-medium">
-                        {variante.talla} - {variante.color}
+                        {variante.talle} - {variante.color}
                       </div>
                       <div className="text-sm text-gray-500">
                         Stock: {variante.stock} | Precio: ${(variante.precioVenta || 0).toLocaleString()}
@@ -368,19 +368,18 @@ const SalesInterface = ({ onSaleComplete }) => {
                     <button
                       onClick={() => handleAddVariantToCart(variante, 1)}
                       disabled={variante.stock === 0}
-                      className={`px-3 py-1 rounded text-sm font-medium ${
-                        variante.stock === 0
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                          : 'bg-red-600 text-white hover:bg-red-700'
-                      }`}
+                      className={`px-3 py-1 rounded text-sm font-medium ${variante.stock === 0
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-red-600 text-white hover:bg-red-700'
+                        }`}
                     >
                       {variante.stock === 0 ? 'Sin Stock' : 'Agregar'}
                     </button>
                   </div>
-                  
-                  {stockWarnings[variante.talla + variante.color] && (
+
+                  {stockWarnings[variante.talle + variante.color] && (
                     <p className="text-red-500 text-xs mt-1">
-                      {stockWarnings[variante.talla + variante.color]}
+                      {stockWarnings[variante.talle + variante.color]}
                     </p>
                   )}
                 </div>
@@ -414,10 +413,10 @@ const SalesInterface = ({ onSaleComplete }) => {
                     <div className="flex-1">
                       <div className="font-medium">{item.productName}</div>
                       <div className="text-sm text-gray-500">
-                        {item.talla} - {item.color} | ${item.price.toLocaleString()}
+                        {item.talle} - {item.color} | ${item.price.toLocaleString()}
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => updateCartQuantity(item.id, item.quantity - 1)}
@@ -442,11 +441,11 @@ const SalesInterface = ({ onSaleComplete }) => {
                       </button>
                     </div>
                   </div>
-                  
+
                   <div className="text-right text-sm font-medium mt-2">
                     Subtotal: ${item.subtotal.toLocaleString()}
                   </div>
-                  
+
                   {stockWarnings[item.id] && (
                     <p className="text-red-500 text-xs mt-1">{stockWarnings[item.id]}</p>
                   )}

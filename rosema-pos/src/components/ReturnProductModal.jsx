@@ -4,11 +4,11 @@ import React, { useState } from 'react';
  * Modal para seleccionar variante en cambios de prenda
  * Permite seleccionar variantes con stock 0 (para devoluciones)
  */
-const ReturnProductModal = ({ 
-  product, 
-  show, 
-  onClose, 
-  onAddReturn 
+const ReturnProductModal = ({
+  product,
+  show,
+  onClose,
+  onAddReturn
 }) => {
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [discountApplied, setDiscountApplied] = useState(0);
@@ -41,7 +41,7 @@ const ReturnProductModal = ({
       discountApplied: discountApplied,
       quantity: 1,
       variant: {
-        talla: selectedVariant.talla,
+        talle: selectedVariant.talle,
         color: selectedVariant.color
       },
       isReturn: true
@@ -102,16 +102,15 @@ const ReturnProductModal = ({
                   <button
                     key={index}
                     onClick={() => setSelectedVariant(variant)}
-                    className={`w-full p-4 text-left rounded-lg border transition-colors ${
-                      selectedVariant === variant
-                        ? 'bg-red-600 text-white border-red-600'
-                        : 'bg-white text-gray-700 border-gray-300 hover:border-red-300'
-                    }`}
+                    className={`w-full p-4 text-left rounded-lg border transition-colors ${selectedVariant === variant
+                      ? 'bg-red-600 text-white border-red-600'
+                      : 'bg-white text-gray-700 border-gray-300 hover:border-red-300'
+                      }`}
                   >
                     <div className="flex justify-between items-start">
                       <div>
                         <div className="font-medium">
-                          Talla: {variant.talla}
+                          Talle: {variant.talle}
                           {variant.color && ` • Color: ${variant.color}`}
                         </div>
                         <div className="text-lg font-semibold text-green-600">
