@@ -3,6 +3,7 @@ import React from 'react';
 /**
  * Componente de recibo para imprimir
  * Genera un recibo con el formato requerido para Rosema
+ * ACTUALIZADO para manejar correctamente los datos del carrito con Firebase
  */
 const Receipt = ({
   sale,
@@ -14,6 +15,7 @@ const Receipt = ({
    * Formatear precio
    */
   const formatPrice = (price) => {
+    if (typeof price !== 'number') return '$0';
     return `$${price.toLocaleString()}`;
   };
 
@@ -21,6 +23,7 @@ const Receipt = ({
    * Formatear fecha
    */
   const formatDate = (date) => {
+    if (!date) return new Date().toLocaleString('es-AR');
     return new Date(date).toLocaleString('es-AR', {
       day: '2-digit',
       month: '2-digit',
@@ -54,9 +57,7 @@ const Receipt = ({
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 transition-colors"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <span className="text-2xl">&times;</span>
             </button>
           </div>
 
@@ -87,12 +88,18 @@ const Receipt = ({
               </div>
               <div className="flex justify-between text-sm print:text-xs">
                 <span>Fecha:</span>
-                <span>{formatDate(sale.createdAt)}</span>
+                <span>{formatDate(sale.createdAt || sale.saleDate)}</span>
               </div>
               <div className="flex justify-between text-sm print:text-xs">
                 <span>Método de Pago:</span>
-                <span className="capitalize">{sale.paymentMethod}</span>
+                <span className="capitalize">{sale.paymentMethod || 'Efectivo'}</span>
               </div>
+              {sale.customerName && (
+                <div className="flex justify-between text-sm print:text-xs">
+                  <span>Cliente:</span>
+                  <span>{sale.customerName}</span>
+                </div>
+              )}
             </div>
 
             {/* Detalle de productos */}
@@ -102,24 +109,48 @@ const Receipt = ({
               </h3>
 
               <div className="space-y-2 print:space-y-1">
-                {sale.items.map((item, index) => (
-                  <div key={index} className="text-sm print:text-xs">
-                    <div className="flex justify-between">
-                      <span className="font-medium">{item.name}</span>
-                      <span>{formatPrice(item.price * item.quantity)}</span>
-                    </div>
+                {Array.isArray(sale.items) && sale.items.map((item, index) => {
+                  // Manejar diferentes estructuras de datos del carrito
+                  const itemQuantity = item.quantity || item.qty || 1;
+                  const itemName = item.name || item.nombre || 'Producto';
+                  const itemPrice = item.price || 0;
+                  const displayTalle = item.talle || (item.variant && item.variant.talle);
+                  const displayColor = item.color || (item.variant && item.variant.color);
+                  const itemCode = item.code || item.id || 'N/A';
 
-                    <div className="flex justify-between text-gray-600 ml-2">
-                      <span>
-                        {item.quantity} x {formatPrice(item.price)}
-                        {item.talle && ` • Talle: ${item.talle}`}
-                        {item.color && ` • Color: ${item.color}`}
-                        {item.isQuickItem && ''}
-                      </span>
+                  return (
+                    <div key={index} className="text-sm print:text-xs">
+                      <div className="flex justify-between">
+                        <span className="font-medium">{itemName}</span>
+                        <span>{formatPrice(itemPrice * itemQuantity)}</span>
+                      </div>
+
+                      <div className="flex justify-between text-gray-600 ml-2">
+                        <span>
+                          {itemQuantity} x {formatPrice(itemPrice)}
+                          {displayTalle && ` • Talle: ${displayTalle}`}
+                          {displayColor && ` • Color: ${displayColor}`}
+                          {item.isReturn && ' • DEVOLUCIÓN'}
+                          {item.isQuickItem && ' • ARTÍCULO RÁPIDO'}
+                        </span>
+                      </div>
+                      
+                      {itemCode !== 'N/A' && (
+                        <div className="text-xs text-gray-500 ml-2">
+                          Código: {itemCode}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
+
+              {/* Mensaje si no hay items */}
+              {(!Array.isArray(sale.items) || sale.items.length === 0) && (
+                <div className="text-center py-4 text-gray-500">
+                  <p>No hay productos en esta venta</p>
+                </div>
+              )}
             </div>
 
             {/* Totales */}
@@ -127,24 +158,39 @@ const Receipt = ({
               <div className="space-y-1 text-sm print:text-xs">
                 <div className="flex justify-between">
                   <span>Subtotal:</span>
-                  <span>{formatPrice(sale.subtotal)}</span>
+                  <span>{formatPrice(sale.subtotal || 0)}</span>
                 </div>
 
-                {sale.discount && sale.discount.value > 0 && (
+                {/* Manejo mejorado de descuentos */}
+                {((sale.discount && sale.discount > 0) || (sale.discountValue && sale.discountValue > 0)) && (
                   <div className="flex justify-between text-green-600">
-                    <span>
-                      Descuento ({sale.discount.type === 'percentage' ? `${sale.discount.value}%` : formatPrice(sale.discount.value)}):
-                    </span>
-
+                    <span>Descuento:</span>
+                    <span>-{formatPrice(sale.discount || sale.discountValue || 0)}</span>
                   </div>
                 )}
 
                 <div className="flex justify-between font-bold text-lg border-t border-gray-300 pt-2 print:text-base print:pt-1">
                   <span>TOTAL:</span>
-                  <span>{formatPrice(sale.total)}</span>
+                  <span>{formatPrice(sale.total || 0)}</span>
                 </div>
               </div>
             </div>
+
+            {/* Información de pago adicional */}
+            {sale.paymentMethod === 'Efectivo' && sale.cashReceived > 0 && (
+              <div className="border-t border-gray-300 pt-3 mb-4 print:pt-2 print:mb-3">
+                <div className="space-y-1 text-sm print:text-xs">
+                  <div className="flex justify-between">
+                    <span>Recibido:</span>
+                    <span>{formatPrice(sale.cashReceived)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Vuelto:</span>
+                    <span>{formatPrice(sale.change || 0)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Información adicional */}
             <div className="text-center text-sm text-gray-600 print:text-xs">
@@ -180,18 +226,16 @@ const Receipt = ({
           <div className="flex space-x-3 p-4 border-t border-gray-200 print:hidden">
             <button
               onClick={onClose}
-              className="flex-1 btn-secondary"
+              className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg transition-colors"
             >
               Cerrar
             </button>
             <button
               onClick={handlePrint}
-              className="flex-1 btn-rosema"
+              className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
             >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-              </svg>
-              Imprimir
+              <span>🖨</span>
+              <span>Imprimir</span>
             </button>
           </div>
         </div>

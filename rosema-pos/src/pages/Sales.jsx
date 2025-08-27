@@ -294,25 +294,33 @@ const Sales = () => {
       return;
     }
 
-    // Preparar datos para el recibo
+    // Preparar datos para el recibo con estructura mejorada
     const receiptData = {
       saleNumber: `PREV-${Date.now()}`, // Número temporal para vista previa
       items: cart.map(item => ({
         name: item.nombre || item.name,
-        code: item.code || 'N/A',
-        quantity: item.qty || item.quantity,
-        price: item.price
+        code: item.code || item.id || 'N/A',
+        quantity: item.qty || item.quantity || 1,
+        price: item.price || 0,
+        // Incluir información de variantes
+        talle: item.variant?.talle,
+        color: item.variant?.color,
+        isReturn: item.isReturn || false,
+        isQuickItem: item.isQuickItem || false
       })),
-      customerName: customerName,
-      paymentMethod: paymentMethod,
-      subtotal: totals.subtotal,
-      discount: totals.discountValue,
-      total: totals.total,
-      cashReceived: cashReceived,
-      change: totals.change,
-      saleDate: new Date()
+      customerName: customerName || '',
+      paymentMethod: paymentMethod || 'Efectivo',
+      subtotal: totals.subtotal || 0,
+      discount: totals.discountValue || 0,
+      discountValue: totals.discountValue || 0, // Para compatibilidad
+      total: totals.total || 0,
+      cashReceived: cashReceived || 0,
+      change: totals.change || 0,
+      saleDate: new Date(),
+      createdAt: new Date()
     };
 
+    console.log('📄 Datos del recibo preparados:', receiptData);
     setLastSaleData(receiptData);
     setShowPrintModal(true);
   };
