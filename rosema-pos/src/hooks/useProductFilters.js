@@ -5,8 +5,9 @@
 import { useState, useMemo, useCallback } from 'react';
 import { filterAndSortProducts, searchProducts } from '../utils/productHelpers.js';
 
-export const useProductFilters = (products = []) => {
+export const useProductFilters = (products = [], providers = []) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [sizeFilter, setSizeFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [sortBy, setSortBy] = useState('created');
   const [sortOrder, setSortOrder] = useState('asc');
@@ -15,15 +16,16 @@ export const useProductFilters = (products = []) => {
   // Filtros aplicados
   const filters = useMemo(() => ({
     searchTerm,
+    sizeFilter,
     categoryFilter,
     sortBy,
     sortOrder
-  }), [searchTerm, categoryFilter, sortBy, sortOrder]);
+  }), [searchTerm, sizeFilter, categoryFilter, sortBy, sortOrder]);
 
   // Productos filtrados y ordenados
   const filteredProducts = useMemo(() => {
-    return filterAndSortProducts(products, filters);
-  }, [products, filters]);
+    return filterAndSortProducts(products, filters, providers);
+  }, [products, filters, providers]);
 
   // Resultados de búsqueda (para dropdown de búsqueda)
   const searchResults = useMemo(() => {
@@ -35,6 +37,10 @@ export const useProductFilters = (products = []) => {
   const handleSearch = useCallback((term) => {
     setSearchTerm(term);
     setShowResults(!!term.trim());
+  }, []);
+
+  const handleSizeFilter = useCallback((size) => {
+    setSizeFilter(size);
   }, []);
 
   const handleCategoryChange = useCallback((category) => {
@@ -54,8 +60,13 @@ export const useProductFilters = (products = []) => {
     setShowResults(false);
   }, []);
 
+  const clearSizeFilter = useCallback(() => {
+    setSizeFilter('');
+  }, []);
+
   const clearAllFilters = useCallback(() => {
     setSearchTerm('');
+    setSizeFilter('');
     setCategoryFilter('all');
     setSortBy('created');
     setSortOrder('asc');
@@ -66,7 +77,7 @@ export const useProductFilters = (products = []) => {
   const filterStats = useMemo(() => {
     const total = products.length;
     const filtered = filteredProducts.length;
-    const hasActiveFilters = searchTerm.trim() || categoryFilter !== 'all';
+    const hasActiveFilters = searchTerm.trim() || sizeFilter.trim() || categoryFilter !== 'all';
 
     return {
       total,
@@ -74,11 +85,12 @@ export const useProductFilters = (products = []) => {
       hasActiveFilters,
       hiddenCount: total - filtered
     };
-  }, [products.length, filteredProducts.length, searchTerm, categoryFilter]);
+  }, [products.length, filteredProducts.length, searchTerm, sizeFilter, categoryFilter]);
 
   return {
     // Estados
     searchTerm,
+    sizeFilter,
     categoryFilter,
     sortBy,
     sortOrder,
@@ -91,10 +103,12 @@ export const useProductFilters = (products = []) => {
     
     // Handlers
     handleSearch,
+    handleSizeFilter,
     handleCategoryChange,
     handleSortChange,
     handleOrderChange,
     clearSearch,
+    clearSizeFilter,
     clearAllFilters,
     setShowResults,
     

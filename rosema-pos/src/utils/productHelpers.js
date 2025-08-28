@@ -7,9 +7,10 @@ import { calculateTotalStock, calculateAveragePrice } from './calculations.js';
 /**
  * Filtrar y ordenar productos según criterios
  */
-export const filterAndSortProducts = (products, filters = {}) => {
+export const filterAndSortProducts = (products, filters = {}, providers = []) => {
   const {
     searchTerm = '',
+    sizeFilter = '',
     categoryFilter = 'all',
     sortBy = 'created',
     sortOrder = 'asc'
@@ -22,62 +23,105 @@ export const filterAndSortProducts = (products, filters = {}) => {
     filtered = filtered.filter(product => product.categoria === categoryFilter);
   }
 
-  // Filtrar por término de búsqueda
-  if (searchTerm.trim()) {
-    const term = searchTerm.toLowerCase();
+  // Filtrar por talle específico (filtro separado)
+  if (sizeFilter.trim()) {
+    const sizeFilterTerm = sizeFilter.toLowerCase().trim();
     filtered = filtered.filter(product =>
-      product.articulo?.toLowerCase().includes(term) ||
-      product.id?.toLowerCase().includes(term) ||
-      product.tags?.some(tag => tag.toLowerCase().includes(term)) ||
-      // Nuevo: Búsqueda por proveedor (proveedorId)
-      (product.proveedorId && product.proveedorId.toString().toLowerCase().includes(term)) ||
-      // Nuevo: Búsqueda por talle dentro de las variantes
-      (product.variantes && Array.isArray(product.variantes) && 
-       product.variantes.some(variant => variant.talle?.toLowerCase().includes(term)))
+      product.variantes && Array.isArray(product.variantes) && 
+      product.variantes.some(variant => variant.talle?.toLowerCase().includes(sizeFilterTerm))
     );
   }
 
-  // Ordenar
-  filtered.sort((a, b) => {
-    let aValue, bValue;
+  // Separar productos por tipo de coincidencia en búsqueda general
+  let providerMatches = [];
+  let otherMatches = [];
 
-    switch (sortBy) {
-      case 'created':
-        // Ordenar por fecha de creación (más recientes primero por defecto)
-        aValue = a.createdAt ? new Date(a.createdAt.seconds ? a.createdAt.seconds * 1000 : a.createdAt) : new Date(0);
-        bValue = b.createdAt ? new Date(b.createdAt.seconds ? b.createdAt.seconds * 1000 : b.createdAt) : new Date(0);
-        return bValue - aValue; // Más recientes primero independientemente del sortOrder
-      case 'name':
-        aValue = a.articulo || '';
-        bValue = b.articulo || '';
-        break;
-      case 'price':
-        aValue = a.precioCosto || 0;
-        bValue = b.precioCosto || 0;
-        break;
-      case 'stock':
-        aValue = calculateTotalStock(a);
-        bValue = calculateTotalStock(b);
-        break;
-      case 'category':
-        aValue = a.categoria || '';
-        bValue = b.categoria || '';
-        break;
-      default:
-        // Por defecto, ordenar por fecha de creación
-        aValue = a.createdAt ? new Date(a.createdAt.seconds ? a.createdAt.seconds * 1000 : a.createdAt) : new Date(0);
-        bValue = b.createdAt ? new Date(b.createdAt.seconds ? b.createdAt.seconds * 1000 : b.createdAt) : new Date(0);
-        return bValue - aValue;
-    }
+  if (searchTerm.trim()) {
+    const term = searchTerm.toLowerCase();
+    
+    // Crear un mapa de proveedores para búsqueda rápida
+    const providerMap = {};
+    providers.forEach(provider => {
+      providerMap[provider.id] = provider.proveedor?.toLowerCase() || '';
+    });
 
-    if (typeof aValue === 'string') {
-      return sortOrder === 'asc'
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue);
-    } else {
-      return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
-    }
-  });
+    filtered.forEach(product => {
+      let isProviderMatch = false;
+      let isOtherMatch = false;
+
+      // Verificar si coincide con nombre de proveedor (prioridad alta)
+      const providerName = providerMap[product.proveedorId] || '';
+      if (providerName.includes(term)) {
+        isProviderMatch = true;
+      }
+
+      // Verificar otras coincidencias
+      if (
+        product.articulo?.toLowerCase().includes(term) ||
+        product.id?.toLowerCase().includes(term) ||
+        product.tags?.some(tag => tag.toLowerCase().includes(term)) ||
+        (product.proveedorId && product.proveedorId.toString().toLowerCase().includes(term)) ||
+        (product.variantes && Array.isArray(product.variantes) && 
+         product.variantes.some(variant => variant.talle?.toLowerCase().includes(term)))
+      ) {
+        isOtherMatch = true;
+      }
+
+      // Priorizar coincidencias de proveedor
+      if (isProviderMatch) {
+        providerMatches.push(product);
+      } else if (isOtherMatch) {
+        otherMatches.push(product);
+      }
+    });
+
+    // Combinar resultados con prioridad para proveedores
+    filtered = [...providerMatches, ...otherMatches];
+  }
+
+  // Ordenar solo si no hay búsqueda por término (para mantener prioridad de proveedores)
+  if (!searchTerm.trim()) {
+    filtered.sort((a, b) => {
+      let aValue, bValue;
+
+      switch (sortBy) {
+        case 'created':
+          // Ordenar por fecha de creación (más recientes primero por defecto)
+          aValue = a.createdAt ? new Date(a.createdAt.seconds ? a.createdAt.seconds * 1000 : a.createdAt) : new Date(0);
+          bValue = b.createdAt ? new Date(b.createdAt.seconds ? b.createdAt.seconds * 1000 : b.createdAt) : new Date(0);
+          return bValue - aValue; // Más recientes primero independientemente del sortOrder
+        case 'name':
+          aValue = a.articulo || '';
+          bValue = b.articulo || '';
+          break;
+        case 'price':
+          aValue = a.precioCosto || 0;
+          bValue = b.precioCosto || 0;
+          break;
+        case 'stock':
+          aValue = calculateTotalStock(a);
+          bValue = calculateTotalStock(b);
+          break;
+        case 'category':
+          aValue = a.categoria || '';
+          bValue = b.categoria || '';
+          break;
+        default:
+          // Por defecto, ordenar por fecha de creación
+          aValue = a.createdAt ? new Date(a.createdAt.seconds ? a.createdAt.seconds * 1000 : a.createdAt) : new Date(0);
+          bValue = b.createdAt ? new Date(b.createdAt.seconds ? b.createdAt.seconds * 1000 : b.createdAt) : new Date(0);
+          return bValue - aValue;
+      }
+
+      if (typeof aValue === 'string') {
+        return sortOrder === 'asc'
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      } else {
+        return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+    });
+  }
 
   return filtered;
 };

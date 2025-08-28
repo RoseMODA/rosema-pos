@@ -36,16 +36,19 @@ const Products = () => {
   // Hook de filtros
   const {
     searchTerm,
+    sizeFilter,
     categoryFilter,
     sortBy,
     sortOrder,
     filteredProducts,
     handleSearch,
+    handleSizeFilter,
     handleCategoryChange,
     handleSortChange,
     handleOrderChange,
-    clearSearch
-  } = useProductFilters(products);
+    clearSearch,
+    clearSizeFilter
+  } = useProductFilters(products, providers);
 
   // Hook de modales
   const {
@@ -173,14 +176,17 @@ const Products = () => {
       {/* Filtros y búsqueda */}
       <ProductsFilters
         searchTerm={searchTerm}
+        sizeFilter={sizeFilter}
         categoryFilter={categoryFilter}
         sortBy={sortBy}
         sortOrder={sortOrder}
         onSearchChange={handleSearch}
+        onSizeFilterChange={handleSizeFilter}
         onCategoryChange={handleCategoryChange}
         onSortChange={handleSortChange}
         onOrderChange={handleOrderChange}
         onClearSearch={clearSearch}
+        onClearSizeFilter={clearSizeFilter}
       />
 
       {/* Lista de productos */}
