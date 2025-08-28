@@ -94,6 +94,8 @@ export const searchProducts = async (searchTerm) => {
     const partialIdMatches = [];
     const nameMatches = [];
     const tagMatches = [];
+    const providerMatches = [];
+    const sizeMatches = [];
     
     allProducts.forEach(product => {
       const productId = product.id?.toLowerCase() || '';
@@ -101,6 +103,10 @@ export const searchProducts = async (searchTerm) => {
       const productTags = Array.isArray(product.tags) 
         ? product.tags.map(tag => tag.toLowerCase()).join(' ')
         : '';
+      const providerField = product.proveedorId ? product.proveedorId.toString().toLowerCase() : '';
+      const variantSizeMatch = product.variantes && Array.isArray(product.variantes)
+        ? product.variantes.some(variant => variant.talle && variant.talle.toLowerCase().includes(term))
+        : false;
       
       // Coincidencia exacta por ID (máxima prioridad)
       if (productId === term) {
@@ -118,6 +124,14 @@ export const searchProducts = async (searchTerm) => {
       else if (productTags.includes(term)) {
         tagMatches.push(product);
       }
+      // Nuevo: Coincidencia por proveedor
+      else if (providerField.includes(term)) {
+        providerMatches.push(product);
+      }
+      // Nuevo: Coincidencia por talle en variantes
+      else if (variantSizeMatch) {
+        sizeMatches.push(product);
+      }
     });
     
     // Combinar resultados priorizando coincidencias exactas
@@ -125,7 +139,9 @@ export const searchProducts = async (searchTerm) => {
       ...exactIdMatches,
       ...partialIdMatches,
       ...nameMatches,
-      ...tagMatches
+      ...tagMatches,
+      ...providerMatches,
+      ...sizeMatches
     ];
 
     return results.slice(0, 10); // Limitar a 10 resultados
@@ -509,11 +525,41 @@ export const getProductStats = async () => {
   try {
     const products = await getAllProducts();
     
+    // Calcular costo total y ganancia esperada
+    let totalCost = 0;
+    let expectedProfit = 0;
+    
+    products.forEach(product => {
+      const stock = product.stock || 0;
+      const cost = product.precioCosto || 0;
+      
+      // Sumar costo total del inventario
+      totalCost += stock * cost;
+      
+      // Calcular ganancia esperada
+      if (product.variantes && Array.isArray(product.variantes)) {
+        // Si tiene variantes, calcular ganancia promedio por variante
+        product.variantes.forEach(variant => {
+          const variantStock = variant.stock || 0;
+          const variantSalePrice = variant.precioVenta || 0;
+          const profit = variantSalePrice - cost;
+          expectedProfit += variantStock * profit;
+        });
+      } else {
+        // Si no tiene variantes, usar precio de venta general
+        const salePrice = product.precioVenta || 0;
+        const profit = salePrice - cost;
+        expectedProfit += stock * profit;
+      }
+    });
+    
     const stats = {
       totalProducts: products.length,
       totalStock: products.reduce((sum, product) => sum + (product.stock || 0), 0),
       lowStockProducts: products.filter(product => (product.stock || 0) <= 5).length,
       outOfStockProducts: products.filter(product => (product.stock || 0) === 0).length,
+      totalCost: Math.round(totalCost),
+      expectedProfit: Math.round(expectedProfit),
       categories: {}
     };
 

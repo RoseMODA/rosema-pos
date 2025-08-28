@@ -28,7 +28,12 @@ export const filterAndSortProducts = (products, filters = {}) => {
     filtered = filtered.filter(product =>
       product.articulo?.toLowerCase().includes(term) ||
       product.id?.toLowerCase().includes(term) ||
-      product.tags?.some(tag => tag.toLowerCase().includes(term))
+      product.tags?.some(tag => tag.toLowerCase().includes(term)) ||
+      // Nuevo: Búsqueda por proveedor (proveedorId)
+      (product.proveedorId && product.proveedorId.toString().toLowerCase().includes(term)) ||
+      // Nuevo: Búsqueda por talle dentro de las variantes
+      (product.variantes && Array.isArray(product.variantes) && 
+       product.variantes.some(variant => variant.talle?.toLowerCase().includes(term)))
     );
   }
 
@@ -89,7 +94,12 @@ export const searchProducts = (products, searchTerm) => {
     product.id?.toLowerCase().includes(term) ||
     product.codigoBarras?.toLowerCase().includes(term) ||
     product.descripcion?.toLowerCase().includes(term) ||
-    product.tags?.some(tag => tag.toLowerCase().includes(term))
+    product.tags?.some(tag => tag.toLowerCase().includes(term)) ||
+    // Nuevo: Búsqueda por proveedor (proveedorId)
+    (product.proveedorId && product.proveedorId.toString().toLowerCase().includes(term)) ||
+    // Nuevo: Búsqueda por talle dentro de las variantes
+    (product.variantes && Array.isArray(product.variantes) && 
+     product.variantes.some(variant => variant.talle?.toLowerCase().includes(term)))
   );
 
   // Priorizar coincidencia exacta con código de barras

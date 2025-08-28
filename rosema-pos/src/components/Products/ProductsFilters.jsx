@@ -25,7 +25,7 @@ const ProductsFilters = ({
           value={searchTerm}
           onChange={onSearchChange}
           onClear={onClearSearch}
-          placeholder="Buscar por código, nombre o tags..."
+          placeholder="Buscar por código, nombre, tags, proveedor o talle..."
         />
 
         {/* Filtro por categoría */}
