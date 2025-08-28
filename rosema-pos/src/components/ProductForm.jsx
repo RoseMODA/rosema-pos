@@ -872,7 +872,7 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
                       <img
                         src={url}
                         alt={`Imagen ${index + 1}`}
-                        className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                        className="w-full object-contain rounded-lg border border-gray-200 max-h-64"
                       />
                       <button
                         type="button"
@@ -900,7 +900,7 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
                       <img
                         src={preview.url}
                         alt={preview.name}
-                        className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                        className="w-full object-contain rounded-lg border border-gray-200 max-h-64"
                       />
                       <button
                         type="button"

@@ -691,7 +691,7 @@ const Products = () => {
                         <img
                           src={url}
                           alt={`${viewingProduct.articulo} - Imagen ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-75 transition-opacity"
+                          className="w-full object-contain rounded-lg border border-gray-200 max-h-64"
                           onClick={() => window.open(url, '_blank')}
                         />
                         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-lg transition-all flex items-center justify-center">
