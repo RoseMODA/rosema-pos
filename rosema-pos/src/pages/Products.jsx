@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useProducts } from '../hooks/useProducts';
 import { useProviders } from '../hooks/useProviders';
 import ProductForm from '../components/ProductForm';
-import BarcodePrinter from '../components/BarcodePrinter';
+import BarcodeModal from '../components/BarcodeModal';
 
 /**
  * Página de Productos del sistema POS Rosema
@@ -784,17 +784,14 @@ const Products = () => {
         </div>
       )}
 
-      {/* Modal de imprimir código de barras - ACTUALIZADO para Xprinter */}
-      <BarcodePrinter
+      {/* Modal de imprimir código de barras */}
+      <BarcodeModal
         isOpen={showPrintModal}
         onClose={() => {
           setShowPrintModal(false);
           setProductToPrint(null);
         }}
         product={productToPrint}
-        barcodeValue={productToPrint?.id}
-        productName={productToPrint?.articulo}
-        price={productToPrint?.precioCosto}
       />
     </div>
   );
