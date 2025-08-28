@@ -25,10 +25,48 @@ export const filterAndSortProducts = (products, filters = {}, providers = []) =>
 
   // Filtrar por talle específico (filtro separado)
   if (sizeFilter.trim()) {
-    const sizeFilterTerm = sizeFilter.toLowerCase().trim();
+    const sizeFilterTerm = sizeFilter.toUpperCase().trim();
+    
+    // Mapa de equivalencias entre números y letras
+    const sizeEquivalences = {
+      "1": "S",
+      "2": "M", 
+      "3": "L",
+      "4": "XL",
+      "5": "XXL",
+      "6": "XXXL",
+      "7": "4XL",
+      "8": "5XL",
+      "9": "6XL",
+      "10": "7XL",
+      // Mapeo inverso (letras a números)
+      "S": "1",
+      "M": "2",
+      "L": "3", 
+      "XL": "4",
+      "XXL": "5",
+      "XXXL": "6",
+      "4XL": "7",
+      "5XL": "8",
+      "6XL": "9",
+      "7XL": "10"
+    };
+    
+    // Obtener equivalencias del término buscado
+    const equivalentSize = sizeEquivalences[sizeFilterTerm];
+    const sizesToMatch = [sizeFilterTerm];
+    if (equivalentSize) {
+      sizesToMatch.push(equivalentSize);
+    }
+    
     filtered = filtered.filter(product =>
       product.variantes && Array.isArray(product.variantes) && 
-      product.variantes.some(variant => variant.talle?.toLowerCase().includes(sizeFilterTerm))
+      product.variantes.some(variant => {
+        if (!variant.talle) return false;
+        const variantSize = variant.talle.toUpperCase().trim();
+        // Coincidencia exacta con cualquiera de los tamaños equivalentes
+        return sizesToMatch.includes(variantSize);
+      })
     );
   }
 
