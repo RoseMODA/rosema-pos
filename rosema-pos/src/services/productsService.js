@@ -525,56 +525,37 @@ export const getProductStats = async () => {
   try {
     const products = await getAllProducts();
     
-    console.log('🔍 DEBUG: Analizando productos para estadísticas...');
-    console.log('📊 Total productos encontrados:', products.length);
-    
-    // Mostrar estructura del primer producto para debug
-    if (products.length > 0) {
-      console.log('📄 Estructura del primer producto:', products[0]);
-    }
-    
     // Calcular costo total y ganancia esperada
     let totalCost = 0;
     let expectedProfit = 0;
     
-    products.forEach((product, index) => {
-      const stock = product.stock || 0;
+    products.forEach(product => {
+      // El costo está a nivel de producto
+      const cost = product.precioCosto || 0;
       
-      // Intentar diferentes nombres de campos para el costo
-      const cost = product.precioCosto || product.precio_costo || product.costo || product.cost || 0;
-      
-      console.log(`📦 Producto ${index + 1}: ${product.articulo || product.name}`);
-      console.log(`   Stock: ${stock}, Costo: ${cost}`);
-      
-      // Sumar costo total del inventario
-      totalCost += stock * cost;
-      
-      // Calcular ganancia esperada
+      // Calcular por variantes (donde está el stock y precio de venta)
       if (product.variantes && Array.isArray(product.variantes)) {
-        console.log(`   Tiene ${product.variantes.length} variantes`);
-        // Si tiene variantes, calcular ganancia por variante
-        product.variantes.forEach((variant, vIndex) => {
+        product.variantes.forEach(variant => {
           const variantStock = variant.stock || 0;
-          // Intentar diferentes nombres para precio de venta
-          const variantSalePrice = variant.precioVenta || variant.precio_venta || variant.precio || variant.price || 0;
+          const variantSalePrice = variant.precioVenta || 0;
+          
+          // Sumar costo total del inventario (costo * stock de cada variante)
+          totalCost += variantStock * cost;
+          
+          // Calcular ganancia esperada ((precio_venta - costo) * stock)
           const profit = variantSalePrice - cost;
           expectedProfit += variantStock * profit;
-          
-          console.log(`     Variante ${vIndex + 1}: Stock: ${variantStock}, Precio: ${variantSalePrice}, Ganancia: ${profit}`);
         });
       } else {
-        // Si no tiene variantes, usar precio de venta general
-        const salePrice = product.precioVenta || product.precio_venta || product.precio || product.price || 0;
+        // Si no tiene variantes, usar stock total del producto
+        const stock = product.stock || 0;
+        const salePrice = product.precioVenta || 0;
+        
+        totalCost += stock * cost;
         const profit = salePrice - cost;
         expectedProfit += stock * profit;
-        
-        console.log(`   Sin variantes - Precio venta: ${salePrice}, Ganancia: ${profit}`);
       }
     });
-    
-    console.log('💰 TOTALES CALCULADOS:');
-    console.log(`   Costo Total: $${totalCost}`);
-    console.log(`   Ganancia Esperada: $${expectedProfit}`);
     
     const stats = {
       totalProducts: products.length,
@@ -592,7 +573,6 @@ export const getProductStats = async () => {
       stats.categories[category] = (stats.categories[category] || 0) + 1;
     });
 
-    console.log('📈 Estadísticas finales:', stats);
     return stats;
   } catch (error) {
     console.error('Error al obtener estadísticas:', error);
