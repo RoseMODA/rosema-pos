@@ -528,16 +528,22 @@ export const getProductStats = async () => {
     // Calcular costo total y ganancia esperada
     let totalCost = 0;
     let expectedProfit = 0;
+    let totalStock = 0;
+    let lowStockProducts = 0;
+    let outOfStockProducts = 0;
     
     products.forEach(product => {
       // El costo está a nivel de producto
       const cost = product.precioCosto || 0;
+      let productStock = 0;
       
       // Calcular por variantes (donde está el stock y precio de venta)
       if (product.variantes && Array.isArray(product.variantes)) {
         product.variantes.forEach(variant => {
           const variantStock = variant.stock || 0;
           const variantSalePrice = variant.precioVenta || 0;
+
+          productStock += variantStock;
           
           // Sumar costo total del inventario (costo * stock de cada variante)
           totalCost += variantStock * cost;
@@ -555,13 +561,22 @@ export const getProductStats = async () => {
         const profit = salePrice - cost;
         expectedProfit += stock * profit;
       }
+
+      totalStock += productStock;
+
+      // Verificar stock bajo o sin stock
+      if (productStock === 0) {
+        outOfStockProducts++;
+      } else if (productStock <= 5) {
+        lowStockProducts++;
+      }
     });
     
     const stats = {
       totalProducts: products.length,
-      totalStock: products.reduce((sum, product) => sum + (product.stock || 0), 0),
-      lowStockProducts: products.filter(product => (product.stock || 0) <= 5).length,
-      outOfStockProducts: products.filter(product => (product.stock || 0) === 0).length,
+      totalStock,
+      lowStockProducts,
+      outOfStockProducts,
       totalCost: Math.round(totalCost),
       expectedProfit: Math.round(expectedProfit),
       categories: {}
