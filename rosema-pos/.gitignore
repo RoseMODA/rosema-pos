@@ -9,7 +9,7 @@ lerna-debug.log*
 
 # Dependencies
 node_modules
-
+dist
 dist-ssr
 *.local
 
@@ -38,6 +38,7 @@ firestore-debug.log
 
 # Build outputs
 build/
+dist/
 
 
 # Cache
