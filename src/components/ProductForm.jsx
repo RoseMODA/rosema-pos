@@ -673,7 +673,7 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
               <input
                 type="number"
                 value={formData.precioCosto}
-                onChange={(e) => handleInputChange('precioCosto', e.target.value)}
+                onChange={(e) => handleInputChange('precioCosto', Number(e.target.value))}
                 className={`w-full input-rosema ${errors.precioCosto ? 'border-red-500' : ''}`}
                 placeholder="0"
                 min="0"

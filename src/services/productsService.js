@@ -518,7 +518,7 @@ export const incrementVariantStock = async (productId, variantToUpdate, quantity
     throw error;
   }
 };
-
+/*
 /**
  * Obtener estadísticas de productos
  */
@@ -586,6 +586,7 @@ export const getProductStats = async () => {
       expectedProfit: Math.round(expectedProfit),
       categories: {}
     };
+    
 
     // Contar por categorías
     products.forEach(product => {
