@@ -99,6 +99,8 @@ export const calculateProductStats = (products) => {
       totalStock: 0,
       lowStockProducts: 0,
       outOfStockProducts: 0,
+      totalCost: 0,
+      expectedProfit: 0,
       categories: {}
     };
   }
@@ -108,12 +110,19 @@ export const calculateProductStats = (products) => {
     totalStock: 0,
     lowStockProducts: 0,
     outOfStockProducts: 0,
+    totalCost: 0,
+    expectedProfit: 0,
     categories: {}
   };
 
   products.forEach(product => {
     const totalStock = calculateTotalStock(product);
+    const cost = product.precioCosto || product.precio_costo || 0;
+    const avgPrice = calculateAveragePrice(product);
+    
     stats.totalStock += totalStock;
+    stats.totalCost += totalStock * cost;
+    stats.expectedProfit += totalStock * (avgPrice - cost);
 
     if (totalStock === 0) {
       stats.outOfStockProducts++;
@@ -128,6 +137,10 @@ export const calculateProductStats = (products) => {
     }
     stats.categories[category]++;
   });
+
+  // Redondear valores monetarios
+  stats.totalCost = Math.round(stats.totalCost);
+  stats.expectedProfit = Math.round(stats.expectedProfit);
 
   return stats;
 };

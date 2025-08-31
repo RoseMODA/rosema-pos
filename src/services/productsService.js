@@ -221,12 +221,18 @@ export const checkProductCodeExists = async (code, excludeId = null) => {
 };
 
 /**
+ * Verificar si existe un producto con el código especificado
+ */
+export const checkProductCodeExists = async (code, excludeId = null) => {
+  try {
+    console.log('🔍 Verificando disponibilidad del código:', code);
+    
  * Crear nuevo producto
  */
 export const createProduct = async (productData) => {
   try {
     // Verificar que el código no exista
-    const codeExists = await checkProductCodeExists(productData.id);
+    const codeExists = await checkProductCodeExists(productData.id, null);
     if (codeExists) {
       throw new Error('Ya existe un producto con este código de barras');
     }

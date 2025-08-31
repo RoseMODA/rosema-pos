@@ -9,6 +9,7 @@ import { storage } from '../services/firebase';
  */
 const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create' }) => {
   const { providers, loadProviders, addProvider } = useProviders();
+  const { validateProductCode } = useProducts();
 
   // Estados del formulario
   const [formData, setFormData] = useState({
@@ -37,6 +38,8 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreview, setImagePreview] = useState([]);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [codeValidation, setCodeValidation] = useState({ isAvailable: null, message: '' });
+  const [isCheckingCode, setIsCheckingCode] = useState(false);
 
   // Opciones predefinidas
   const categorias = ['mujer', 'hombre', 'niños-bebes', 'otros'];
@@ -134,6 +137,112 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
   };
 
   /**
+   * Generar código de barras sugerido
+   */
+  const generateSuggestedCode = async () => {
+    if (!formData.articulo || !formData.categoria) {
+      alert('Primero ingrese el nombre del artículo y seleccione la categoría');
+      return;
+    }
+
+    try {
+      const categoryPrefix = getCategoryPrefix(formData.categoria);
+      const namePrefix = getNamePrefix(formData.articulo);
+      
+      // Buscar el siguiente número disponible
+      let counter = 1;
+      let suggestedCode = '';
+      let isAvailable = false;
+
+      while (!isAvailable && counter <= 999) {
+        suggestedCode = `${categoryPrefix}-${namePrefix}${counter.toString().padStart(3, '0')}`;
+        
+        // Verificar si el código está disponible
+        const exists = await checkProductCodeExists(suggestedCode, mode === 'edit' ? product?.id : null);
+        if (!exists) {
+          isAvailable = true;
+        } else {
+          counter++;
+        }
+      }
+
+      if (isAvailable) {
+        handleInputChange('id', suggestedCode);
+        setCodeValidation({
+          isAvailable: true,
+          message: '✓ Código generado y disponible'
+        });
+      } else {
+        alert('No se pudo generar un código único. Intente con un nombre más específico.');
+      }
+    } catch (error) {
+      console.error('Error generando código:', error);
+      alert('Error al generar código sugerido');
+    }
+  };
+
+  /**
+   * Obtener prefijo de categoría
+   */
+  const getCategoryPrefix = (categoria) => {
+    const prefixes = {
+      'mujer': 'M',
+      'hombre': 'H',
+      'niños-bebes': 'N',
+      'otros': 'O'
+    };
+    return prefixes[categoria] || 'O';
+  };
+
+  /**
+   * Obtener prefijo del nombre del artículo
+   */
+  const getNamePrefix = (articulo) => {
+    // Limpiar el nombre y tomar las primeras letras significativas
+    const cleanName = articulo
+      .toLowerCase()
+      .replace(/[^a-z\s]/g, '') // Solo letras y espacios
+      .trim();
+    
+    const words = cleanName.split(/\s+/).filter(word => word.length > 2); // Solo palabras de más de 2 letras
+    
+    if (words.length === 0) {
+      return 'PROD';
+    }
+    
+    if (words.length === 1) {
+      return words[0].substring(0, 4).toUpperCase();
+    }
+    
+    // Tomar las primeras 2 letras de las primeras 2 palabras
+    return (words[0].substring(0, 2) + words[1].substring(0, 2)).toUpperCase();
+  };
+
+  /**
+   * Verificar disponibilidad del código
+   */
+  const checkCodeAvailability = async (code) => {
+    if (!code || code.length < 3) {
+      setCodeValidation({ isAvailable: null, message: '' });
+      return;
+    }
+
+    setIsCheckingCode(true);
+    try {
+      const exists = await checkProductCodeExists(code, mode === 'edit' ? product?.id : null);
+      setCodeValidation({
+        isAvailable: !exists,
+        message: exists ? '✗ Este código ya existe' : '✓ Código disponible'
+      });
+    } catch (error) {
+      console.error('Error verificando código:', error);
+      setCodeValidation({ isAvailable: null, message: 'Error al verificar código' });
+    } finally {
+      setIsCheckingCode(false);
+    }
+  };
+
+  /**
    * Manejar cambios en campos del formulario
    */
   const handleInputChange = (field, value) => {
@@ -141,6 +250,15 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
       ...prev,
       [field]: value
     }));
+
+    // Verificar disponibilidad del código cuando cambie
+    if (field === 'id') {
+      // Debounce para evitar muchas consultas
+      clearTimeout(window.codeCheckTimeout);
+      window.codeCheckTimeout = setTimeout(() => {
+        checkCodeAvailability(value);
+      }, 500);
+    }
 
     // Sincronizar precios y ganancia
     if (field === 'precioCosto' || field === 'gananciaPercent') {
@@ -168,6 +286,16 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
         ...prev,
         [field]: null
       }));
+    }
+
+    // Generar código automáticamente cuando se complete nombre y categoría
+    if ((field === 'articulo' || field === 'categoria') && 
+        formData.articulo && formData.categoria && 
+        (!formData.id || formData.id === '')) {
+      // Solo generar automáticamente si el código está vacío
+      setTimeout(() => {
+        generateSuggestedCode();
+      }, 100);
     }
   };
 
@@ -363,6 +491,18 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
   };
 
   /**
+   * Función para verificar si existe un código
+   */
+  const checkProductCodeExists = async (code, excludeId = null) => {
+    try {
+      return await validateProductCode(code, excludeId);
+    } catch (error) {
+      console.error('Error al validar código:', error);
+      return false;
+    }
+  };
+
+  /**
    * Validar formulario
    */
   const validateForm = () => {
@@ -473,21 +613,6 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Información básica */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Código de barras */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Código de Barras *
-              </label>
-              <input
-                type="text"
-                value={formData.id}
-                onChange={(e) => handleInputChange('id', e.target.value)}
-                className={`w-full input-rosema ${errors.id ? 'border-red-500' : ''}`}
-                placeholder="Ingrese código de barras"
-              />
-              {errors.id && <p className="text-red-500 text-sm mt-1">{errors.id}</p>}
-            </div>
-
             {/* Nombre del artículo */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -502,6 +627,60 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
               />
               {errors.articulo && <p className="text-red-500 text-sm mt-1">{errors.articulo}</p>}
             </div>
+
+            {/* Categoría */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Categoría *
+              </label>
+              <select
+                value={formData.categoria}
+                onChange={(e) => handleInputChange('categoria', e.target.value)}
+                className={`w-full input-rosema ${errors.categoria ? 'border-red-500' : ''}`}
+              >
+                <option value="">Seleccionar categoría</option>
+                {categorias.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+              {errors.categoria && <p className="text-red-500 text-sm mt-1">{errors.categoria}</p>}
+            </div>
+          </div>
+
+          {/* Código de barras con sugerencia automática */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Código de Barras *
+            </label>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <input
+                  type="text"
+                  value={formData.id}
+                  onChange={(e) => handleInputChange('id', e.target.value)}
+                  className={`w-full input-rosema ${errors.id ? 'border-red-500' : ''}`}
+                  placeholder="Ingrese código de barras"
+                />
+                {errors.id && <p className="text-red-500 text-sm mt-1">{errors.id}</p>}
+                {codeValidation.message && (
+                  <p className={`text-sm mt-1 ${codeValidation.isAvailable ? 'text-green-600' : 'text-red-600'}`}>
+                    {codeValidation.message}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={generateSuggestedCode}
+                disabled={!formData.articulo || !formData.categoria}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Generar código sugerido"
+              >
+                Sugerir
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              El código se genera automáticamente basado en categoría y nombre del artículo
+            </p>
           </div>
 
           {/* Descripción */}
@@ -520,24 +699,6 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
 
           {/* Categoría y Temporada */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Categoría */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Categoría *
-              </label>
-              <select
-                value={formData.categoria}
-                onChange={(e) => handleInputChange('categoria', e.target.value)}
-                className={`w-full input-rosema ${errors.categoria ? 'border-red-500' : ''}`}
-              >
-                <option value="">Seleccionar categoría</option>
-                {categorias.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-              {errors.categoria && <p className="text-red-500 text-sm mt-1">{errors.categoria}</p>}
-            </div>
-
             {/* Temporada */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -554,6 +715,9 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
                 ))}
               </select>
             </div>
+
+            {/* Campo vacío para mantener el grid */}
+            <div></div>
           </div>
 
           {/* Subcategorías */}
