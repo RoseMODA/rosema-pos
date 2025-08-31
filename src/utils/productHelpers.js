@@ -49,7 +49,11 @@ export const filterAndSortProducts = (products, filters = {}, providers = []) =>
       "4XL": "7",
       "5XL": "8",
       "6XL": "9",
-      "7XL": "10"
+      "7XL": "10",
+
+       // Aquí agregamos "Único"
+      "ÚNICO": "ÚNICO",
+      "UNICO": "ÚNICO" 
     };
     
     // Obtener equivalencias del término buscado
