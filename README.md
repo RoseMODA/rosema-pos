@@ -58,7 +58,7 @@ rosema-pos/
 ```bash
 # Clonar el repositorio
 git clone [url-del-repositorio]
-cd rosema-pos
+
 
 # Instalar dependencias
 npm install

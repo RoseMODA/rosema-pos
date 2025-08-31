@@ -125,7 +125,7 @@ const ProductDetailsModal = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-500 mb-1">Precio de Costo</label>
-            <p className="text-gray-900 text-lg font-semibold">{formatPrice(product.precioCosto || product.precio_costo || 0)}</p>
+            <p className="text-gray-900 text-lg font-semibold">{formatPrice(product.precioCosto || 0)}</p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-500 mb-1">Precio de Venta Promedio</label>
