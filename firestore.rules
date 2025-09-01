@@ -1,0 +1,10 @@
+// firestore.rules
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 👇 Esto da acceso libre (no recomendado en producción)
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
