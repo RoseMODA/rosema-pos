@@ -99,7 +99,7 @@ const Products = () => {
     try {
       const modalData = getModalData('productForm');
       let createdProduct;
-      
+
       if (modalData.mode === 'create') {
         createdProduct = await addProduct(productData);
         const shouldPrint = confirm(MESSAGES.SUCCESS.PRODUCT_CREATED + ' ¿Deseas imprimir el código de barras?');
@@ -110,7 +110,7 @@ const Products = () => {
         await updateProductData(modalData.product.id, productData);
         alert(MESSAGES.SUCCESS.PRODUCT_UPDATED);
       }
-      
+
       closeModal('productForm');
       await loadProducts();
     } catch (error) {
@@ -161,12 +161,6 @@ const Products = () => {
             <span>Agregar Producto</span>
           </button>
 
-          <button className="btn-secondary flex items-center space-x-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-            </svg>
-            <span>Imprimir Códigos</span>
-          </button>
         </div>
       </div>
 
@@ -201,7 +195,7 @@ const Products = () => {
                 onClick={handleCreateSampleData}
                 className="btn-secondary text-sm"
               >
-                Crear productos de ejemplo
+
               </button>
             )}
           </div>
@@ -210,7 +204,7 @@ const Products = () => {
         {loading ? (
           <LoadingSpinner text="Cargando productos..." />
         ) : error ? (
-          <ErrorMessage 
+          <ErrorMessage
             message={`Error al cargar productos: ${error}`}
             onRetry={loadProducts}
           />
@@ -225,9 +219,7 @@ const Products = () => {
                 <button onClick={handleCreateProduct} className="btn-rosema">
                   Agregar Primer Producto
                 </button>
-                <button onClick={handleCreateSampleData} className="btn-secondary">
-                  Crear Productos de Ejemplo
-                </button>
+
               </div>
             )}
           </div>

@@ -38,8 +38,8 @@ const Receipt = ({
    */
   const handlePrint = () => {
     window.print();
-    if (onPrint) onPrint();
   };
+
 
   if (!show || !sale) return null;
 
@@ -66,12 +66,18 @@ const Receipt = ({
             {/* Header del recibo */}
             <div className="text-center mb-6 print:mb-4">
               {/* Logo */}
-              <div className="mx-auto w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mb-3 print:w-12 print:h-12 print:mb-2">
-                <span className="text-white text-2xl font-bold print:text-xl">R</span>
+              <div className="flex justify-center mb-3 print:mb-2">
+                <img
+                  src="public/rosemalognegro.png"   // 👈 poné la ruta de tu logo aquí
+                  alt="Logo"
+                  style={{
+                    maxWidth: "150px", // controla el tamaño
+                    maxHeight: "150px",
+                    objectFit: "contain" // hace que no se corte ni deforme
+                  }}
+                />
               </div>
 
-              <h1 className="text-2xl font-bold text-gray-900 print:text-xl">ROSEMA</h1>
-              <p className="text-sm text-gray-600 print:text-xs">Moda Familiar</p>
 
               {/* Información de contacto */}
               <div className="mt-3 text-sm text-gray-600 print:text-xs print:mt-2">
@@ -134,7 +140,7 @@ const Receipt = ({
                           {item.isQuickItem && ' • ARTÍCULO RÁPIDO'}
                         </span>
                       </div>
-                      
+
                       {itemCode !== 'N/A' && (
                         <div className="text-xs text-gray-500 ml-2">
                           Código: {itemCode}
@@ -165,7 +171,7 @@ const Receipt = ({
                 {((sale.discount && sale.discount > 0) || (sale.discountValue && sale.discountValue > 0)) && (
                   <div className="flex justify-between text-green-600">
                     <span>Descuento:</span>
-                    <span>-{formatPrice(sale.discount || sale.discountValue || 0)}</span>
+                    <span>Aplicado</span>
                   </div>
                 )}
 
@@ -176,36 +182,31 @@ const Receipt = ({
               </div>
             </div>
 
-            {/* Información de pago adicional - REMOVIDO: No mostrar efectivo recibido ni vuelto en el recibo */}
+
 
             {/* Información adicional */}
-            <div className="text-center text-sm text-gray-600 print:text-xs">
-              <div className="border border-gray-300 rounded p-3 mb-3 print:p-2 print:mb-2">
-                <p className="font-medium text-gray-900 mb-1">POLÍTICA DE CAMBIOS</p>
+            <div className="text-center text-sm text-gray-800 print:text-xs">
+              <div className="border border-gray-700 rounded p-3 mb-3 print:p-2 print:mb-2">
+                <p className="font-medium text-gray-900 mb-2">POLÍTICA DE CAMBIOS</p>
                 <p>Cambios en 3 días hábiles</p>
                 <p>Presentar este recibo</p>
                 <p>Producto en perfecto estado</p>
+                <p>Con la etiqueta aun puesta en la prenda</p>
               </div>
 
-              <p className="text-xs text-gray-500 print:text-xs">
+              <p className="text-xs text-gray-900 print:text-xs">
                 ¡Gracias por su compra!
               </p>
-              <p className="text-xs text-gray-500 print:text-xs">
-                Síguenos en redes sociales
+              <p className="text-xs text-gray-900 print:text-xs">
+                Síguenos en redes sociales:
+                <br />
+                Instagram: @rosema_ropa
+                <br />
+                Facebook: @rosemaropa
               </p>
             </div>
 
-            {/* Código QR placeholder (opcional) */}
-            <div className="text-center mt-4 print:mt-3">
-              <div className="inline-block w-16 h-16 bg-gray-200 rounded print:w-12 print:h-12">
-                <div className="w-full h-full flex items-center justify-center text-xs text-gray-500">
-                  QR
-                </div>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Escanea para contactarnos
-              </p>
-            </div>
+
           </div>
 
           {/* Botones de acción */}

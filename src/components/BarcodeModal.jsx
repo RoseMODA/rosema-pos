@@ -1,278 +1,329 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import JsBarcode from "jsbarcode";
 
-/**
- * Modal mejorado para imprimir códigos de barras
- * Incluye opciones de precio y tamaño de etiqueta
- */
+// === Utilidad para formatear precio ===
+const fmtARS = (n) =>
+  (n ?? "") === "" ? "" : new Intl.NumberFormat("es-AR").format(Number(n));
+
+// === Código de barras en SVG (se dibuja al montar) ===
+const BarcodeSVG = ({ value, height = 60, width = 1.2 }) => {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (ref.current && value) {
+      JsBarcode(ref.current, String(value).toUpperCase(), {
+        format: "CODE128",
+        lineColor: "#000",
+        width,
+        height,
+        displayValue: false,
+        margin: 0,
+      });
+    }
+  }, [value, height, width]);
+
+  return (
+    <svg
+      ref={ref}
+      style={{ maxWidth: "96px", height: `${height}px`, display: "block" }}
+    />
+  );
+};
+
+// === Etiqueta 2×1 pulgadas ===
+// 100% inline styles para no depender de Tailwind en la impresión/iframe.
+const Label2x1 = ({ product, talle, price }) => {
+  const displayTalle =
+    String(talle || "").trim().toLowerCase() === "unico" ? "u" : (talle ?? "-");
+
+  return (
+    <div
+      style={{
+        width: "50.8mm",
+        height: "25.4mm",
+        boxSizing: "border-box",
+        padding: "4px",
+        fontFamily: "system-ui, Arial, sans-serif",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        alignItems: "center",
+      }}
+    >
+      {/* Talle */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: "100%",
+          fontSize: "13px",
+          lineHeight: 1,
+          gap: "4px",
+        }}
+      >
+        <span>Talle</span>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: 700,
+            width: "20px",
+            height: "20px",
+            borderRadius: "9999px",
+            border: "2px solid #000",
+            fontSize: "11px",
+            textTransform: "uppercase",
+
+          }}
+        >
+          {displayTalle}
+        </div>
+      </div>
+
+      {/* Nombre producto */}
+      <div
+        style={{
+          fontWeight: 700,
+          fontSize: "11px",
+          marginTop: "2px",
+          maxWidth: "35mm",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          textAlign: "center",
+        }}
+        title={product?.articulo || ""}
+      >
+        {String(product?.articulo || "").toUpperCase()}
+      </div>
+
+      {/* Código de barras */}
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: "100%",
+          overflow: "hidden",
+        }}
+      >
+        <BarcodeSVG value={product?.id} height={80} width={0.8} />
+      </div>
+
+      {/* ID */}
+      <div style={{ fontSize: "10px", textAlign: "center" }}>
+        {String(product?.id || "").toUpperCase()}
+      </div>
+
+      {/* Precio */}
+      {price !== "" && (
+        <div style={{ fontWeight: 800, fontSize: "16px", marginTop: "2px" }}>
+          ${fmtARS(price)}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// === Modal + impresión robusta por iframe oculto ===
 const BarcodeModal = ({ isOpen, onClose, product }) => {
   const [showPrice, setShowPrice] = useState(false);
-  const [labelSize, setLabelSize] = useState('2x1'); // 2x1 pulgadas por defecto
-  const [customPrice, setCustomPrice] = useState('');
+  const [customPrice, setCustomPrice] = useState("");
+  const [selected, setSelected] = useState({});
+  const priceToShow = customPrice || product?.precioCosto || "";
+
+  // Referencia al contenedor de impresión (pre-renderizado y oculto off-screen)
+  const printRef = useRef(null);
+
+  // Talle para previsualización
+  const previewTalle = useMemo(() => {
+    const firstSel = Object.entries(selected).find(([, v]) => v?.checked)?.[0];
+    return firstSel ?? product?.variantes?.[0]?.talle ?? "-";
+  }, [selected, product]);
+
+  // Lista de etiquetas a imprimir
+  const labels = useMemo(() => {
+    const out = [];
+    (product?.variantes || []).forEach((v) => {
+      const t = v.talle;
+      const row = selected[t];
+      if (row?.checked) {
+        const qty = Math.max(1, Number(row.qty) || 1);
+        for (let i = 0; i < qty; i++) out.push({ talle: t });
+      }
+    });
+    return out.length ? out : [{ talle: previewTalle }];
+  }, [product, selected, previewTalle]);
 
   if (!isOpen || !product) return null;
 
-  // Obtener precio promedio del producto
-  const getAveragePrice = () => {
-    if (!product.variantes || product.variantes.length === 0) {
-      return product.precioCosto || 0;
-    }
-    const total = product.variantes.reduce((sum, variante) => sum + (variante.precioVenta || 0), 0);
-    return Math.round(total / product.variantes.length);
-  };
+  const toggleTalle = (talle, checked) =>
+    setSelected((p) => ({ ...p, [talle]: { checked, qty: p[talle]?.qty || 1 } }));
 
-  const averagePrice = getAveragePrice();
-  const displayPrice = customPrice ? parseFloat(customPrice) : averagePrice;
-
-  // Generar las barras del código de barras (simulación visual)
-  const generateBarcodePattern = (code) => {
-    const patterns = [];
-    for (let i = 0; i < code.length; i++) {
-      const char = code[i];
-      // Generar patrón basado en el carácter
-      if (char.match(/[0-9]/)) {
-        patterns.push('thin', 'thick', 'thin', 'thick');
-      } else if (char.match(/[A-Z]/)) {
-        patterns.push('thick', 'thin', 'thick', 'thin');
-      } else {
-        patterns.push('thin', 'thin', 'thick', 'thick');
-      }
-    }
-    return patterns;
-  };
-
-  const barcodePattern = generateBarcodePattern(product.id);
+  const setQty = (talle, qty) =>
+    setSelected((p) => ({ ...p, [talle]: { ...(p[talle] || { checked: true }), qty } }));
 
   const handlePrint = () => {
-    // Crear una ventana de impresión con el código de barras
-    const printWindow = window.open('', '_blank');
-    const labelWidth = labelSize === '2x1' ? '2in' : labelSize === '1.5x1' ? '1.5in' : '2.5in';
-    const labelHeight = '1in';
-    
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Código de Barras - ${product.articulo}</title>
-          <style>
-            @page {
-              size: ${labelWidth} ${labelHeight};
-              margin: 0;
-            }
-            body {
-              margin: 0;
-              padding: 4px;
-              font-family: Arial, sans-serif;
-              width: ${labelWidth};
-              height: ${labelHeight};
-              display: flex;
-              flex-direction: column;
-              justify-content: center;
-              align-items: center;
-              box-sizing: border-box;
-            }
-            .product-name {
-              font-size: 8px;
-              font-weight: bold;
-              text-align: center;
-              margin-bottom: 2px;
-              line-height: 1;
-              max-height: 16px;
-              overflow: hidden;
-            }
-            .barcode-container {
-              display: flex;
-              align-items: end;
-              justify-content: center;
-              margin: 2px 0;
-            }
-            .barcode {
-              display: flex;
-              align-items: end;
-              height: 20px;
-            }
-            .bar {
-              background-color: black;
-              margin-right: 1px;
-            }
-            .bar.thin {
-              width: 1px;
-              height: 20px;
-            }
-            .bar.thick {
-              width: 2px;
-              height: 20px;
-            }
-            .code-text {
-              font-size: 6px;
-              font-weight: bold;
-              text-align: center;
-              margin-top: 1px;
-              letter-spacing: 1px;
-            }
-            .price {
-              font-size: 7px;
-              font-weight: bold;
-              text-align: center;
-              margin-top: 1px;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="product-name">${product.articulo}</div>
-          <div class="barcode-container">
-            <div class="barcode">
-              ${barcodePattern.map(pattern => `<div class="bar ${pattern}"></div>`).join('')}
-            </div>
-          </div>
-          <div class="code-text">${product.id}</div>
-          ${showPrice ? `<div class="price">$${displayPrice.toLocaleString()}</div>` : ''}
-        </body>
-      </html>
-    `);
-    
-    printWindow.document.close();
-    printWindow.focus();
-    
-    // Esperar a que se cargue y luego imprimir
+    // Pequeño delay para asegurar que los SVG de JsBarcode terminaron de dibujarse.
     setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 250);
+      const mount = printRef.current;
+      if (!mount) return;
+
+      const html = mount.innerHTML;
+
+      // Crea iframe oculto y escribe documento listo para imprimir
+      const iframe = document.createElement("iframe");
+      iframe.setAttribute("aria-hidden", "true");
+      iframe.style.position = "fixed";
+      iframe.style.right = "0";
+      iframe.style.bottom = "0";
+      iframe.style.width = "0";
+      iframe.style.height = "0";
+      iframe.style.border = "0";
+      document.body.appendChild(iframe);
+
+      const doc = iframe.contentWindow.document;
+      doc.open();
+      doc.write(`<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>print</title>
+<style>
+  /* Forzamos tamaño exacto de página y sin márgenes */
+  @page { size: 50.8mm 25.4mm; margin: 0; }
+  html, body { margin: 0; padding: 0; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* contenedor por etiqueta -> una por página */
+  .__print_item__ {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    page-break-after: always;
+    width: 50.8mm;
+    height: 25.4mm;
+  }
+</style>
+</head>
+<body>
+${html}
+<script>
+  // Imprime cuando esté listo el layout del iframe
+  window.onload = function () {
+    setTimeout(function () {
+      window.focus();
+      window.print();
+      setTimeout(function(){ window.close && window.close(); }, 250);
+    }, 50);
+  };
+<\/script>
+</body>
+</html>`);
+      doc.close();
+
+      // Limpieza del iframe luego de imprimir (fallback si no cierra)
+      const cleanup = () => {
+        try { document.body.removeChild(iframe); } catch { }
+        window.removeEventListener("focus", cleanup);
+      };
+      window.addEventListener("focus", cleanup);
+    }, 30);
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Imprimir Código de Barras
-          </h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <div className="bg-white p-8 rounded-xl shadow-lg w-[560px] max-h-[90vh] overflow-y-auto">
+        <h2 className="text-lg font-bold mb-3">Imprimir etiquetas</h2>
+
+        {/* Previsualización (mismas medidas reales) */}
+        <div className="border p-8 mb-14 bg-gray-90 flex flex-col items-center">
+          <Label2x1
+            product={product}
+            talle={previewTalle}
+            price={showPrice ? priceToShow : ""}
+          />
+          <p className="text-[11px] text-gray-500 mt-2">Previsualización tamaño real</p>
         </div>
 
-        <div className="p-6">
-          {/* Vista previa del código de barras */}
-          <div className="bg-white border-2 border-gray-300 rounded-lg p-4 mb-6 text-center">
-            <div className="text-xs font-bold mb-2 text-gray-800">
-              {product.articulo}
-            </div>
-            
-            {/* Código de barras visual */}
-            <div className="flex justify-center items-end mb-2">
-              <div className="flex items-end" style={{ height: '40px' }}>
-                {barcodePattern.map((pattern, index) => (
-                  <div
-                    key={index}
-                    className="bg-black mr-px"
-                    style={{
-                      width: pattern === 'thick' ? '3px' : '1px',
-                      height: '40px'
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-            
-            <div className="text-xs font-bold mb-1 tracking-wider">
-              {product.id}
-            </div>
-            
-            {showPrice && (
-              <div className="text-sm font-bold text-green-600">
-                ${displayPrice.toLocaleString()}
-              </div>
-            )}
-          </div>
-
-          {/* Opciones de configuración */}
-          <div className="space-y-4">
-            {/* Tamaño de etiqueta */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tamaño de Etiqueta
-              </label>
-              <select
-                value={labelSize}
-                onChange={(e) => setLabelSize(e.target.value)}
-                className="w-full input-rosema"
-              >
-                <option value="1.5x1">1.5" x 1" pulgadas</option>
-                <option value="2x1">2" x 1" pulgadas (Recomendado)</option>
-                <option value="2.5x1">2.5" x 1" pulgadas</option>
-              </select>
-            </div>
-
-            {/* Mostrar precio */}
-            <div className="flex items-center">
+        {/* Selección de talles */}
+        <h3 className="font-semibold mb-2">Talles disponibles</h3>
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          {(product?.variantes || []).map((v, i) => (
+            <div key={i} className="flex items-center gap-2">
               <input
                 type="checkbox"
-                id="showPrice"
-                checked={showPrice}
-                onChange={(e) => setShowPrice(e.target.checked)}
-                className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                checked={!!selected[v.talle]?.checked}
+                onChange={(e) => toggleTalle(v.talle, e.target.checked)}
               />
-              <label htmlFor="showPrice" className="ml-2 text-sm text-gray-700">
-                Incluir precio en la etiqueta
-              </label>
+              <span className="w-14">{v.talle}</span>
+              <input
+                type="number"
+                min="1"
+                className="border p-1 w-16"
+                value={selected[v.talle]?.qty ?? 1}
+                onChange={(e) => setQty(v.talle, e.target.value)}
+                title="Cantidad"
+              />
             </div>
-
-            {/* Precio personalizado */}
-            {showPrice && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Precio a mostrar
-                </label>
-                <input
-                  type="number"
-                  value={customPrice}
-                  onChange={(e) => setCustomPrice(e.target.value)}
-                  placeholder={`Precio promedio: $${averagePrice.toLocaleString()}`}
-                  className="w-full input-rosema"
-                  min="0"
-                  step="0.01"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Deja vacío para usar el precio promedio del producto
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Información del producto */}
-          <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-            <div className="text-sm">
-              <div className="font-medium text-gray-900">{product.articulo}</div>
-              <div className="text-gray-600">Código: {product.id}</div>
-              <div className="text-gray-600">Precio promedio: ${averagePrice.toLocaleString()}</div>
-            </div>
-          </div>
-
-          {/* Botones */}
-          <div className="flex space-x-3 mt-6">
-            <button
-              onClick={onClose}
-              className="flex-1 btn-secondary"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={handlePrint}
-              className="flex-1 btn-rosema flex items-center justify-center space-x-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-              </svg>
-              <span>Imprimir</span>
-            </button>
-          </div>
+          ))}
         </div>
+
+        {/* Precio */}
+        <label className="flex items-center gap-2 mb-2">
+          <input
+            type="checkbox"
+            checked={showPrice}
+            onChange={() => setShowPrice((s) => !s)}
+          />
+          Mostrar precio
+        </label>
+        {showPrice && (
+          <input
+            type="number"
+            placeholder="Precio personalizado"
+            value={customPrice}
+            onChange={(e) => setCustomPrice(e.target.value)}
+            className="border p-1 w-full mb-3"
+          />
+        )}
+
+        {/* Acciones */}
+        <div className="flex justify-end gap-2">
+          <button className="px-3 py-1 bg-gray-200 rounded" onClick={onClose}>
+            Cancelar
+          </button>
+          <button
+            className="px-3 py-1 bg-blue-600 text-white rounded"
+            onClick={handlePrint}
+          >
+            Imprimir
+          </button>
+        </div>
+      </div>
+
+      {/* === Área de impresión (PRE-RENDERIZADA y oculta fuera de pantalla) === */}
+      <div
+        ref={printRef}
+        style={{
+          position: "fixed",
+          left: "-10000px", // fuera de pantalla para que se renderice pero no se vea
+          top: 0,
+          zIndex: -1,
+          pointerEvents: "none",
+          opacity: 0,
+        }}
+      >
+        {labels.map((lbl, idx) => (
+          <div key={idx} className="__print_item__">
+            <Label2x1
+              product={product}
+              talle={lbl.talle}
+              price={showPrice ? priceToShow : ""}
+            />
+          </div>
+        ))}
       </div>
     </div>
   );
