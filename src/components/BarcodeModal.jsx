@@ -29,6 +29,9 @@ const BarcodeSVG = ({ value, height = 60, width = 1.2 }) => {
   );
 };
 
+
+
+
 // === Etiqueta 2×1 pulgadas ===
 // 100% inline styles para no depender de Tailwind en la impresión/iframe.
 const Label2x1 = ({ product, talle, price }) => {
@@ -85,9 +88,9 @@ const Label2x1 = ({ product, talle, price }) => {
       <div
         style={{
           fontWeight: 700,
-          fontSize: "11px",
+          fontSize: "9px",
           marginTop: "2px",
-          maxWidth: "35mm",
+          maxWidth: "30mm",
           whiteSpace: "nowrap",
           overflow: "hidden",
           textOverflow: "ellipsis",
@@ -127,6 +130,7 @@ const Label2x1 = ({ product, talle, price }) => {
   );
 };
 
+
 // === Modal + impresión robusta por iframe oculto ===
 const BarcodeModal = ({ isOpen, onClose, product }) => {
   const [showPrice, setShowPrice] = useState(false);
@@ -136,6 +140,14 @@ const BarcodeModal = ({ isOpen, onClose, product }) => {
 
   // Referencia al contenedor de impresión (pre-renderizado y oculto off-screen)
   const printRef = useRef(null);
+
+  const toggleAllTalles = (checked) => {
+    const newSelected = {};
+    (product?.variantes || []).forEach((v) => {
+      newSelected[v.talle] = { checked, qty: selected[v.talle]?.qty || 1 };
+    });
+    setSelected(newSelected);
+  };
 
   // Talle para previsualización
   const previewTalle = useMemo(() => {
@@ -249,6 +261,20 @@ ${html}
 
         {/* Selección de talles */}
         <h3 className="font-semibold mb-2">Talles disponibles</h3>
+
+        <label className="flex items-center gap-2 mb-2">
+          <input
+            type="checkbox"
+            onChange={(e) => toggleAllTalles(e.target.checked)}
+            checked={
+              (product?.variantes || []).length > 0 &&
+              (product?.variantes || []).every((v) => selected[v.talle]?.checked)
+            }
+          />
+          Seleccionar todos
+        </label>
+
+
         <div className="grid grid-cols-2 gap-2 mb-3">
           {(product?.variantes || []).map((v, i) => (
             <div key={i} className="flex items-center gap-2">
