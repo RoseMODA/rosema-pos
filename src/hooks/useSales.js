@@ -652,6 +652,20 @@ export const useSales = () => {
     updateItemQty(salesState.activeSessionId, lineId, newQuantity);
   }, [salesState.activeSessionId, updateItemQty]);
 
+  const updateCartItemPrice = (itemId, newPrice) => {
+    setSessions(prev => {
+      const updated = { ...prev };
+      const session = updated[activeSessionId];
+      session.cart = session.cart.map(item =>
+        item.id === itemId
+          ? { ...item, customPrice: newPrice }
+          : item
+      );
+      return updated;
+    });
+  };
+
+
   const removeFromCart = useCallback((lineId) => {
     if (!salesState.activeSessionId) return;
     removeItem(salesState.activeSessionId, lineId);
@@ -714,6 +728,7 @@ export const useSales = () => {
     addToCart,
     updateCartItemQuantity,
     removeFromCart,
+    updateCartItemPrice, 
     completeSale: () => salesState.activeSessionId && finalizeSession(salesState.activeSessionId),
     changeActiveClient: switchSession,
     clearCart: () => salesState.activeSessionId && clearSession(salesState.activeSessionId),

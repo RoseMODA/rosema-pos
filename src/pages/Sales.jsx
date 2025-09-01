@@ -2,6 +2,8 @@ import React from 'react';
 import { useProducts } from '../hooks/useProducts';
 
 import { useSales } from '../hooks/useSales';
+import EditPriceModal from "../components/Sales/EditPriceModal";
+
 import { useProductSearch } from '../hooks/useProductSearch';
 import { useModals } from '../hooks/useModal';
 import {
@@ -54,6 +56,7 @@ const Sales = () => {
     addToCart,
     updateCartItemQuantity,
     removeFromCart,
+    updateCartItemPrice,
     finalizeSession,
     setPaymentMethod,
     setDiscountPercent,
@@ -88,7 +91,8 @@ const Sales = () => {
     'return',
     'history',
     'print',
-    'productSelection'
+    'productSelection',
+    'editPrice'
   ]);
 
   // Convertir sesiones para UI
@@ -302,6 +306,7 @@ const Sales = () => {
           onCustomerNameChange={setCustomerName}
           onUpdateQuantity={updateCartItemQuantity}
           onRemoveItem={removeFromCart}
+          onEditPrice={(item) => openModal("editPrice", item)}
         />
       </div>
 
@@ -314,6 +319,17 @@ const Sales = () => {
           closeModal('quickItem');
         }}
       />
+      <EditPriceModal
+        isOpen={isModalOpen("editPrice")}
+        onClose={() => closeModal("editPrice")}
+        item={getModalData("editPrice")}
+        onSave={(itemId, newPrice) => {
+          updateCartItemPrice(itemId, newPrice);
+          closeModal("editPrice");
+        }}
+      />
+
+
 
       <SalesHistoryModal
         isOpen={isModalOpen('history')}

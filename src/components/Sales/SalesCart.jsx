@@ -10,7 +10,8 @@ const SalesCart = ({
   customerName,
   onCustomerNameChange,
   onUpdateQuantity,
-  onRemoveItem
+  onRemoveItem,
+  onEditPrice
 }) => {
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -44,6 +45,7 @@ const SalesCart = ({
             item={item}
             onUpdateQuantity={onUpdateQuantity}
             onRemove={onRemoveItem}
+            onEditPrice={onEditPrice}
           />
         ))}
       </div>
@@ -56,7 +58,7 @@ const SalesCart = ({
   );
 };
 
-const CartItem = ({ item, onUpdateQuantity, onRemove }) => {
+const CartItem = ({ item, onUpdateQuantity, onRemove, onEditPrice }) => {
   const itemId = item.lineId || item.id;
   const quantity = item.qty || item.quantity || 1;
   const totalPrice = item.price * quantity;
@@ -67,7 +69,7 @@ const CartItem = ({ item, onUpdateQuantity, onRemove }) => {
         <h4 className="font-medium text-gray-900">
           {item.nombre || item.name}
         </h4>
-        
+
         <div className="text-sm text-gray-600 space-y-1">
           <p>Código: {item.productId}</p>
           <p>
@@ -79,11 +81,17 @@ const CartItem = ({ item, onUpdateQuantity, onRemove }) => {
             )}
           </p>
         </div>
-        
+
         <div className="flex items-center justify-between mt-2">
           <p className="text-lg font-semibold text-green-600">
-            {formatPrice(item.price)} x {quantity}
+            {formatPrice(item.customPrice ?? item.price)} x {quantity}
           </p>
+          <button
+            onClick={() => onEditPrice?.(item)}
+            className="text-xs text-blue-600 underline hover:text-blue-800 mt-1"
+          >
+            ✏️ Editar Precio
+          </button>
           <p className="text-lg font-bold text-gray-900">
             = {formatPrice(totalPrice)}
           </p>
