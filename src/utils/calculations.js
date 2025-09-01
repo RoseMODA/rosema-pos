@@ -99,7 +99,10 @@ export const calculateProductStats = (products) => {
       totalStock: 0,
       lowStockProducts: 0,
       outOfStockProducts: 0,
-      categories: {}
+      categories: {},
+      totalCost: 0,
+      totalValue: 0,
+      expectedProfit: 0
     };
   }
 
@@ -108,20 +111,32 @@ export const calculateProductStats = (products) => {
     totalStock: 0,
     lowStockProducts: 0,
     outOfStockProducts: 0,
-    categories: {}
+    categories: {},
+    totalCost: 0,
+    totalValue: 0,
+    expectedProfit: 0
   };
 
   products.forEach(product => {
-    const totalStock = calculateTotalStock(product);
-    stats.totalStock += totalStock;
+    const stock = calculateTotalStock(product);
+    const cost = product.precioCosto || 0;
+    const avgSalePrice = calculateAveragePrice(product);
 
-    if (totalStock === 0) {
+    // acumular stock
+    stats.totalStock += stock;
+
+    // acumular costos y valores
+    stats.totalCost += stock * cost;
+    stats.totalValue += stock * avgSalePrice;
+
+    // stock bajo o agotado
+    if (stock === 0) {
       stats.outOfStockProducts++;
-    } else if (totalStock <= 5) {
+    } else if (stock <= 5) {
       stats.lowStockProducts++;
     }
 
-    // Contar por categorías
+    // categorías
     const category = product.categoria || 'Sin categoría';
     if (!stats.categories[category]) {
       stats.categories[category] = 0;
@@ -129,8 +144,12 @@ export const calculateProductStats = (products) => {
     stats.categories[category]++;
   });
 
+  // calcular ganancia esperada
+  stats.expectedProfit = stats.totalValue - stats.totalCost;
+
   return stats;
 };
+
 
 /**
  * Calcular valor total del inventario

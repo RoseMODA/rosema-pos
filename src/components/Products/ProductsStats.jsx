@@ -38,6 +38,12 @@ const ProductsStats = ({ stats }) => {
       format: 'price'
     },
     {
+      title: 'Valor de Venta',
+      value: stats.totalValue || 0,
+      color: 'indigo',
+      format: 'price'
+    },
+    {
       title: 'Ganancia Esperada',
       value: stats.expectedProfit || 0,
       color: 'green',
@@ -46,7 +52,7 @@ const ProductsStats = ({ stats }) => {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-6 mb-6">
       {statsData.map((stat, index) => (
         <StatsCard
           key={index}
