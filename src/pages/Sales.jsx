@@ -1,13 +1,14 @@
 import React from 'react';
 import { useProducts } from '../hooks/useProducts';
+
 import { useSales } from '../hooks/useSales';
 import { useProductSearch } from '../hooks/useProductSearch';
 import { useModals } from '../hooks/useModal';
-import { 
-  formatSessionsForUI, 
-  validateSaleBeforeProcessing, 
+import {
+  formatSessionsForUI,
+  validateSaleBeforeProcessing,
   generateSaleConfirmationMessage,
-  prepareReceiptData 
+  prepareReceiptData
 } from '../utils/salesHelpers';
 import { MESSAGES } from '../utils/constants';
 import QuickItemModal from '../components/QuickItemModal';
@@ -62,7 +63,8 @@ const Sales = () => {
     setInstallments,
     setCommission,
     addQuickItem,
-    addReturnItem
+    addReturnItem,
+    resetAllSessions,
   } = useSales();
 
   // Hook de búsqueda de productos
@@ -120,6 +122,19 @@ const Sales = () => {
       alert(`Error al crear nueva venta: ${error.message}`);
     }
   };
+
+  const Sales = () => {
+    const { resetAllSessions } = useSales();
+
+    return (
+      <div className="flex justify-end mb-4">
+        <Button variant="destructive" onClick={resetAllSessions}>
+          Limpiar Todo
+        </Button>
+      </div>
+    );
+  };
+
 
   const handleProcessSale = async () => {
     try {
@@ -189,8 +204,18 @@ const Sales = () => {
             <span>🕒</span>
             <span>Historial de Ventas</span>
           </button>
+
+          <button
+            onClick={resetAllSessions}
+            className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+            🗑️ Limpiar Todo
+          </button>
         </div>
+
+
       </div>
+
+
 
       {/* Tabs de sesiones */}
       <SessionTabs

@@ -169,7 +169,9 @@ export const useSales = () => {
       throw new Error(`Máximo ${MAX_SESSIONS} ventas abiertas permitidas`);
     }
 
-    const newSession = createEmptySession(label || `Cliente ${sessionCount + 1}`);
+    // Si no hay label explícito, generar uno incremental
+    const defaultLabel = label || `Cliente ${sessionCount + 1}`;
+    const newSession = createEmptySession(defaultLabel);
     
     updateSalesState(prevState => ({
       sessions: {
@@ -181,6 +183,7 @@ export const useSales = () => {
 
     return newSession.id;
   }, [salesState.sessions, updateSalesState]);
+
 
   /**
    * Cambiar sesión activa
@@ -235,6 +238,21 @@ export const useSales = () => {
       };
     });
   }, [salesState.sessions, updateSalesState]);
+
+    /**
+   * Resetear todas las sesiones y volver a Cliente 1
+   */
+  const resetAllSessions = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEY);
+
+    const newSession = createEmptySession('Cliente 1');
+
+    updateSalesState({
+      sessions: { [newSession.id]: newSession },
+      activeSessionId: newSession.id
+    });
+  }, [updateSalesState]);
+
 
   /**
    * Finalizar sesión (procesar venta)
@@ -690,6 +708,7 @@ export const useSales = () => {
     attachCustomer: (name) => salesState.activeSessionId && attachCustomer(salesState.activeSessionId, name),
     setCreditCardData: (cardName, installments, commission) => salesState.activeSessionId && setCreditCardData(salesState.activeSessionId, cardName, installments, commission),
     clearSession: () => salesState.activeSessionId && clearSession(salesState.activeSessionId),
+    resetAllSessions,
     
     // Funciones de compatibilidad
     addToCart,
