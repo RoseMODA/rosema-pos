@@ -11,10 +11,11 @@ const BarcodeSVG = ({ value, height = 60, width = 1.2 }) => {
   useEffect(() => {
     if (ref.current && value) {
       JsBarcode(ref.current, String(value).toUpperCase(), {
-        format: "CODE128",
-        lineColor: "#000",
-        width,
-        height,
+        format: "CODE39",
+        lineColor: "#000000",
+        width: 1.5,   // barras seguras
+        height: 60,
+        margin: 8,
         displayValue: false,
         margin: 0,
       });
@@ -24,7 +25,8 @@ const BarcodeSVG = ({ value, height = 60, width = 1.2 }) => {
   return (
     <svg
       ref={ref}
-      style={{ maxWidth: "96px", height: `${height}px`, display: "block" }}
+      style={{ maxWidth: "35mm", height: `15mm`, display: "block" }}
+      preserveAspectRatio="xMidYMid meet"
     />
   );
 };
@@ -41,7 +43,7 @@ const Label2x1 = ({ product, talle, price }) => {
   return (
     <div
       style={{
-        width: "50.8mm",
+        width: "35.8mm",
         height: "25.4mm",
         boxSizing: "border-box",
         padding: "4px",
@@ -112,7 +114,7 @@ const Label2x1 = ({ product, talle, price }) => {
           overflow: "hidden",
         }}
       >
-        <BarcodeSVG value={product?.id} height={80} width={0.8} />
+        <BarcodeSVG value={product?.id} height={60} width={1.5} />
       </div>
 
       {/* ID */}

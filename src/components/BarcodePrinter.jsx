@@ -6,14 +6,14 @@ import JsBarcode from 'jsbarcode';
  * Optimizado para impresoras térmicas Xprinter en formato 2x1 pulgadas
  * Genera códigos de barras en SVG y PNG listos para imprimir
  */
-const BarcodePrinter = ({ 
-  isOpen, 
-  onClose, 
+const BarcodePrinter = ({
+  isOpen,
+  onClose,
   product,
   barcodeValue,
   productName,
   price,
-  showPreview = true 
+  showPreview = true
 }) => {
   const canvasRef = useRef(null);
   const svgRef = useRef(null);
@@ -22,7 +22,7 @@ const BarcodePrinter = ({
 
   // Configuración optimizada para impresoras térmicas Xprinter
   const barcodeConfig = {
-    format: "CODE128", // Formato más compatible con impresoras térmicas
+    format: "CODE39", // Formato más compatible con impresoras térmicas
     width: 2, // Ancho de las barras
     height: 60, // Altura del código de barras
     displayValue: true, // Mostrar el valor debajo del código
@@ -76,10 +76,10 @@ const BarcodePrinter = ({
         const dpi = 203; // DPI de impresoras térmicas Xprinter
         const widthInches = 2;
         const heightInches = 1;
-        
+
         canvas.width = widthInches * dpi; // 406 pixels
         canvas.height = heightInches * dpi; // 203 pixels
-        
+
         // Limpiar canvas
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = '#ffffff';
@@ -88,7 +88,7 @@ const BarcodePrinter = ({
         // Generar código de barras en canvas
         JsBarcode(canvas, code, {
           ...barcodeConfig,
-          width: 3, // Ancho optimizado para 2 pulgadas
+          width: 2, // Ancho optimizado para 2 pulgadas
           height: 80, // Altura optimizada
           fontSize: 14,
           margin: 15
@@ -98,13 +98,13 @@ const BarcodePrinter = ({
         ctx.fillStyle = '#000000';
         ctx.font = 'bold 12px Arial';
         ctx.textAlign = 'center';
-        
+
         // Nombre del producto (truncado si es muy largo)
         if (name) {
           const truncatedName = name.length > 25 ? name.substring(0, 25) + '...' : name;
           ctx.fillText(truncatedName, canvas.width / 2, canvas.height - 40);
         }
-        
+
         // Precio
         if (productPrice > 0) {
           ctx.font = 'bold 14px Arial';
@@ -250,7 +250,7 @@ const BarcodePrinter = ({
         </body>
       </html>
     `);
-    
+
     printWindow.document.close();
   };
 
@@ -332,7 +332,7 @@ const BarcodePrinter = ({
           {showPreview && (
             <div className="mb-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Vista Previa</h3>
-              
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Vista previa SVG */}
                 <div className="border-2 border-dashed border-gray-300 p-4 rounded-lg bg-white">
@@ -346,10 +346,10 @@ const BarcodePrinter = ({
                 <div className="border-2 border-dashed border-gray-300 p-4 rounded-lg bg-white">
                   <h4 className="text-md font-medium text-gray-700 mb-2">Formato PNG (2x1 pulgadas)</h4>
                   <div className="flex justify-center items-center min-h-[120px] bg-gray-50 rounded">
-                    <canvas 
+                    <canvas
                       ref={canvasRef}
-                      style={{ 
-                        maxWidth: '100%', 
+                      style={{
+                        maxWidth: '100%',
                         height: 'auto',
                         border: '1px solid #ddd'
                       }}
@@ -367,7 +367,7 @@ const BarcodePrinter = ({
               <div>
                 <p><strong>Tamaño:</strong> 2x1 pulgadas (50.8x25.4 mm)</p>
                 <p><strong>Resolución:</strong> 203 DPI</p>
-                <p><strong>Formato:</strong> CODE128</p>
+                <p><strong>Formato:</strong> CODE39</p>
               </div>
               <div>
                 <p><strong>Compatible con:</strong> Impresoras térmicas Xprinter</p>
