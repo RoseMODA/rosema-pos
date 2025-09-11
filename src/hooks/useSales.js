@@ -652,18 +652,33 @@ export const useSales = () => {
     updateItemQty(salesState.activeSessionId, lineId, newQuantity);
   }, [salesState.activeSessionId, updateItemQty]);
 
-  const updateCartItemPrice = (itemId, newPrice) => {
-    setSessions(prev => {
-      const updated = { ...prev };
-      const session = updated[activeSessionId];
-      session.cart = session.cart.map(item =>
-        item.id === itemId
+  const updateCartItemPrice = useCallback((lineId, newPrice) => {
+    if (!salesState.activeSessionId) return;
+
+    updateSalesState(prevState => {
+      const session = prevState.sessions[prevState.activeSessionId];
+      if (!session) return prevState;
+
+      const updatedItems = session.items.map(item =>
+        (item.lineId === lineId || item.id === lineId)
           ? { ...item, customPrice: newPrice }
           : item
       );
-      return updated;
+
+      return {
+        ...prevState,
+        sessions: {
+          ...prevState.sessions,
+          [prevState.activeSessionId]: {
+            ...session,
+            items: updatedItems,
+            updatedAt: new Date().toISOString()
+          }
+        }
+      };
     });
-  };
+  }, [salesState.activeSessionId, updateSalesState]);
+
 
 
   const removeFromCart = useCallback((lineId) => {

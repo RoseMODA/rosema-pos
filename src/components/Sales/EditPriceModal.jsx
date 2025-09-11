@@ -18,7 +18,8 @@ const EditPriceModal = ({ isOpen, onClose, item, onSave }) => {
         costo > 0 ? (((parseFloat(newPrice) - costo) / costo) * 100).toFixed(1) : 0;
 
     const handleSave = () => {
-        onSave(item.id, parseFloat(newPrice) || 0); // convierte aquí
+        const id = item.lineId || item.id; // 👈 asegura que funcione en ambos casos
+        onSave(id, parseFloat(newPrice) || 0);
     };
 
     return (

@@ -204,10 +204,18 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
     setFormData(prev => ({
       ...prev,
       variantes: prev.variantes.map((variante, i) =>
-        i === index ? { ...variante, [field]: value } : variante
+        i === index
+          ? {
+            ...variante,
+            [field]: field === 'precioVenta' || field === 'stock'
+              ? Number(value) || 0
+              : value
+          }
+          : variante
       )
     }));
   };
+
 
   /**
    * Aplicar precio sugerido a todas las variantes
@@ -408,8 +416,14 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
       // Preparar datos finales
       const finalData = {
         ...formData,
+        variantes: formData.variantes.map(v => ({
+          ...v,
+          stock: Number(v.stock) || 0,
+          precioVenta: Number(v.precioVenta) || 0
+        })),
         imagenes: imageUrls
       };
+
 
       await onSubmit(finalData);
       onClose();
