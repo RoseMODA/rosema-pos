@@ -199,6 +199,11 @@ const Suppliers = () => {
   const handleSaveProvider = async (providerData) => {
     try {
       if (editingProvider) {
+        console.log('🔍 DEBUG: Editando proveedor:', editingProvider);
+        console.log('🔍 DEBUG: ID del proveedor:', editingProvider.id);
+        console.log('🔍 DEBUG: Tipo de ID:', typeof editingProvider.id);
+        console.log('🔍 DEBUG: Datos a guardar:', providerData);
+        
         await updateProviderData(editingProvider.id, providerData);
       } else {
         await addProvider(providerData);

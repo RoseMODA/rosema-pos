@@ -154,43 +154,109 @@ export const createProvider = async (providerData) => {
  */
 export const updateProvider = async (providerId, updates) => {
   try {
-    const docRef = doc(db, COLLECTION_NAME, providerId);
+    console.log('🔄 Iniciando actualización de proveedor...');
+    console.log('📝 Provider ID recibido:', providerId);
+    console.log('📝 Tipo de Provider ID:', typeof providerId);
+    console.log('📝 Provider ID como string:', String(providerId));
+    console.log('📝 Datos recibidos:', updates);
+
+    // Validar y limpiar providerId
+    let cleanProviderId;
+    if (providerId === null || providerId === undefined) {
+      throw new Error('ID de proveedor es null o undefined');
+    }
     
+    // Convertir a string y limpiar
+    cleanProviderId = String(providerId).trim();
+    
+    if (!cleanProviderId) {
+      throw new Error('ID de proveedor está vacío después de limpiar');
+    }
+    
+    // Validar que no contenga caracteres problemáticos para Firebase
+    if (cleanProviderId.includes('/') || cleanProviderId.includes('\\') || cleanProviderId.includes('.')) {
+      console.warn('⚠️ ID contiene caracteres problemáticos, limpiando...');
+      cleanProviderId = cleanProviderId.replace(/[\/\\.]/g, '_');
+    }
+
+    console.log('✅ Provider ID limpio:', cleanProviderId);
+
     // Validar datos requeridos
     if (updates.proveedor !== undefined && (!updates.proveedor || !updates.proveedor.trim())) {
       throw new Error('El nombre del proveedor es requerido');
     }
 
+    // Preparar datos de actualización
     const updateData = {
-      ...updates,
       updatedAt: new Date()
     };
 
-    // Limpiar y validar arrays para evitar errores
-    if (updateData.tags && !Array.isArray(updateData.tags)) {
-      updateData.tags = [];
-    }
-    if (updateData.talles && !Array.isArray(updateData.talles)) {
-      updateData.talles = [];
-    }
-    if (updateData.locales && !Array.isArray(updateData.locales)) {
-      updateData.locales = [{ direccion: '', area: '', galeria: '', pasillo: '', local: '' }];
-    }
-
-    // Remover campos undefined y null
-    Object.keys(updateData).forEach(key => {
-      if (updateData[key] === undefined || updateData[key] === null) {
-        delete updateData[key];
+    // Procesar cada campo individualmente para evitar problemas
+    Object.keys(updates).forEach(key => {
+      const value = updates[key];
+      
+      if (value === undefined || value === null) {
+        // No incluir campos undefined o null
+        return;
+      }
+      
+      if (typeof value === 'string' && value.trim() === '') {
+        // No incluir strings vacíos
+        return;
+      }
+      
+      // Validar arrays específicos
+      if (key === 'tags' || key === 'talles') {
+        if (Array.isArray(value)) {
+          updateData[key] = value;
+        } else {
+          console.warn(`⚠️ Campo ${key} no es un array, omitiendo:`, value);
+        }
+      }
+      // Validar locales
+      else if (key === 'locales') {
+        if (Array.isArray(value)) {
+          updateData[key] = value;
+        } else {
+          console.warn(`⚠️ Campo locales no es un array, usando valor por defecto:`, value);
+          updateData[key] = [{ direccion: '', area: '', galeria: '', pasillo: '', local: '' }];
+        }
+      }
+      // Otros campos
+      else {
+        updateData[key] = value;
       }
     });
 
-    console.log('🔄 Actualizando proveedor:', providerId, 'con datos:', updateData);
+    console.log('📤 Datos finales a actualizar:', updateData);
 
+    // Crear referencia del documento con ID limpio
+    console.log('🔗 Creando referencia del documento...');
+    const docRef = doc(db, COLLECTION_NAME, cleanProviderId);
+    console.log('✅ Referencia creada exitosamente');
+    
+    // Actualizar documento
+    console.log('💾 Actualizando documento en Firestore...');
     await updateDoc(docRef, updateData);
-    return { id: providerId, ...updateData };
+    
+    console.log('✅ Proveedor actualizado exitosamente');
+    return { id: cleanProviderId, ...updateData };
   } catch (error) {
-    console.error('Error al actualizar proveedor:', error);
-    throw new Error('No se pudo actualizar el proveedor: ' + error.message);
+    console.error('❌ Error al actualizar proveedor:', error);
+    console.error('❌ Provider ID original:', providerId);
+    console.error('❌ Updates:', updates);
+    console.error('❌ Error name:', error.name);
+    console.error('❌ Error message:', error.message);
+    console.error('❌ Stack trace:', error.stack);
+    
+    // Proporcionar mensaje de error más específico
+    if (error.message.includes('indexOf')) {
+      throw new Error('Error en el ID del proveedor. El ID contiene caracteres no válidos para Firebase.');
+    } else if (error.message.includes('Invalid document reference')) {
+      throw new Error('El ID del proveedor no es válido para Firebase. Contacte al administrador.');
+    } else {
+      throw new Error('No se pudo actualizar el proveedor: ' + error.message);
+    }
   }
 };
 

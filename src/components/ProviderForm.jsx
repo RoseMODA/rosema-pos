@@ -60,15 +60,35 @@ const ProviderForm = ({
         locales: provider.locales && provider.locales.length > 0 
           ? provider.locales 
           : [{ direccion: '', area: '', galeria: '', pasillo: '', local: '' }],
-        tags: provider.tags || [],
+        tags: Array.isArray(provider.tags) ? provider.tags : [],
         instagram: provider.instagram || '',
         tiktok: provider.tiktok || '',
         calidad: provider.calidad || '',
         precios: provider.precios || '',
         notas: provider.notas || '',
-        talles: provider.talles || []
+        talles: Array.isArray(provider.talles) ? provider.talles : []
       });
-      setTallesInput(provider.talles ? provider.talles.join(', ') : '');
+      setTallesInput(Array.isArray(provider.talles) ? provider.talles.join(', ') : '');
+    } else {
+      // Reset form when no provider (adding new)
+      setFormData({
+        proveedor: '',
+        cuit: '',
+        whattsapp: '',
+        whattsapp2: '',
+        catalogo: '',
+        web: '',
+        categoria: '',
+        locales: [{ direccion: '', area: '', galeria: '', pasillo: '', local: '' }],
+        tags: [],
+        instagram: '',
+        tiktok: '',
+        calidad: '',
+        precios: '',
+        notas: '',
+        talles: []
+      });
+      setTallesInput('');
     }
   }, [provider]);
 
@@ -159,11 +179,26 @@ const ProviderForm = ({
       local.direccion || local.area || local.galeria || local.pasillo || local.local
     );
 
+    // Preparar datos para guardar, asegurando que no haya valores null
     const dataToSave = {
-      ...formData,
-      locales: localesLimpios.length > 0 ? localesLimpios : [{ direccion: '', area: '', galeria: '', pasillo: '', local: '' }]
+      proveedor: formData.proveedor.trim(),
+      cuit: formData.cuit.trim() || null,
+      whattsapp: formData.whattsapp.trim() || null,
+      whattsapp2: formData.whattsapp2.trim() || null,
+      catalogo: formData.catalogo.trim() || null,
+      web: formData.web.trim() || null,
+      categoria: formData.categoria.trim() || null,
+      locales: localesLimpios.length > 0 ? localesLimpios : [{ direccion: '', area: '', galeria: '', pasillo: '', local: '' }],
+      tags: Array.isArray(formData.tags) ? formData.tags : [],
+      instagram: formData.instagram.trim() || null,
+      tiktok: formData.tiktok.trim() || null,
+      calidad: formData.calidad.trim() || null,
+      precios: formData.precios.trim() || null,
+      notas: formData.notas.trim() || null,
+      talles: Array.isArray(formData.talles) ? formData.talles : []
     };
 
+    console.log('🔍 DEBUG: Datos a enviar:', dataToSave);
     onSave(dataToSave);
   };
 
