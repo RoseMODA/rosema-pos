@@ -290,7 +290,7 @@ export const useSales = () => {
 
           return {
           productId: item.productId,          // viene de "id"
-          name: item.nombre,                 // viene de "articulo"                      
+          name: item.name,                   // CORREGIDO: usar item.name en lugar de item.nombre                      
           price: item.price,                  // viene de "precioVenta"
           quantity: item.qty,
           size: item.variant?.talle,
