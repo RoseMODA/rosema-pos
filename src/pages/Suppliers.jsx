@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useProviders } from '../hooks/useProviders';
 import ProviderForm from '../components/ProviderForm';
 import ProviderDetails from '../components/ProviderDetails';
@@ -17,6 +17,7 @@ const Suppliers = () => {
     galleries,
     loadProviders,
     searchProvidersByTerm,
+    applyFilters,
     filterByCategory,
     filterByArea,
     filterByGallery,
@@ -28,7 +29,7 @@ const Suppliers = () => {
     clearSearch
   } = useProviders();
 
-  // Estados locales
+  // Estados locales para filtros combinados
   const [searchTerm, setSearchTerm] = useState('');
   const [showResults, setShowResults] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -51,88 +52,110 @@ const Suppliers = () => {
   const stats = getProviderStatsLocal();
 
   /**
-   * Manejar búsqueda
+   * Aplicar todos los filtros combinados
    */
-  const handleSearch = async (term) => {
-    setSearchTerm(term);
-    if (term.trim()) {
-      await searchProvidersByTerm(term);
-      setShowResults(true);
-      // Limpiar filtros
-      setSelectedCategory('');
-      setSelectedArea('');
-      setSelectedGallery('');
-    } else {
+  const applyAllFilters = useCallback(async () => {
+    const filters = {};
+    
+    if (searchTerm.trim()) filters.searchTerm = searchTerm;
+    if (selectedCategory) filters.categoria = selectedCategory;
+    if (selectedArea) filters.area = selectedArea;
+    if (selectedGallery) filters.galeria = selectedGallery;
+    
+    // Si no hay filtros, cargar todos los proveedores
+    if (Object.keys(filters).length === 0) {
       await loadProviders();
       setShowResults(false);
+    } else {
+      await applyFilters(filters);
+      setShowResults(true);
     }
+  }, [searchTerm, selectedCategory, selectedArea, selectedGallery, applyFilters, loadProviders]);
+
+  /**
+   * Manejar búsqueda (sin limpiar otros filtros)
+   */
+  const handleSearch = async (term) => {
+    console.log('🔍 Cambiando búsqueda a:', term);
+    setSearchTerm(term);
+    
+    // Aplicar filtros inmediatamente con el nuevo valor
+    const filters = {};
+    if (term && term.trim()) filters.searchTerm = term;
+    if (selectedCategory && selectedCategory.trim()) filters.categoria = selectedCategory;
+    if (selectedArea && selectedArea.trim()) filters.area = selectedArea;
+    if (selectedGallery && selectedGallery.trim()) filters.galeria = selectedGallery;
+    
+    await applyFilters(filters);
+    setShowResults(Object.keys(filters).length > 0);
   };
 
   /**
    * Limpiar búsqueda y filtros
    */
-  const handleClearSearch = () => {
+  const handleClearSearch = async () => {
+    console.log('🧹 Limpiando todos los filtros...');
     setSearchTerm('');
     setShowResults(false);
     setSelectedCategory('');
     setSelectedArea('');
     setSelectedGallery('');
     clearSearch();
-    loadProviders();
+    await loadProviders();
   };
 
   /**
-   * Manejar filtro por categoría
+   * Manejar filtro por categoría (sin limpiar otros filtros)
    */
   const handleCategoryFilter = async (categoria) => {
+    console.log('🏷️ Cambiando categoría a:', categoria);
     setSelectedCategory(categoria);
-    setSelectedArea('');
-    setSelectedGallery('');
-    setSearchTerm('');
-    setShowResults(true);
     
-    if (categoria) {
-      await filterByCategory(categoria);
-    } else {
-      await loadProviders();
-      setShowResults(false);
-    }
+    // Aplicar filtros inmediatamente con el nuevo valor
+    const filters = {};
+    if (searchTerm.trim()) filters.searchTerm = searchTerm;
+    if (categoria && categoria.trim()) filters.categoria = categoria;
+    if (selectedArea && selectedArea.trim()) filters.area = selectedArea;
+    if (selectedGallery && selectedGallery.trim()) filters.galeria = selectedGallery;
+    
+    await applyFilters(filters);
+    setShowResults(Object.keys(filters).length > 0);
   };
 
   /**
-   * Manejar filtro por área
+   * Manejar filtro por área (sin limpiar otros filtros)
    */
   const handleAreaFilter = async (area) => {
+    console.log('📍 Cambiando área a:', area);
     setSelectedArea(area);
-    setSelectedCategory('');
-    setSelectedGallery('');
-    setSearchTerm('');
-    setShowResults(true);
     
-    if (area) {
-      await filterByArea(area);
-    } else {
-      await loadProviders();
-      setShowResults(false);
-    }
+    // Aplicar filtros inmediatamente con el nuevo valor
+    const filters = {};
+    if (searchTerm.trim()) filters.searchTerm = searchTerm;
+    if (selectedCategory && selectedCategory.trim()) filters.categoria = selectedCategory;
+    if (area && area.trim()) filters.area = area;
+    if (selectedGallery && selectedGallery.trim()) filters.galeria = selectedGallery;
+    
+    await applyFilters(filters);
+    setShowResults(Object.keys(filters).length > 0);
   };
 
   /**
-   * Manejar filtro por galería
+   * Manejar filtro por galería (sin limpiar otros filtros)
    */
   const handleGalleryFilter = async (galeria) => {
+    console.log('🏢 Cambiando galería a:', galeria);
     setSelectedGallery(galeria);
-    setSelectedCategory('');
-    setSelectedArea('');
-    setSearchTerm('');
-    setShowResults(true);
     
-    if (galeria) {
-      await filterByGallery(galeria);
-    } else {
-      await loadProviders();
-      setShowResults(false);
-    }
+    // Aplicar filtros inmediatamente con el nuevo valor
+    const filters = {};
+    if (searchTerm.trim()) filters.searchTerm = searchTerm;
+    if (selectedCategory && selectedCategory.trim()) filters.categoria = selectedCategory;
+    if (selectedArea && selectedArea.trim()) filters.area = selectedArea;
+    if (galeria && galeria.trim()) filters.galeria = galeria;
+    
+    await applyFilters(filters);
+    setShowResults(Object.keys(filters).length > 0);
   };
 
   /**
@@ -205,14 +228,15 @@ const Suppliers = () => {
   };
 
   /**
-   * Obtener texto del filtro activo
+   * Obtener texto de los filtros activos
    */
   const getActiveFilterText = () => {
-    if (searchTerm) return `Búsqueda: "${searchTerm}"`;
-    if (selectedCategory) return `Categoría: ${selectedCategory}`;
-    if (selectedArea) return `Área: ${selectedArea}`;
-    if (selectedGallery) return `Galería: ${selectedGallery}`;
-    return '';
+    const activeFilters = [];
+    if (searchTerm) activeFilters.push(`Búsqueda: "${searchTerm}"`);
+    if (selectedCategory) activeFilters.push(`Categoría: ${selectedCategory}`);
+    if (selectedArea) activeFilters.push(`Área: ${selectedArea}`);
+    if (selectedGallery) activeFilters.push(`Galería: ${selectedGallery}`);
+    return activeFilters.join(' | ');
   };
 
   return (

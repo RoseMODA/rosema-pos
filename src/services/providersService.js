@@ -45,8 +45,37 @@ export const getAllProviders = async () => {
       };
     });
     
-    console.log('✅ Proveedores procesados:', providers.length);
-    return providers;
+    // Separar proveedores con y sin fecha de creación
+    const providersWithDate = [];
+    const providersWithoutDate = [];
+    
+    providers.forEach(provider => {
+      if (provider.createdAt) {
+        providersWithDate.push(provider);
+      } else {
+        providersWithoutDate.push(provider);
+      }
+    });
+    
+    // Ordenar proveedores con fecha (más recientes primero)
+    providersWithDate.sort((a, b) => {
+      const dateA = a.createdAt.seconds ? new Date(a.createdAt.seconds * 1000) : new Date(a.createdAt);
+      const dateB = b.createdAt.seconds ? new Date(b.createdAt.seconds * 1000) : new Date(b.createdAt);
+      return dateB - dateA; // Descendente
+    });
+    
+    // Ordenar proveedores sin fecha alfabéticamente
+    providersWithoutDate.sort((a, b) => {
+      const nameA = (a.proveedor || '').toLowerCase();
+      const nameB = (b.proveedor || '').toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+    
+    // Combinar: primero los que tienen fecha, después los que no
+    const sortedProviders = [...providersWithDate, ...providersWithoutDate];
+    
+    console.log(`✅ Proveedores procesados: ${providersWithDate.length} con fecha, ${providersWithoutDate.length} sin fecha`);
+    return sortedProviders;
   } catch (error) {
     console.error('❌ Error al obtener proveedores:', error);
     throw new Error('No se pudieron cargar los proveedores: ' + error.message);
@@ -137,12 +166,25 @@ export const updateProvider = async (providerId, updates) => {
       updatedAt: new Date()
     };
 
-    // Remover campos undefined
+    // Limpiar y validar arrays para evitar errores
+    if (updateData.tags && !Array.isArray(updateData.tags)) {
+      updateData.tags = [];
+    }
+    if (updateData.talles && !Array.isArray(updateData.talles)) {
+      updateData.talles = [];
+    }
+    if (updateData.locales && !Array.isArray(updateData.locales)) {
+      updateData.locales = [{ direccion: '', area: '', galeria: '', pasillo: '', local: '' }];
+    }
+
+    // Remover campos undefined y null
     Object.keys(updateData).forEach(key => {
-      if (updateData[key] === undefined) {
+      if (updateData[key] === undefined || updateData[key] === null) {
         delete updateData[key];
       }
     });
+
+    console.log('🔄 Actualizando proveedor:', providerId, 'con datos:', updateData);
 
     await updateDoc(docRef, updateData);
     return { id: providerId, ...updateData };
@@ -479,5 +521,85 @@ export const getUniqueGalleries = async () => {
   } catch (error) {
     console.error('Error al obtener galerías:', error);
     return [];
+  }
+};
+
+/**
+ * Filtrar proveedores con múltiples criterios combinados
+ * Permite usar búsqueda, categoría, área y galería al mismo tiempo
+ */
+export const getProvidersWithFilters = async (filters = {}) => {
+  try {
+    const { searchTerm, categoria, area, galeria } = filters;
+    
+    console.log('🔍 Aplicando filtros:', filters);
+    
+    let providers = await getAllProviders();
+    console.log('📊 Total proveedores antes de filtrar:', providers.length);
+    
+    // Aplicar filtro de búsqueda por término
+    if (searchTerm && searchTerm.trim()) {
+      const term = searchTerm.toLowerCase().trim();
+      providers = providers.filter(provider => {
+        // Buscar en nombre del proveedor
+        if (provider.proveedor && provider.proveedor.toLowerCase().includes(term)) {
+          return true;
+        }
+
+        // Buscar en tags
+        if (provider.tags && Array.isArray(provider.tags)) {
+          if (provider.tags.some(tag => tag.toLowerCase().includes(term))) {
+            return true;
+          }
+        }
+
+        // Buscar en talles
+        if (provider.talles && Array.isArray(provider.talles)) {
+          if (provider.talles.some(talle => talle.toLowerCase().includes(term))) {
+            return true;
+          }
+        }
+
+        // Buscar en direcciones de locales
+        if (provider.locales && Array.isArray(provider.locales)) {
+          return provider.locales.some(local => 
+            (local.direccion && local.direccion.toLowerCase().includes(term)) ||
+            (local.area && local.area.toLowerCase().includes(term)) ||
+            (local.galeria && local.galeria.toLowerCase().includes(term))
+          );
+        }
+
+        return false;
+      });
+      console.log('📝 Después de filtro de búsqueda:', providers.length);
+    }
+    
+    // Aplicar filtro por categoría (solo si no está vacío)
+    if (categoria && categoria.trim()) {
+      providers = providers.filter(provider => provider.categoria === categoria);
+      console.log('🏷️ Después de filtro de categoría:', providers.length);
+    }
+    
+    // Aplicar filtro por área (solo si no está vacío)
+    if (area && area.trim()) {
+      providers = providers.filter(provider => 
+        provider.locales && provider.locales.some(local => local.area === area)
+      );
+      console.log('📍 Después de filtro de área:', providers.length);
+    }
+    
+    // Aplicar filtro por galería (solo si no está vacío)
+    if (galeria && galeria.trim()) {
+      providers = providers.filter(provider => 
+        provider.locales && provider.locales.some(local => local.galeria === galeria)
+      );
+      console.log('🏢 Después de filtro de galería:', providers.length);
+    }
+    
+    console.log(`✅ Filtros aplicados exitosamente. Resultados finales: ${providers.length}`);
+    return providers;
+  } catch (error) {
+    console.error('❌ Error al filtrar proveedores:', error);
+    throw new Error('Error al aplicar filtros: ' + error.message);
   }
 };

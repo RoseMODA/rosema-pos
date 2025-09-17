@@ -10,6 +10,7 @@ import {
   getProvidersByCategory,
   getProvidersByArea,
   getProvidersByGallery,
+  getProvidersWithFilters,
   getProviderProductStats,
   getUniqueCategories,
   getUniqueAreas,
@@ -116,61 +117,59 @@ export const useProviders = () => {
   }, []);
 
   /**
-   * Filtrar por categoría
+   * Aplicar filtros combinados
+   * Permite usar múltiples filtros al mismo tiempo
+   */
+  const applyFilters = useCallback(async (filters = {}) => {
+    setLoading(true);
+    setError(null);
+    try {
+      console.log('🎯 Hook: Aplicando filtros:', filters);
+      
+      // Si no hay filtros activos, cargar todos los proveedores
+      const hasActiveFilters = Object.values(filters).some(value => 
+        value && value.toString().trim() !== ''
+      );
+      
+      if (!hasActiveFilters) {
+        console.log('🔄 Hook: No hay filtros activos, cargando todos los proveedores');
+        const allProviders = await getAllProviders();
+        setProviders(allProviders);
+        return allProviders;
+      }
+      
+      const results = await getProvidersWithFilters(filters);
+      setProviders(results);
+      return results;
+    } catch (err) {
+      setError(err.message || 'Error al aplicar filtros');
+      console.error('Error applying filters:', err);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /**
+   * Filtrar por categoría (mantener para compatibilidad)
    */
   const filterByCategory = useCallback(async (categoria) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const results = await getProvidersByCategory(categoria);
-      setProviders(results);
-      return results;
-    } catch (err) {
-      setError(err.message || 'Error al filtrar por categoría');
-      console.error('Error filtering by category:', err);
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    return applyFilters({ categoria });
+  }, [applyFilters]);
 
   /**
-   * Filtrar por área
+   * Filtrar por área (mantener para compatibilidad)
    */
   const filterByArea = useCallback(async (area) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const results = await getProvidersByArea(area);
-      setProviders(results);
-      return results;
-    } catch (err) {
-      setError(err.message || 'Error al filtrar por área');
-      console.error('Error filtering by area:', err);
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    return applyFilters({ area });
+  }, [applyFilters]);
 
   /**
-   * Filtrar por galería
+   * Filtrar por galería (mantener para compatibilidad)
    */
   const filterByGallery = useCallback(async (galeria) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const results = await getProvidersByGallery(galeria);
-      setProviders(results);
-      return results;
-    } catch (err) {
-      setError(err.message || 'Error al filtrar por galería');
-      console.error('Error filtering by gallery:', err);
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    return applyFilters({ galeria });
+  }, [applyFilters]);
 
   /**
    * Obtener proveedor por ID
@@ -408,6 +407,7 @@ export const useProviders = () => {
     clearSearch,
 
     // Filtros
+    applyFilters,
     filterByCategory,
     filterByArea,
     filterByGallery,
