@@ -1,5 +1,5 @@
 /**
- * Componente de formulario de pago para ventas
+ * Componente de formulario de pago para ventas (versión mejorada)
  */
 
 import React from 'react';
@@ -25,23 +25,27 @@ const PaymentForm = ({
   const commissionInfo = calculateCommissionInfo(totals.total, commission);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Método de pago */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Método de Pago
         </label>
-        <select
-          value={paymentMethod}
-          onChange={(e) => onPaymentMethodChange(e.target.value)}
-          className="w-full input-rosema"
-        >
+        <div className="flex flex-wrap gap-2">
           {PAYMENT_METHODS.map(method => (
-            <option key={method.value} value={method.value}>
+            <button
+              key={method.value}
+              type="button"
+              onClick={() => onPaymentMethodChange(method.value)}
+              className={`px-4 py-2 rounded border text-sm font-medium transition 
+                ${paymentMethod === method.value
+                  ? 'bg-rose-600 text-white border-rose-600'
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'}`}
+            >
               {method.label}
-            </option>
+            </button>
           ))}
-        </select>
+        </div>
       </div>
 
       {/* Selector de descuento */}
@@ -49,31 +53,35 @@ const PaymentForm = ({
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Descuento
         </label>
-        <select
-          value={discountPercent}
-          onChange={(e) => onDiscountChange(Number(e.target.value))}
-          className="w-full input-rosema"
-        >
+        <div className="flex flex-wrap gap-2">
           {DISCOUNT_OPTIONS.map(option => (
-            <option key={option.value} value={option.value}>
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => onDiscountChange(Number(option.value))}
+              className={`px-3 py-1 rounded border text-sm font-medium transition
+                ${discountPercent === option.value
+                  ? 'bg-green-600 text-white border-green-600'
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'}`}
+            >
               {option.label}
-            </option>
+            </button>
           ))}
-        </select>
+        </div>
       </div>
 
-      {/* Mostrar subtotal y descuento aplicado */}
+      {/* Subtotal y descuento aplicado */}
       {totals.subtotal > 0 && (
         <div className="border-t border-gray-200 pt-4 space-y-2">
-          <div className="flex justify-between text-sm">
+          <div className="grid grid-cols-2 text-lm">
             <span>Subtotal:</span>
-            <span>{formatPrice(totals.subtotal)}</span>
+            <span className="text-right">{formatPrice(totals.subtotal)}</span>
           </div>
 
           {totals.discountValue > 0 && (
-            <div className="flex justify-between text-sm text-green-600">
+            <div className="grid grid-cols-2 text-lm text-red-600">
               <span>Descuento ({discountPercent}%):</span>
-              <span>-{formatPrice(totals.discountValue)}</span>
+              <span className="text-right">-{formatPrice(totals.discountValue)}</span>
             </div>
           )}
         </div>
@@ -112,9 +120,9 @@ const PaymentForm = ({
 
       {/* Total */}
       <div className="border-t border-gray-200 pt-4">
-        <div className="flex justify-between items-center text-2xl font-bold">
-          <span>Total:</span>
-          <span className="text-green-600">{formatPrice(totals.total)}</span>
+        <div className="flex justify-between items-center font-bold">
+          <span className="text-2xl">Total:</span>
+          <span className="text-5xl text-green-600">{formatPrice(totals.total)}</span>
         </div>
       </div>
     </div>
@@ -122,7 +130,7 @@ const PaymentForm = ({
 };
 
 const CashPaymentFields = ({ cashReceived, totals, onCashReceivedChange }) => (
-  <>
+  <div className="grid grid-cols-2 gap-4">
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">
         Recibido en Efectivo
@@ -136,15 +144,15 @@ const CashPaymentFields = ({ cashReceived, totals, onCashReceivedChange }) => (
       />
     </div>
 
-    <div>
-      <div className="flex justify-between items-center text-lg font-semibold">
-        <span>Vuelto:</span>
-        <span className={totals.change >= 0 ? 'text-green-600' : 'text-red-600'}>
+    <div className="flex flex-col justify-center">
+      <div className="text-lg font-semibold flex items-center">
+        <span className="mr-2">Vuelto:</span>
+        <span className={totals.change >= 0 ? 'text-blue-600' : 'text-red-600'}>
           {formatPrice(totals.change)}
         </span>
       </div>
     </div>
-  </>
+  </div>
 );
 
 const CreditPaymentFields = ({
@@ -210,7 +218,7 @@ const CreditPaymentFields = ({
   </>
 );
 
-const CommissionFields = ({ commission, totals, commissionInfo, onCommissionChange }) => (
+const CommissionFields = ({ commission, commissionInfo, onCommissionChange }) => (
   <>
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">
