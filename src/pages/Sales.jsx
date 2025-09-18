@@ -184,42 +184,41 @@ const Sales = () => {
   };
 
   return (
-    <div key={activeSessionId} className="min-h-screen bg-gray-50 p-6">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+    <div key={activeSessionId} className="min-h-screen bg-gray-50 responsive-padding">
+      {/* Header - Responsivo */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 sm:mb-6 space-y-4 sm:space-y-0">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestión de Ventas</h1>
-          <p className="text-gray-600">Busca productos y agrégalos al carrito para procesar una venta</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Gestión de Ventas</h1>
+          <p className="text-gray-600 text-sm sm:text-base">Busca productos y agrégalos al carrito para procesar una venta</p>
         </div>
 
-        <div className="flex space-x-3">
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
           <button
             onClick={handleNewSale}
-            className="btn-rosema flex items-center space-x-2"
+            className="btn-rosema flex items-center justify-center space-x-2 w-full sm:w-auto touch-target"
           >
             <span>➕</span>
-            <span>Nueva Venta</span>
+            <span className="hidden xs:inline">Nueva Venta</span>
+            <span className="xs:hidden">Nueva</span>
           </button>
 
           <button
             onClick={() => openModal('history')}
-            className="btn-secondary flex items-center space-x-2"
+            className="btn-secondary flex items-center justify-center space-x-2 w-full sm:w-auto touch-target"
           >
             <span>🕒</span>
-            <span>Historial de Ventas</span>
+            <span className="hidden xs:inline">Historial</span>
+            <span className="xs:hidden">📋</span>
           </button>
 
           <button
             onClick={resetAllSessions}
-            className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
-            🗑️ Limpiar Todo
+            className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors w-full sm:w-auto touch-target">
+            <span className="hidden xs:inline">🗑️ Limpiar Todo</span>
+            <span className="xs:hidden">🗑️</span>
           </button>
         </div>
-
-
       </div>
-
-
 
       {/* Tabs de sesiones */}
       <SessionTabs
@@ -230,8 +229,8 @@ const Sales = () => {
         onNewSession={handleNewSale}
       />
 
-      {/* Layout principal de dos columnas */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Layout principal - Responsivo */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
         {/* Columna izquierda - Búsqueda y formulario de pago */}
         <div className="space-y-6">
           {/* Búsqueda de productos */}

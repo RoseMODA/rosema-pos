@@ -7,3 +7,4 @@ export { default as SearchBar } from './SearchBar.jsx';
 export { default as Modal } from './Modal.jsx';
 export { default as LoadingSpinner } from './LoadingSpinner.jsx';
 export { default as ErrorMessage } from './ErrorMessage.jsx';
+export { default as IconButton } from './IconButton.jsx';

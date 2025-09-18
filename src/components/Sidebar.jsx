@@ -4,9 +4,9 @@ import { useAuth } from '../hooks/useAuth';
 
 /**
  * Componente Sidebar para navegación del sistema POS Rosema
- * Menú lateral fijo con color rojo principal (#D62818)
+ * Responsivo - se oculta en móvil y se muestra como overlay
  */
-const Sidebar = () => {
+const Sidebar = ({ onMobileClose }) => {
   const { user, logout } = useAuth();
   const location = useLocation();
 
@@ -16,9 +16,19 @@ const Sidebar = () => {
   const handleLogout = async () => {
     try {
       await logout();
+      // Cerrar menú móvil si está abierto
+      if (onMobileClose) onMobileClose();
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
     }
+  };
+
+  /**
+   * Maneja el click en un item del menú
+   */
+  const handleMenuItemClick = () => {
+    // Cerrar menú móvil cuando se selecciona un item
+    if (onMobileClose) onMobileClose();
   };
 
   /**
@@ -116,6 +126,7 @@ const Sidebar = () => {
             <NavLink
               key={item.path}
               to={item.path}
+              onClick={handleMenuItemClick}
               className={`
                 flex items-center px-4 py-3 rounded-lg transition-all duration-200 group
                 ${isActive

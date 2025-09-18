@@ -142,25 +142,25 @@ const Products = () => {
   };
 
   return (
-    <div className="p-6">
-      {/* Header de la página */}
-      <div className="flex justify-between items-center mb-6">
+    <div className="responsive-padding">
+      {/* Header de la página - Responsivo */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 sm:mb-6 space-y-4 sm:space-y-0">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Productos</h1>
-          <p className="text-gray-600 mt-2">Gestión de inventario y catálogo</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Productos</h1>
+          <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base">Gestión de inventario y catálogo</p>
         </div>
 
-        <div className="flex space-x-3">
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
           <button
             onClick={handleCreateProduct}
-            className="btn-rosema flex items-center space-x-2"
+            className="btn-rosema flex items-center justify-center space-x-2 w-full sm:w-auto touch-target"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
-            <span>Agregar Producto</span>
+            <span className="hidden xs:inline">Agregar Producto</span>
+            <span className="xs:hidden">Agregar</span>
           </button>
-
         </div>
       </div>
 

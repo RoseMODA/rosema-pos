@@ -3,6 +3,879 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Clases de utilidad responsivas personalizadas */
+@layer utilities {
+  /* Safe area para dispositivos móviles */
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .safe-area-left {
+    padding-left: env(safe-area-inset-left);
+  }
+  
+  .safe-area-right {
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  /* Área de toque mínima para móviles */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Scroll suave */
+  .smooth-scroll {
+    scroll-behavior: smooth;
+  }
+  
+  /* Ocultar scrollbar pero mantener funcionalidad */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Contenedor responsivo para tablas */
+  .table-container {
+    @apply overflow-x-auto;
+  }
+  
+  .table-container table {
+    @apply min-w-full;
+  }
+  
+  /* Grid responsivo para cards */
+  .responsive-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4;
+  }
+  
+  /* Flexbox responsivo */
+  .responsive-flex {
+    @apply flex flex-col sm:flex-row;
+  }
+  
+  /* Espaciado responsivo */
+  .responsive-padding {
+    @apply p-4 sm:p-6 lg:p-8;
+  }
+  
+  .responsive-margin {
+    @apply m-4 sm:m-6 lg:m-8;
+  }
+  
+  /* Texto responsivo */
+  .responsive-text {
+    @apply text-sm sm:text-base lg:text-lg;
+  }
+  
+  /* Botones responsivos */
+  .btn-responsive {
+    @apply px-3 py-2 sm:px-4 sm:py-2 lg:px-6 lg:py-3;
+  }
+  
+  /* Modal responsivo */
+  .modal-responsive {
+    @apply w-full max-w-sm sm:max-w-md lg:max-w-lg xl:max-w-xl;
+  }
+  
+  /* Sidebar responsive */
+  .sidebar-responsive {
+    @apply w-full sm:w-64 lg:w-72;
+  }
+}
+
+/* Componentes personalizados */
+@layer components {
+  /* Botón principal */
+  .btn-primary {
+    @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 touch-target;
+  }
+  
+  /* Botón secundario */
+  .btn-secondary {
+    @apply bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200 touch-target;
+  }
+  
+  /* Input responsivo */
+  .input-responsive {
+    @apply w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm sm:text-base;
+  }
+  
+  /* Card responsiva */
+  .card-responsive {
+    @apply bg-white rounded-lg shadow-md p-4 sm:p-6 lg:p-8;
+  }
+  
+  /* Header móvil */
+  .mobile-header {
+    @apply fixed top-0 left-0 right-0 bg-white shadow-sm z-40 lg:hidden safe-area-top;
+  }
+  
+  /* Contenido principal responsivo */
+  .main-content {
+    @apply flex-1 overflow-x-hidden overflow-y-auto p-4 lg:p-6;
+  }
+  
+  /* Grid de estadísticas */
+  .stats-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6;
+  }
+  
+  /* Tabla responsiva */
+  .table-responsive {
+    @apply overflow-x-auto shadow-sm rounded-lg;
+  }
+  
+  .table-responsive table {
+    @apply min-w-full divide-y divide-gray-200;
+  }
+  
+  .table-responsive th {
+    @apply px-3 py-3 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider;
+  }
+  
+  .table-responsive td {
+    @apply px-3 py-4 sm:px-6 sm:py-4 whitespace-nowrap text-sm text-gray-900;
+  }
+}
+
+/* Estilos base responsivos */
+@layer base {
+  html {
+    @apply smooth-scroll;
+  }
+  
+  body {
+    @apply text-sm sm:text-base;
+  }
+  
+  /* Mejorar legibilidad en pantallas pequeñas */
+  @media (max-width: 640px) {
+    h1 {
+      @apply text-xl;
+    }
+    
+    h2 {
+      @apply text-lg;
+    }
+    
+    h3 {
+      @apply text-base;
+    }
+  }
+}
+
+/* Animaciones responsivas */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Mejoras para dispositivos táctiles */
+@media (hover: none) and (pointer: coarse) {
+  .hover\:bg-red-700:hover {
+    @apply bg-red-700;
+  }
+  
+  .hover\:bg-gray-300:hover {
+    @apply bg-gray-300;
+  }
+}
+
+/* Estilos para impresión */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+  
+  body {
+    @apply text-black bg-white;
+  }
+}
+
+/* ===== MEJORAS RESPONSIVAS Y TÁCTILES ===== */
+
+/* Mejoras táctiles */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Feedback táctil */
+.btn-touch {
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  touch-action: manipulation;
+}
+
+.btn-touch:active {
+  transform: scale(0.98);
+  transition: transform 0.1s;
+}
+
+/* Scroll suave en móviles */
+.scroll-smooth {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Ocultar scrollbars en móviles */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Safe areas para dispositivos con notch */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-area-left {
+  padding-left: env(safe-area-inset-left);
+}
+
+.safe-area-right {
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Inputs más grandes en móviles */
+@media (max-width: 768px) {
+  input, select, textarea {
+    min-height: 44px;
+    font-size: 16px !important; /* Previene zoom en iOS */
+  }
+  
+  button {
+    min-height: 44px;
+  }
+  
+  /* Mejorar legibilidad en móviles */
+  .text-xs {
+    font-size: 0.8rem;
+  }
+  
+  .text-sm {
+    font-size: 0.9rem;
+  }
+}
+
+/* ===== CLASES UTILITARIAS PERSONALIZADAS ===== */
+
+/* Botones del tema Rosema */
+.btn-rosema {
+  @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed touch-target btn-touch;
+}
+
+.btn-secondary {
+  @apply bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed touch-target btn-touch;
+}
+
+.btn-success {
+  @apply bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed touch-target btn-touch;
+}
+
+.btn-danger {
+  @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed touch-target btn-touch;
+}
+
+.btn-ghost {
+  @apply hover:bg-gray-100 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed touch-target btn-touch;
+}
+
+/* Inputs del tema Rosema */
+.input-rosema {
+  @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors touch-target;
+}
+
+/* Cards del tema Rosema */
+.card-rosema {
+  @apply bg-white rounded-lg shadow-soft p-6 border border-gray-100;
+}
+
+.card-rosema-hover {
+  @apply bg-white rounded-lg shadow-soft hover:shadow-medium p-6 border border-gray-100 transition-shadow cursor-pointer;
+}
+
+/* Modales responsivos */
+.modal-overlay {
+  @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4;
+}
+
+.modal-content {
+  @apply bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-strong;
+}
+
+/* Navegación responsiva */
+.nav-item {
+  @apply flex items-center px-4 py-3 text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors rounded-lg mx-2 touch-target;
+}
+
+.nav-item.active {
+  @apply bg-red-100 text-red-700 font-medium;
+}
+
+/* Tablas responsivas */
+.table-responsive {
+  @apply overflow-x-auto;
+}
+
+.table-responsive table {
+  @apply min-w-full;
+}
+
+/* Grid responsivo */
+.grid-responsive {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4;
+}
+
+.grid-responsive-2 {
+  @apply grid grid-cols-1 lg:grid-cols-2 gap-6;
+}
+
+/* Espaciado responsivo */
+.spacing-responsive {
+  @apply p-4 lg:p-6;
+}
+
+.spacing-responsive-sm {
+  @apply p-2 lg:p-4;
+}
+
+/* Texto responsivo */
+.text-responsive-title {
+  @apply text-xl lg:text-2xl xl:text-3xl font-bold;
+}
+
+.text-responsive-subtitle {
+  @apply text-sm lg:text-base text-gray-600;
+}
+
+/* Estados de carga mejorados */
+.loading-overlay {
+  @apply absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10;
+}
+
+.loading-spinner {
+  @apply animate-spin rounded-full h-8 w-8 border-b-2 border-red-600;
+}
+
+/* Mejoras de accesibilidad */
+.focus-visible {
+  @apply focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2;
+}
+
+/* Animaciones de entrada */
+.animate-enter {
+  @apply animate-fade-in;
+}
+
+.animate-enter-slide {
+  @apply animate-slide-in;
+}
+
+/* Utilidades para móviles */
+.mobile-only {
+  @apply block lg:hidden;
+}
+
+.desktop-only {
+  @apply hidden lg:block;
+}
+
+.tablet-up {
+  @apply hidden md:block;
+}
+
+.mobile-down {
+  @apply block md:hidden;
+}
+
+/* Mejoras para formularios móviles */
+@media (max-width: 768px) {
+  .form-mobile {
+    @apply space-y-4;
+  }
+  
+  .form-mobile .form-group {
+    @apply space-y-2;
+  }
+  
+  .form-mobile label {
+    @apply text-sm font-medium text-gray-700;
+  }
+  
+  .form-mobile input,
+  .form-mobile select,
+  .form-mobile textarea {
+    @apply text-base; /* Previene zoom en iOS */
+  }
+}
+
+/* Mejoras para tablas en móviles */
+@media (max-width: 768px) {
+  .table-mobile-hidden {
+    @apply hidden;
+  }
+  
+  .table-mobile-stack {
+    @apply block;
+  }
+  
+  .table-mobile-stack td {
+    @apply block text-right border-none py-1;
+  }
+  
+  .table-mobile-stack td:before {
+    content: attr(data-label) ": ";
+    @apply float-left font-medium text-gray-600;
+  }
+}
+
+/* Mejoras para el sidebar móvil */
+.sidebar-mobile {
+  @apply fixed left-0 top-0 h-full w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out z-50;
+}
+
+.sidebar-mobile.open {
+  @apply translate-x-0;
+}
+
+.sidebar-mobile.closed {
+  @apply -translate-x-full;
+}
+
+/* Overlay para sidebar móvil */
+.sidebar-overlay {
+  @apply fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden;
+}
+
+/* Mejoras para cards en móviles */
+.card-mobile {
+  @apply bg-white rounded-lg shadow-sm border p-4 mb-4;
+}
+
+.card-mobile-header {
+  @apply flex justify-between items-start mb-3;
+}
+
+.card-mobile-content {
+  @apply space-y-2 text-sm text-gray-600;
+}
+
+.card-mobile-actions {
+  @apply flex space-x-2 mt-4 pt-3 border-t border-gray-100;
+}
+
+/* Mejoras para stats cards */
+.stats-grid {
+  @apply grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6;
+}
+
+.stats-card {
+  @apply bg-white p-4 lg:p-6 rounded-lg shadow-soft border;
+}
+
+.stats-value {
+  @apply text-2xl lg:text-3xl font-bold mb-2;
+}
+
+.stats-label {
+  @apply text-sm lg:text-base text-gray-600;
+}
+
+/* Mejoras para formularios de filtros */
+.filters-container {
+  @apply flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-4 mb-4 lg:mb-6;
+}
+
+.filter-input {
+  @apply flex-1 min-w-0 input-rosema;
+}
+
+.filter-select {
+  @apply input-rosema min-w-32;
+}
+
+/* Mejoras para listas de productos */
+.product-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6;
+}
+
+.product-card {
+  @apply card-rosema-hover;
+}
+
+.product-card-image {
+  @apply w-full h-32 sm:h-40 object-cover rounded-lg mb-3;
+}
+
+.product-card-title {
+  @apply text-sm lg:text-base font-semibold text-gray-900 mb-2 line-clamp-2;
+}
+
+.product-card-price {
+  @apply text-lg lg:text-xl font-bold text-green-600;
+}
+
+/* Utilidades para truncar texto */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.line-clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+/* Mejoras para el carrito de ventas */
+.cart-container {
+  @apply bg-white rounded-lg shadow-soft border;
+}
+
+.cart-header {
+  @apply p-4 lg:p-6 border-b border-gray-200;
+}
+
+.cart-content {
+  @apply p-4 lg:p-6;
+}
+
+.cart-item {
+  @apply flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0;
+}
+
+.cart-item-info {
+  @apply flex-1 min-w-0 mr-4;
+}
+
+.cart-item-actions {
+  @apply flex items-center space-x-2;
+}
+
+/* Mejoras para modales en móviles */
+@media (max-width: 768px) {
+  .modal-content {
+    @apply max-w-full mx-2 max-h-[95vh];
+  }
+  
+  .modal-header {
+    @apply p-4 border-b border-gray-200 sticky top-0 bg-white z-10;
+  }
+  
+  .modal-body {
+    @apply p-4 space-y-4;
+  }
+  
+  .modal-footer {
+    @apply p-4 border-t border-gray-200 sticky bottom-0 bg-white z-10;
+  }
+}
+
+/* Mejoras para el sistema de pestañas */
+.tabs-container {
+  @apply border-b border-gray-200 mb-6;
+}
+
+.tabs-list {
+  @apply flex space-x-1 overflow-x-auto hide-scrollbar;
+}
+
+.tab-item {
+  @apply px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300 transition-colors whitespace-nowrap touch-target;
+}
+
+.tab-item.active {
+  @apply text-red-600 border-red-600;
+}
+
+/* Mejoras para alertas y notificaciones */
+.alert {
+  @apply p-4 rounded-lg border;
+}
+
+.alert-success {
+  @apply bg-green-50 border-green-200 text-green-800;
+}
+
+.alert-error {
+  @apply bg-red-50 border-red-200 text-red-800;
+}
+
+.alert-warning {
+  @apply bg-yellow-50 border-yellow-200 text-yellow-800;
+}
+
+.alert-info {
+  @apply bg-blue-50 border-blue-200 text-blue-800;
+}
+
+/* Mejoras para badges y tags */
+.badge {
+  @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium;
+}
+
+.badge-primary {
+  @apply bg-red-100 text-red-800;
+}
+
+.badge-secondary {
+  @apply bg-gray-100 text-gray-800;
+}
+
+.badge-success {
+  @apply bg-green-100 text-green-800;
+}
+
+.badge-warning {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.badge-danger {
+  @apply bg-red-100 text-red-800;
+}
+
+/* Mejoras para el layout principal */
+.main-layout {
+  @apply min-h-screen bg-gray-50;
+}
+
+.main-content {
+  @apply flex-1 lg:ml-64;
+}
+
+.page-container {
+  @apply pt-16 lg:pt-0 px-4 lg:px-6 py-4 lg:py-6;
+}
+
+.page-header {
+  @apply mb-6;
+}
+
+.page-title {
+  @apply text-responsive-title text-gray-900;
+}
+
+.page-subtitle {
+  @apply text-responsive-subtitle mt-2;
+}
+
+/* Mejoras para el sidebar */
+.sidebar-container {
+  @apply hidden lg:block lg:w-64 lg:fixed lg:h-full lg:z-30;
+}
+
+.sidebar-content {
+  @apply h-full bg-white shadow-lg border-r border-gray-200 flex flex-col;
+}
+
+.sidebar-header {
+  @apply p-6 border-b border-gray-200;
+}
+
+.sidebar-nav {
+  @apply flex-1 px-4 py-6 space-y-2;
+}
+
+.sidebar-footer {
+  @apply p-4 border-t border-gray-200;
+}
+
+/* Mejoras para formularios */
+.form-container {
+  @apply space-y-6;
+}
+
+.form-group {
+  @apply space-y-2;
+}
+
+.form-label {
+  @apply block text-sm font-medium text-gray-700;
+}
+
+.form-input {
+  @apply input-rosema;
+}
+
+.form-select {
+  @apply input-rosema;
+}
+
+.form-textarea {
+  @apply input-rosema resize-none;
+}
+
+.form-actions {
+  @apply flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-6 border-t border-gray-200;
+}
+
+/* Mejoras para listas */
+.list-container {
+  @apply bg-white rounded-lg shadow-soft border;
+}
+
+.list-header {
+  @apply p-4 lg:p-6 border-b border-gray-200;
+}
+
+.list-content {
+  @apply p-4 lg:p-6;
+}
+
+.list-item {
+  @apply flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0;
+}
+
+/* Mejoras para el estado vacío */
+.empty-state {
+  @apply text-center py-12;
+}
+
+.empty-state-icon {
+  @apply text-4xl mb-4;
+}
+
+.empty-state-title {
+  @apply text-gray-600 mb-2 text-base lg:text-lg;
+}
+
+.empty-state-subtitle {
+  @apply text-sm text-gray-500;
+}
+
+/* Mejoras para loading states */
+.loading-container {
+  @apply text-center py-8;
+}
+
+.loading-text {
+  @apply text-gray-600 mt-2;
+}
+
+/* Mejoras para el header de páginas */
+.page-actions {
+  @apply flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3;
+}
+
+/* Mejoras para tooltips */
+.tooltip {
+  @apply absolute z-50 px-2 py-1 text-xs text-white bg-gray-900 rounded shadow-lg;
+}
+
+/* Mejoras para dropdowns */
+.dropdown {
+  @apply absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-medium border border-gray-200 z-50;
+}
+
+.dropdown-item {
+  @apply block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 first:rounded-t-lg last:rounded-b-lg touch-target;
+}
+
+/* Mejoras para progress bars */
+.progress-bar {
+  @apply w-full bg-gray-200 rounded-full h-2;
+}
+
+.progress-fill {
+  @apply h-2 bg-red-600 rounded-full transition-all duration-300;
+}
+
+/* Mejoras para avatars */
+.avatar {
+  @apply rounded-full bg-gray-300 flex items-center justify-center;
+}
+
+.avatar-sm {
+  @apply w-8 h-8 text-xs;
+}
+
+.avatar-md {
+  @apply w-10 h-10 text-sm;
+}
+
+.avatar-lg {
+  @apply w-12 h-12 text-base;
+}
+
+/* Mejoras para dividers */
+.divider {
+  @apply border-t border-gray-200 my-6;
+}
+
+.divider-vertical {
+  @apply border-l border-gray-200 mx-4;
+}
+
+/* Mejoras para el sistema de grid */
+.container-responsive {
+  @apply container mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+/* Mejoras para sticky elements */
+.sticky-top {
+  @apply sticky top-0 z-30 bg-white border-b border-gray-200;
+}
+
+.sticky-bottom {
+  @apply sticky bottom-0 z-30 bg-white border-t border-gray-200;
+}
+
+/* Mejoras para overlays */
+.overlay {
+  @apply fixed inset-0 bg-black bg-opacity-50 z-40;
+}
+
+.overlay-light {
+  @apply fixed inset-0 bg-white bg-opacity-75 z-40;
+}
+
+/* Mejoras para transiciones */
+.transition-smooth {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+.transition-fast {
+  @apply transition-all duration-150 ease-in-out;
+}
+
+.transition-slow {
+  @apply transition-all duration-500 ease-in-out;
+}
+
 /* Estilos base personalizados para el POS Rosema */
 @layer base {
   /* Variables CSS para la paleta de colores del POS */
