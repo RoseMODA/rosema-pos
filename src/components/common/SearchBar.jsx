@@ -43,11 +43,12 @@ const SearchBar = ({
         autoFocus={autoFocus}
         className="w-full input-rosema pl-10 pr-10"
       />
-      
-      {/* Icono de búsqueda (usando texto) */}
+
+      {/* Icono de búsqueda (usando texto)
       <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm font-medium">
         🔍
-      </div>
+      </div> */}
+
 
       {/* Botón de limpiar */}
       {value && (

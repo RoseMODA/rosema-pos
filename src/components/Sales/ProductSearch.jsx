@@ -85,9 +85,8 @@ const ProductSearchItem = ({ product, onSelect }) => {
   return (
     <div
       onClick={onSelect}
-      className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
-        totalStock <= 0 ? 'opacity-50' : ''
-      }`}
+      className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${totalStock <= 0 ? 'opacity-50' : ''
+        }`}
     >
       <div className="flex justify-between items-start">
         <div className="flex-1">
@@ -101,9 +100,8 @@ const ProductSearchItem = ({ product, onSelect }) => {
             <span className="text-lg font-semibold text-green-600">
               {formatVariantPriceRange(product.variantes)}
             </span>
-            <span className={`text-sm ${
-              totalStock <= 5 ? 'text-red-600' : 'text-gray-600'
-            }`}>
+            <span className={`text-sm ${totalStock <= 5 ? 'text-red-600' : 'text-gray-600'
+              }`}>
               Stock: {totalStock}
             </span>
             {product.categoria && (

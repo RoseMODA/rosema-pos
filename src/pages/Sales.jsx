@@ -22,6 +22,7 @@ import ProductSearch from '../components/Sales/ProductSearch';
 import SessionTabs from '../components/Sales/SessionTabs';
 import PaymentForm from '../components/Sales/PaymentForm';
 import SalesCart from '../components/Sales/SalesCart';
+import DailyStats from '../components/Sales/DailyStats';
 
 /**
  * Página principal del sistema de ventas - Completamente Refactorizada
@@ -244,6 +245,9 @@ const Sales = () => {
         onDeleteSession={cancelSession}
         onNewSession={handleNewSale}
       />
+
+      {/* Estadísticas diarias */}
+      <DailyStats />
 
       {/* Layout principal - Responsivo */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
