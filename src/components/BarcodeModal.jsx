@@ -59,9 +59,10 @@ const Label2x1 = ({ product, talle, price }) => {
         style={{
           display: "flex",
           alignItems: "center",
+          fontWeight: 700,
           justifyContent: "center",
           width: "100%",
-          fontSize: "13px",
+          fontSize: "15px",
           lineHeight: 1,
           gap: "4px",
         }}
@@ -73,11 +74,11 @@ const Label2x1 = ({ product, talle, price }) => {
             alignItems: "center",
             justifyContent: "center",
             fontWeight: 700,
-            width: "20px",
-            height: "20px",
+            width: "60px",
+            height: "25px",
             borderRadius: "9999px",
-            border: "2px solid #000",
-            fontSize: "11px",
+            border: "1.5px solid #000",
+            fontSize: "24px",
             textTransform: "uppercase",
 
           }}
@@ -118,13 +119,13 @@ const Label2x1 = ({ product, talle, price }) => {
       </div>
 
       {/* ID */}
-      <div style={{ fontSize: "10px", textAlign: "center" }}>
+      <div style={{ fontSize: "9px", textAlign: "center" }}>
         {String(product?.id || "").toUpperCase()}
       </div>
 
       {/* Precio */}
       {price !== "" && (
-        <div style={{ fontWeight: 800, fontSize: "16px", marginTop: "2px" }}>
+        <div style={{ fontWeight: 800, fontSize: "17px", marginTop: "0.2px" }}>
           ${fmtARS(price)}
         </div>
       )}
