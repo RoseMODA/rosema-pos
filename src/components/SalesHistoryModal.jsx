@@ -138,16 +138,20 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
 
   /**
    * Manejar impresión de recibo
+   * ✅ MEJORADO: Mapeo completo de detalles del producto incluyendo talle y color
    */
   const handlePrintReceipt = (sale) => {
     // Preparar datos para el recibo con número de venta
     const receiptData = {
-      saleNumber: sale.id.slice(-8).toUpperCase(), // Últimos 8 caracteres del ID como número de venta
+      saleNumber: sale.saleNumber || sale.id.slice(-8).toUpperCase(), // Usar saleNumber si existe
       items: sale.items?.map(item => ({
-        name: item.name,
-
+        name: item.productName || item.articulo || item.name || 'Producto sin nombre',
         quantity: item.quantity,
-        price: item.price
+        price: item.price,
+        // ✅ AGREGADO: Incluir detalles de variante
+        size: item.talle || item.size || null,
+        color: item.color || null,
+        code: item.code || item.productId || null
       })) || [],
       customerName: sale.customerName,
       paymentMethod: sale.paymentMethod,
@@ -159,6 +163,7 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
       saleDate: sale.saleDate
     };
 
+    console.log('📄 Datos del recibo preparados con detalles completos:', receiptData);
     setSaleForPrint(receiptData);
     setShowPrintModal(true);
   };
@@ -452,14 +457,19 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
                     {selectedSale.items?.map((item, index) => (
                       <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                         <div>
-                          <p className="font-medium text-gray-900">{item.name}</p>
-                          {item.code && (
-                            <p className="text-sm text-gray-500">Código: {item.code}</p>
-                          )}
-                          {(item.size || item.color) && (
+                          <p className="font-medium text-gray-900">
+                            {item.productName || item.articulo || item.name || 'Producto sin nombre'}
+                          </p>
+                          {(item.code || item.productId) && (
                             <p className="text-sm text-gray-500">
-                              {item.size && `Talle: ${item.size}`}
-                              {item.size && item.color && ' | '}
+                              Código: {item.code || item.productId}
+                            </p>
+                          )}
+                          {/* ✅ MEJORADO: Mostrar talle y color con fallbacks */}
+                          {(item.talle || item.size || item.color) && (
+                            <p className="text-sm text-gray-500">
+                              {(item.talle || item.size) && `Talle: ${item.talle || item.size}`}
+                              {(item.talle || item.size) && item.color && ' | '}
                               {item.color && `Color: ${item.color}`}
                             </p>
                           )}

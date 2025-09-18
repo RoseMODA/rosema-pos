@@ -40,7 +40,7 @@ const QuickItemModal = ({ isOpen, onClose, onAddItem }) => {
    */
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -137,18 +137,19 @@ const QuickItemModal = ({ isOpen, onClose, onAddItem }) => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Precio de Venta *
               </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+              <div className="flex items-center border rounded input-rosema">
+                <span className="px-3 text-gray-500">$</span>
                 <input
                   type="number"
                   value={itemData.price}
                   onChange={(e) => handleInputChange('price', e.target.value)}
-                  className={`w-full input-rosema pl-8 ${errors.price ? 'border-red-500' : ''}`}
+                  className={`flex-1 py-2 pl-2 focus:outline-none ${errors.price ? 'border-red-500' : ''}`}
                   placeholder="0"
                   min="0"
                   step="0.01"
                 />
               </div>
+
               {errors.price && (
                 <p className="mt-1 text-sm text-red-600">{errors.price}</p>
               )}

@@ -212,10 +212,14 @@ export const processSale = async (saleData) => {
       saleNumber,
       items: items.map(item => ({
         productId: item.productId || null,
-        productName: item.productName || item.name,
-        articulo: item.articulo || item.name,
+        // ✅ MEJORADO: Mapeo consistente de nombres de productos con fallbacks
+        productName: item.productName || item.name || item.articulo || 'Producto sin nombre',
+        articulo: item.articulo || item.name || item.productName || 'Producto sin nombre',
+        name: item.name || item.productName || item.articulo || 'Producto sin nombre',
         code: item.code || item.productId,
-        talle: item.size || null, // mapear 'size' a 'talle' para BD
+        // ✅ MEJORADO: Mapeo consistente de variantes con fallbacks
+        talle: item.size || item.talle || null, // mapear 'size' a 'talle' para BD
+        size: item.size || item.talle || null,   // mantener 'size' para compatibilidad
         color: item.color || null,
         price: item.price,
         quantity: item.quantity,

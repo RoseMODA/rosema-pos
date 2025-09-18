@@ -157,7 +157,23 @@ const Sales = () => {
       alert(MESSAGES.SUCCESS.SALE_PROCESSED || 'Venta procesada exitosamente');
       console.log('Venta completada:', sale);
     } catch (error) {
-      alert(`Error al procesar venta: ${error.message}`);
+      // ✅ MEJORADO: Error handling más detallado que preserva el carrito
+      console.error('❌ Error al procesar venta:', error);
+      
+      // Mostrar mensaje de error más informativo
+      const errorMessage = error.message || 'Error desconocido al procesar la venta';
+      
+      // Verificar si es un error de conectividad o de validación
+      if (errorMessage.includes('network') || errorMessage.includes('conexión')) {
+        alert(`❌ Error de conexión: ${errorMessage}\n\n💡 Tu carrito se ha mantenido intacto. Verifica tu conexión e intenta nuevamente.`);
+      } else if (errorMessage.includes('stock')) {
+        alert(`❌ Error de stock: ${errorMessage}\n\n💡 Tu carrito se ha mantenido intacto. Verifica el stock disponible.`);
+      } else {
+        alert(`❌ Error al procesar venta: ${errorMessage}\n\n💡 Tu carrito se ha mantenido intacto. Puedes intentar nuevamente o anotar la venta manualmente.`);
+      }
+      
+      // El carrito se mantiene porque ahora useSales.js preserva la sesión en caso de error
+      console.log('🛒 Carrito preservado - Total de items:', cart.length);
     }
   };
 

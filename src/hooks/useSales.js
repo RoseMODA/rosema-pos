@@ -257,6 +257,7 @@ export const useSales = () => {
   /**
    * Finalizar sesión (procesar venta)
    * CORREGIDO: Mapeo correcto de datos para salesService.js
+   * MEJORADO: Preserva la sesión en caso de error para no perder datos del carrito
    */
   const finalizeSession = useCallback(async (sessionId) => {
     const session = salesState.sessions[sessionId];
@@ -316,7 +317,7 @@ export const useSales = () => {
       // Procesar la venta
       const completedSale = await processSale(saleData);
       
-      // Marcar sesión como pagada y remover de abiertas
+      // ✅ SOLO si la venta se procesó exitosamente, remover la sesión
       updateSalesState(prevState => {
         const newSessions = { ...prevState.sessions };
         delete newSessions[sessionId];
@@ -346,8 +347,24 @@ export const useSales = () => {
       console.log('✅ Venta procesada exitosamente');
       return completedSale;
     } catch (err) {
-      setError(err.message);
+      // ✅ MEJORADO: Preservar la sesión en caso de error
       console.error('❌ Error al procesar venta:', err);
+      
+      // Marcar la sesión con estado de error pero mantener los datos
+      updateSalesState(prevState => ({
+        ...prevState,
+        sessions: {
+          ...prevState.sessions,
+          [sessionId]: {
+            ...session,
+            hasError: true,
+            lastError: err.message,
+            updatedAt: new Date().toISOString()
+          }
+        }
+      }));
+
+      setError(`Error al procesar venta: ${err.message}`);
       throw err;
     } finally {
       setLoading(false);
