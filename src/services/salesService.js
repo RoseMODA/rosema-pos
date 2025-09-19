@@ -186,7 +186,8 @@ export const processSale = async (saleData) => {
       clientId,
       cardName,
       installments,
-      commission
+      commission,
+      customSaleDate // ✅ NUEVO: Fecha personalizada opcional
     } = saleData;
 
     console.log('🔄 Procesando venta con items:', items);
@@ -214,6 +215,9 @@ export const processSale = async (saleData) => {
     // Generar número de venta único
     const saleNumber = await generateSaleNumber();
 
+    // ✅ MEJORADO: Usar fecha personalizada si se proporciona
+    const saleDate = customSaleDate ? new Date(customSaleDate) : new Date();
+    
     // Crear la venta con estructura mejorada
     const sale = {
       saleNumber,
@@ -246,7 +250,7 @@ export const processSale = async (saleData) => {
       cardName: cardName || null,
       installments: installments || null,
       commission: commission || null,
-      saleDate: new Date(),
+      saleDate: saleDate, // ✅ MEJORADO: Usar fecha personalizada
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
       status: 'completed'

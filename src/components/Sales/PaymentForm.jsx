@@ -15,6 +15,7 @@ const PaymentForm = ({
   installments,
   commission,
   totals,
+  cart, // ✅ AGREGADO: Necesario para calcular saldo de devoluciones
   onPaymentMethodChange,
   onDiscountChange,
   onCashReceivedChange,
@@ -23,6 +24,28 @@ const PaymentForm = ({
   onCommissionChange
 }) => {
   const commissionInfo = calculateCommissionInfo(totals.total, commission);
+
+  // ✅ NUEVO: Calcular información de devoluciones
+  const returnInfo = React.useMemo(() => {
+    if (!cart || cart.length === 0) return null;
+
+    const returnItems = cart.filter(item => item.isReturn);
+    const regularItems = cart.filter(item => !item.isReturn);
+
+    if (returnItems.length === 0) return null;
+
+    const totalReturns = returnItems.reduce((sum, item) => sum + Math.abs(item.price * item.qty), 0);
+    const totalPurchases = regularItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    const balance = totalReturns - totalPurchases;
+
+    return {
+      hasReturns: true,
+      totalReturns,
+      totalPurchases,
+      balance,
+      isInFavor: balance > 0
+    };
+  }, [cart]);
 
   return (
     <div className="space-y-6">
@@ -116,6 +139,36 @@ const PaymentForm = ({
           commissionInfo={commissionInfo}
           onCommissionChange={onCommissionChange}
         />
+      )}
+
+      {/* ✅ NUEVO: Información de devoluciones */}
+      {returnInfo?.hasReturns && (
+        <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+          <div className="text-sm text-orange-800">
+            <p className="font-medium mb-2 flex items-center">
+              <span className="mr-2">🔄</span>
+              Información de Cambio de Prenda
+            </p>
+            <div className="space-y-1">
+              <div className="flex justify-between">
+                <span>Valor devuelto:</span>
+                <span className="font-medium">${returnInfo.totalReturns.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Nuevas compras:</span>
+                <span className="font-medium">${returnInfo.totalPurchases.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between border-t border-orange-300 pt-1 mt-2">
+                <span className="font-medium">
+                  {returnInfo.isInFavor ? 'Saldo a favor:' : 'Debe abonar:'}
+                </span>
+                <span className={`font-bold text-2xl ${returnInfo.isInFavor ? 'text-green-600' : 'text-red-600'}`}>
+                  ${Math.abs(returnInfo.balance).toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Total */}

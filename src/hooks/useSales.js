@@ -258,8 +258,9 @@ export const useSales = () => {
    * Finalizar sesión (procesar venta)
    * CORREGIDO: Mapeo correcto de datos para salesService.js
    * MEJORADO: Preserva la sesión en caso de error para no perder datos del carrito
+   * MEJORADO: Acepta fecha personalizada para la venta
    */
-  const finalizeSession = useCallback(async (sessionId) => {
+  const finalizeSession = useCallback(async (sessionId, customSaleDate = null) => {
     const session = salesState.sessions[sessionId];
     if (!session || session.items.length === 0) {
       throw new Error('No hay productos en la venta');
@@ -309,7 +310,9 @@ export const useSales = () => {
         clientId: sessionId,
         cardName: session.paymentMethod === PAYMENT_METHODS.CREDITO ? session.cardName : null,
         installments: session.paymentMethod === PAYMENT_METHODS.CREDITO ? session.installments : null,
-        commission: session.paymentMethod === PAYMENT_METHODS.CREDITO ? session.commission : null
+        commission: session.paymentMethod === PAYMENT_METHODS.CREDITO ? session.commission : null,
+        // ✅ NUEVO: Fecha personalizada de venta
+        customSaleDate: customSaleDate
       };
 
       console.log('📤 DEBUG: SaleData enviado a processSale:', saleData);

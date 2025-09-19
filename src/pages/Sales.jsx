@@ -25,6 +25,10 @@ import SalesCart from '../components/Sales/SalesCart';
 import DailyStats from '../components/Sales/DailyStats';
 
 const Sales = () => {
+  // ✅ NUEVO: Estado para fecha de venta personalizada
+  const [saleDate, setSaleDate] = React.useState(new Date().toISOString().split('T')[0]);
+  const [showDatePicker, setShowDatePicker] = React.useState(false);
+
   // Hooks de datos
   const {
     products,
@@ -128,7 +132,8 @@ const Sales = () => {
       const confirmMessage = generateSaleConfirmationMessage(totals, paymentMethod, discountPercent);
       if (!confirm(confirmMessage)) return;
 
-      await finalizeSession(activeSessionId);
+      // ✅ MEJORADO: Pasar fecha personalizada al procesar venta
+      await finalizeSession(activeSessionId, saleDate);
       alert(MESSAGES.SUCCESS.SALE_PROCESSED || 'Venta procesada exitosamente');
     } catch (error) {
       alert(`❌ Error al procesar venta: ${error.message}`);
@@ -203,7 +208,8 @@ const Sales = () => {
             onQuickItemClick={() => openModal('quickItem')}
           />
 
-          <div className="flex items-start ">
+          <div className="space-y-4">
+            {/* Botón de devolución */}
             <button
               onClick={() => openModal('return')}
               className="bg-violet-800 hover:bg-violet-700 text-white font-bold text-lg py-3 px-6 rounded-lg transition-colors"
@@ -211,6 +217,64 @@ const Sales = () => {
               Agregar Devolución
             </button>
 
+            {/* ✅ NUEVO: Selector de fecha de venta */}
+            <div className="bg-white rounded-lg p-4 border border-gray-200">
+              <div className="flex items-center justify-between ">
+                <h4 className="text-sm font-medium text-gray-700 flex items-center">
+
+                </h4>
+                <button
+                  onClick={() => setShowDatePicker(!showDatePicker)}
+                  className="text-lm text-blue-600 hover:text-blue-700"
+                >
+                  {showDatePicker ? 'Ocultar' : 'Cambiar'}
+                </button>
+              </div>
+
+              {/* Mostrar fecha actual */}
+              <div className="text-center">
+                <p className="text-lg font-semibold text-gray-900">
+                  {(() => {
+                    const fecha = new Date(saleDate).toLocaleDateString('es-AR', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    });
+                    return fecha.charAt(0).toUpperCase() + fecha.slice(1);
+                  })()}
+                </p>
+
+                {saleDate !== new Date().toISOString().split('T')[0] && (
+                  <p className="text-sm text-orange-600 mt-1">
+                    ⚠️ Fecha personalizada seleccionada
+                  </p>
+                )}
+              </div>
+
+              {/* Selector de fecha */}
+              {showDatePicker && (
+                <div className="mt-4 space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="date"
+                      value={saleDate}
+                      onChange={(e) => setSaleDate(e.target.value)}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <button
+                      onClick={() => setSaleDate(new Date().toISOString().split('T')[0])}
+                      className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200"
+                    >
+                      Hoy
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    💡 Útil para registrar ventas de días anteriores que se olvidaron anotar
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -239,6 +303,7 @@ const Sales = () => {
               installments={installments}
               commission={commission}
               totals={totals}
+              cart={cart} // ✅ AGREGADO: Pasar cart para calcular saldo de devoluciones
               onPaymentMethodChange={setPaymentMethod}
               onDiscountChange={setDiscountPercent}
               onCashReceivedChange={setCashReceived}

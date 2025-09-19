@@ -27,12 +27,12 @@ const DailyStats = () => {
     if (sale.paymentMethod === 'Efectivo') {
       return sale.cashReceived || sale.total;
     }
-    
+
     // Para tarjetas de crédito, débito y QR, descontar comisión si existe
     if (['Crédito', 'Débito', 'QR'].includes(sale.paymentMethod) && sale.commission) {
       return sale.total - (sale.total * sale.commission / 100);
     }
-    
+
     // Para transferencias y otros métodos sin comisión
     return sale.total;
   };
@@ -43,7 +43,7 @@ const DailyStats = () => {
   const loadStatsForDate = async (dateType = 'today', customDateValue = null) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       let targetDate;
       let dateLabel;
@@ -157,11 +157,10 @@ const DailyStats = () => {
         </h3>
         <button
           onClick={() => setIsVisible(!isVisible)}
-          className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-            isVisible 
-              ? 'bg-red-100 text-red-700 hover:bg-red-200' 
+          className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${isVisible
+              ? 'bg-red-100 text-red-700 hover:bg-red-200'
               : 'bg-green-100 text-green-700 hover:bg-green-200'
-          }`}
+            }`}
         >
           {isVisible ? '👁️ Ocultar' : '👁️ Mostrar'}
         </button>
@@ -174,31 +173,28 @@ const DailyStats = () => {
           <div className="flex flex-wrap gap-2 mb-4">
             <button
               onClick={() => handleDateSelection('today')}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                selectedDate === 'today'
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${selectedDate === 'today'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               📅 Hoy
             </button>
             <button
               onClick={() => handleDateSelection('yesterday')}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                selectedDate === 'yesterday'
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${selectedDate === 'yesterday'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               📆 Ayer
             </button>
             <button
               onClick={() => handleDateSelection('calendar')}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                showCalendar
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${showCalendar
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               🗓️ Calendario
             </button>
@@ -229,13 +225,7 @@ const DailyStats = () => {
           )}
 
           {/* Mostrar fecha seleccionada */}
-          {stats.dateLabel && (
-            <div className="text-center mb-4">
-              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-                📊 Estadísticas de: {stats.dateLabel}
-              </span>
-            </div>
-          )}
+
 
           {loading ? (
             <div className="flex items-center justify-center py-8">
@@ -309,7 +299,7 @@ const DailyStats = () => {
             <div className="mt-4 p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center justify-between text-sm text-gray-600">
                 <span>
-                  💡 <strong>Diferencia por comisiones:</strong> 
+                  💡 <strong>Diferencia por comisiones:</strong>
                   ${(stats.totalGross - stats.totalNet).toLocaleString()}
                 </span>
                 <button
