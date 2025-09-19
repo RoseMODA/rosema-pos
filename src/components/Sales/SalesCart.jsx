@@ -2,7 +2,7 @@
  * Componente del carrito de compras para ventas
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { formatPrice } from '../../utils/formatters.js';
 
 const SalesCart = ({
@@ -13,6 +13,16 @@ const SalesCart = ({
   onRemoveItem,
   onEditPrice
 }) => {
+  // Estado local para controlar qué items tienen oferta marcada
+  const [offers, setOffers] = useState({});
+
+  const toggleOffer = (itemId) => {
+    setOffers((prev) => ({
+      ...prev,
+      [itemId]: !prev[itemId],
+    }));
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       {/* Encabezado */}
@@ -43,7 +53,7 @@ const SalesCart = ({
         {cart.length > 0 ? (
           <table className="min-w-full border border-gray-200 rounded-lg text-sm">
             <thead className="bg-gray-800 text-white">
-              <tr>
+              <tr className="divide-x divide-gray-300">
                 <th className="px-3 py-2 text-left">Código</th>
                 <th className="px-3 py-2 text-left">Producto</th>
                 <th className="px-3 py-2 text-center">Talle</th>
@@ -52,6 +62,7 @@ const SalesCart = ({
                 <th className="px-3 py-2 text-center">Cantidad</th>
                 <th className="px-3 py-2 text-right">Subtotal</th>
                 <th className="px-3 py-2 text-center">Acciones</th>
+                <th className="px-3 py-2 text-center">Oferta</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-500">
@@ -60,11 +71,13 @@ const SalesCart = ({
                 const quantity = item.qty || item.quantity || 1;
                 const unitPrice = item.customPrice ?? item.price;
                 const totalPrice = unitPrice * quantity;
+                const isOffer = offers[itemId] || false;
 
                 return (
                   <tr
                     key={itemId}
-                    className="hover:bg-gray-50 transition-colors"
+                    className={`transition-colors ${isOffer ? "bg-pink-100" : "hover:bg-gray-50 divide-x divide-gray-300"
+                      }`}
                   >
                     <td className="px-3 py-2 font-medium text-gray-500">
                       {item.productId}
@@ -119,6 +132,14 @@ const SalesCart = ({
                       >
                         🗑️
                       </button>
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <input
+                        type="checkbox"
+                        checked={isOffer}
+                        onChange={() => toggleOffer(itemId)}
+                        className="w-5 h-5 accent-pink-500 cursor-pointer"
+                      />
                     </td>
                   </tr>
                 );
