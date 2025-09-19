@@ -22,15 +22,16 @@ const ProductSearch = ({
     <div className="bg-white rounded-lg shadow-md p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-          <span className="text-xl mr-2">🔍</span>
+          <span className="text-xl mr-2">𝄃𝄂𝄀𝄁𝄃𝄂𝄂𝄃</span>
           Buscar Productos
         </h3>
 
+
         <button
           onClick={onQuickItemClick}
-          className="btn-rosema text-sm flex items-center space-x-1"
+          className="btn-rosema bg-violet-800 hover:bg-violet-700 text-white font-bold text-lm py-3 px-6 rounded-lg transition-colors"
         >
-          <span>➕</span>
+          <span>+</span>
           <span>Artículo Rápido</span>
         </button>
       </div>

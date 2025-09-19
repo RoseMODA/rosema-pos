@@ -52,7 +52,7 @@ const SalesCart = ({
       <div className="overflow-x-auto mb-6">
         {cart.length > 0 ? (
           <table className="min-w-full border border-gray-200 rounded-lg text-sm">
-            <thead className="bg-gray-800 text-white">
+            <thead className="bg-gray-700 text-white">
               <tr className="divide-x divide-gray-300">
                 <th className="px-3 py-2 text-left">Código</th>
                 <th className="px-3 py-2 text-left">Producto</th>
@@ -127,10 +127,10 @@ const SalesCart = ({
                     <td className="px-3 py-2 text-center">
                       <button
                         onClick={() => onRemoveItem(itemId)}
-                        className="w-8 h-8 bg-red-200 hover:bg-red-600 text-white rounded-full flex items-center justify-center"
+                        className="w-8 h-8 bg-red-400 hover:bg-red-600 text-white rounded-full flex items-center justify-center"
                         title="Eliminar producto"
                       >
-                        🗑️
+                        x
                       </button>
                     </td>
                     <td className="px-3 py-2 text-center">

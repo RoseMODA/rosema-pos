@@ -75,7 +75,7 @@ const PaymentForm = ({
         <div className="border-t border-gray-200 pt-4 space-y-2">
           <div className="grid grid-cols-2 text-lm">
             <span>Subtotal:</span>
-            <span className="text-right">{formatPrice(totals.subtotal)}</span>
+            <span className="text-right text-2xl">{formatPrice(totals.subtotal)}</span>
           </div>
 
           {totals.discountValue > 0 && (
@@ -119,10 +119,15 @@ const PaymentForm = ({
       )}
 
       {/* Total */}
-      <div className="border-t border-gray-200 pt-4">
+      <div className="border-t border-gray-200 pt-4 ">
         <div className="flex justify-between items-center font-bold">
           <span className="text-2xl">Total:</span>
-          <span className="text-5xl text-green-600">{formatPrice(totals.total)}</span>
+
+          <span className="text-7xl text-white bg-green-900 px-4 py-2 rounded-lg">
+            <span className="mr-4">$</span>
+            <span>{Number(totals.total).toLocaleString("es-AR")}</span>
+          </span>
+
         </div>
       </div>
     </div>
@@ -139,7 +144,7 @@ const CashPaymentFields = ({ cashReceived, totals, onCashReceivedChange }) => (
         type="number"
         value={cashReceived || ''}
         onChange={(e) => onCashReceivedChange(Number(e.target.value) || 0)}
-        className="w-full input-rosema"
+        className="w-full input-rosema text-2xl"
         placeholder="Ingrese monto recibido"
       />
     </div>
@@ -148,7 +153,7 @@ const CashPaymentFields = ({ cashReceived, totals, onCashReceivedChange }) => (
       <div className="text-lg font-semibold flex items-center">
         <span className="mr-2">Vuelto:</span>
         <span className={totals.change >= 0 ? 'text-blue-600' : 'text-red-600'}>
-          {formatPrice(totals.change)}
+          <span className='text-3xl'>{formatPrice(totals.change)}</span>
         </span>
       </div>
     </div>
