@@ -678,7 +678,7 @@ export const useSales = () => {
 
       const updatedItems = session.items.map(item =>
         (item.lineId === lineId || item.id === lineId)
-          ? { ...item, customPrice: newPrice }
+          ? { ...item, price: newPrice, customPrice: newPrice } // ✅ CORREGIDO: Actualizar tanto price como customPrice
           : item
       );
 
@@ -780,10 +780,15 @@ export const useSales = () => {
     // Funciones legacy (mantener para compatibilidad)
     addQuickItem: (itemData) => salesState.activeSessionId && addItem(salesState.activeSessionId, { ...itemData, isQuickItem: true }),
     addReturnItem: (returnData) => salesState.activeSessionId && addItem(salesState.activeSessionId, { 
-      ...returnData, 
-      isReturn: true, 
+      productId: returnData.productId,
+      name: returnData.nombre || returnData.name,
       price: -Math.abs(returnData.price), // Precio negativo para restar del total
-      qty: returnData.quantity || 1
+      quantity: returnData.quantity || 1,
+      // ✅ CORREGIDO: Mapear correctamente las variantes para devoluciones
+      size: returnData.variant?.talle || null,
+      color: returnData.variant?.color || null,
+      isReturn: true,
+      isQuickItem: false
     }),
     deletePendingSaleData: cancelSession,
     savePendingSaleData: () => Promise.resolve(null), // No necesario con localStorage

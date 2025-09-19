@@ -4,6 +4,7 @@ import { getSalesHistory } from '../../services/salesService';
 /**
  * Componente para mostrar estadísticas diarias de ventas
  * Muestra el dinero neto recibido (considerando comisiones de tarjetas)
+ * MEJORADO: Incluye opciones para ver ayer y seleccionar fecha
  */
 const DailyStats = () => {
   const [stats, setStats] = useState({
@@ -15,6 +16,9 @@ const DailyStats = () => {
   const [loading, setLoading] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [error, setError] = useState(null);
+  const [selectedDate, setSelectedDate] = useState('today');
+  const [customDate, setCustomDate] = useState('');
+  const [showCalendar, setShowCalendar] = useState(false);
 
   /**
    * Calcular dinero neto recibido considerando comisiones
@@ -34,18 +38,40 @@ const DailyStats = () => {
   };
 
   /**
-   * Cargar estadísticas del día actual
+   * Cargar estadísticas para una fecha específica
    */
-  const loadTodayStats = async () => {
+  const loadStatsForDate = async (dateType = 'today', customDateValue = null) => {
     setLoading(true);
     setError(null);
     
     try {
-      const today = new Date();
-      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+      let targetDate;
+      let dateLabel;
 
-      const todaySales = await getSalesHistory({
+      switch (dateType) {
+        case 'today':
+          targetDate = new Date();
+          dateLabel = 'Hoy';
+          break;
+        case 'yesterday':
+          targetDate = new Date();
+          targetDate.setDate(targetDate.getDate() - 1);
+          dateLabel = 'Ayer';
+          break;
+        case 'custom':
+          if (!customDateValue) return;
+          targetDate = new Date(customDateValue);
+          dateLabel = targetDate.toLocaleDateString('es-AR');
+          break;
+        default:
+          targetDate = new Date();
+          dateLabel = 'Hoy';
+      }
+
+      const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+      const endOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate() + 1);
+
+      const sales = await getSalesHistory({
         startDate: startOfDay,
         endDate: endOfDay,
         limit: 1000 // Obtener todas las ventas del día
@@ -54,24 +80,48 @@ const DailyStats = () => {
       let totalNet = 0;
       let totalGross = 0;
 
-      todaySales.forEach(sale => {
+      sales.forEach(sale => {
         const netAmount = calculateNetReceived(sale);
         totalNet += netAmount;
         totalGross += sale.total || 0;
       });
 
       setStats({
-        totalSales: todaySales.length,
+        totalSales: sales.length,
         totalNet,
         totalGross,
-        salesCount: todaySales.length
+        salesCount: sales.length,
+        dateLabel // Agregar etiqueta de fecha
       });
 
     } catch (err) {
-      console.error('Error al cargar estadísticas del día:', err);
+      console.error('Error al cargar estadísticas:', err);
       setError('Error al cargar estadísticas');
     } finally {
       setLoading(false);
+    }
+  };
+
+  /**
+   * Manejar selección de fecha
+   */
+  const handleDateSelection = (dateType) => {
+    setSelectedDate(dateType);
+    if (dateType === 'calendar') {
+      setShowCalendar(true);
+    } else {
+      setShowCalendar(false);
+      loadStatsForDate(dateType);
+    }
+  };
+
+  /**
+   * Manejar fecha personalizada
+   */
+  const handleCustomDate = () => {
+    if (customDate) {
+      loadStatsForDate('custom', customDate);
+      setShowCalendar(false);
     }
   };
 
@@ -80,22 +130,22 @@ const DailyStats = () => {
    */
   useEffect(() => {
     if (isVisible) {
-      loadTodayStats();
+      loadStatsForDate(selectedDate);
     }
   }, [isVisible]);
 
   /**
-   * Recargar estadísticas cada 5 minutos si está visible
+   * Recargar estadísticas cada 5 minutos si está visible (solo para "hoy")
    */
   useEffect(() => {
-    if (!isVisible) return;
+    if (!isVisible || selectedDate !== 'today') return;
 
     const interval = setInterval(() => {
-      loadTodayStats();
+      loadStatsForDate('today');
     }, 5 * 60 * 1000); // 5 minutos
 
     return () => clearInterval(interval);
-  }, [isVisible]);
+  }, [isVisible, selectedDate]);
 
   return (
     <div className="bg-white rounded-lg shadow-md p-4 mb-6">
@@ -120,6 +170,73 @@ const DailyStats = () => {
       {/* Contenido de estadísticas */}
       {isVisible && (
         <div className="space-y-4">
+          {/* Botones de selección de fecha */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            <button
+              onClick={() => handleDateSelection('today')}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                selectedDate === 'today'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              📅 Hoy
+            </button>
+            <button
+              onClick={() => handleDateSelection('yesterday')}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                selectedDate === 'yesterday'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              📆 Ayer
+            </button>
+            <button
+              onClick={() => handleDateSelection('calendar')}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                showCalendar
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              🗓️ Calendario
+            </button>
+          </div>
+
+          {/* Selector de fecha personalizada */}
+          {showCalendar && (
+            <div className="bg-gray-50 p-4 rounded-lg mb-4">
+              <div className="flex items-center space-x-3">
+                <label className="text-sm font-medium text-gray-700">
+                  Seleccionar fecha:
+                </label>
+                <input
+                  type="date"
+                  value={customDate}
+                  onChange={(e) => setCustomDate(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <button
+                  onClick={handleCustomDate}
+                  disabled={!customDate}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Ver Estadísticas
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Mostrar fecha seleccionada */}
+          {stats.dateLabel && (
+            <div className="text-center mb-4">
+              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                📊 Estadísticas de: {stats.dateLabel}
+              </span>
+            </div>
+          )}
+
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-600"></div>
@@ -129,7 +246,7 @@ const DailyStats = () => {
             <div className="text-center py-4">
               <p className="text-red-600 mb-2">{error}</p>
               <button
-                onClick={loadTodayStats}
+                onClick={() => loadStatsForDate(selectedDate)}
                 className="text-sm text-blue-600 hover:text-blue-700"
               >
                 Reintentar
@@ -196,7 +313,7 @@ const DailyStats = () => {
                   ${(stats.totalGross - stats.totalNet).toLocaleString()}
                 </span>
                 <button
-                  onClick={loadTodayStats}
+                  onClick={() => loadStatsForDate(selectedDate, customDate)}
                   className="text-blue-600 hover:text-blue-700 flex items-center space-x-1"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

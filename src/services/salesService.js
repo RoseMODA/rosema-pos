@@ -191,16 +191,23 @@ export const processSale = async (saleData) => {
 
     console.log('🔄 Procesando venta con items:', items);
 
-    // Validar stock disponible antes de procesar
+    // Validar stock disponible antes de procesar (SOLO para ventas normales, NO para devoluciones)
     for (const item of items) {
-      if (item.productId && !item.isQuickItem) {
+      if (item.productId && !item.isQuickItem && !item.isReturn) {
         console.log(`🔍 Validando stock para producto ${item.productId}, talle: ${item.size}, color: ${item.color}`);
-        await validateVariantStock(
-          item.productId, 
-          item.size, // usar 'size' que viene del frontend
-          item.color, 
-          item.quantity
-        );
+        // ✅ CORREGIDO: Solo validar stock si NO es una devolución
+        if (item.size && item.color) {
+          await validateVariantStock(
+            item.productId, 
+            item.size, // usar 'size' que viene del frontend
+            item.color, 
+            item.quantity
+          );
+        } else {
+          console.log(`⚠️ Saltando validación de stock para item sin variante completa: ${item.name}`);
+        }
+      } else if (item.isReturn) {
+        console.log(`🔄 Item de devolución detectado, saltando validación de stock: ${item.name}`);
       }
     }
 
