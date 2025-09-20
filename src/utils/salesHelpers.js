@@ -3,6 +3,7 @@
  */
 
 import { roundToNearest500, calculateSaleTotal } from './calculations.js';
+import dayjs from "dayjs";
 
 /**
  * Buscar productos con prioridad por código de barras
@@ -91,7 +92,17 @@ export const formatSessionsForUI = (sessions) => {
 /**
  * Preparar datos para recibo
  */
-export const prepareReceiptData = (cart, totals, paymentMethod, customerName, cashReceived) => {
+export const prepareReceiptData = (cart, totals, paymentMethod, customerName, cashReceived,customSaleDate = null) => {
+
+    // customSaleDate puede ser Date o string "YYYY-MM-DD"
+  let dateToUse;
+  if (customSaleDate instanceof Date) {
+    dateToUse = customSaleDate;
+  } else if (customSaleDate) {
+    dateToUse = dayjs(customSaleDate).toDate();
+  } else {
+    dateToUse = new Date();
+  }       // por defecto, ahora mismo
   return {
     saleNumber: `PREV-${Date.now()}`, // Número temporal para vista previa
     items: cart.map(item => ({
@@ -99,7 +110,6 @@ export const prepareReceiptData = (cart, totals, paymentMethod, customerName, ca
       code: item.productId || item.id || 'N/A',
       quantity: item.qty || item.quantity || 1,
       price: item.price || 0,
-      // Incluir información de variantes
       talle: item.variant?.talle,
       color: item.variant?.color,
       isReturn: item.isReturn || false,
@@ -109,12 +119,12 @@ export const prepareReceiptData = (cart, totals, paymentMethod, customerName, ca
     paymentMethod: paymentMethod || 'Efectivo',
     subtotal: totals.subtotal || 0,
     discount: totals.discountValue || 0,
-    discountValue: totals.discountValue || 0, // Para compatibilidad
+    discountValue: totals.discountValue || 0,
     total: totals.total || 0,
     cashReceived: cashReceived || 0,
     change: totals.change || 0,
-    saleDate: new Date(),
-    createdAt: new Date()
+    saleDate: dateToUse,
+    createdAt: dateToUse
   };
 };
 

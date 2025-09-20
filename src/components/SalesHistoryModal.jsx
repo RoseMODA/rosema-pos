@@ -278,111 +278,71 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
         </div>
 
         {/* Lista de ventas */}
-        <div className="flex-1 overflow-y-auto">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
-              <span className="ml-3 text-gray-600">Cargando historial...</span>
-            </div>
-          ) : salesHistory.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <p>No hay ventas registradas</p>
-              <p className="text-sm">Las ventas aparecerán aquí una vez que proceses la primera venta</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-200">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">N° Venta</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Método</th>
+
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
+                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+
+
+                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
               {salesHistory.map((sale) => (
-                <div key={sale.id} className="p-6 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      {/* Información principal */}
-                      <div className="flex items-center space-x-4 mb-2">
-                        <h4 className="font-medium text-gray-900">
-                          {sale.customerName || 'Cliente sin nombre'}
-                        </h4>
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPaymentMethodColor(sale.paymentMethod)}`}>
-                          {sale.paymentMethod}
-                        </span>
-                        <span className="text-sm text-gray-500">
-                          {formatDate(sale.saleDate)}
-                        </span>
-                      </div>
+                <tr key={sale.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-2 font-medium text-xs text-gray-500">
+                    {sale.saleNumber || sale.id.slice(-8).toUpperCase()}
+                  </td>
+                  <td className="px-4 py-2 text-sm">
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPaymentMethodColor(sale.paymentMethod)}`}>
+                      {sale.paymentMethod}
+                    </span>
+                  </td>
 
-                      {/* Número de venta */}
-                      <div className="mb-2">
-                        <span className="text-xs text-gray-500">
-                          N° Venta: {sale.id.slice(-8).toUpperCase()}
-                        </span>
-                      </div>
+                  <td className="px-4 py-2 text-sm text-gray-700">
+                    {sale.customerName || '__'}
+                  </td>
+                  <td className="px-4 py-2 text-right text-sm font-semibold text-green-600">
+                    ${sale.total?.toLocaleString() || '0'}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-gray-500">
+                    {formatDate(sale.saleDate)}
+                  </td>
 
-                      {/* Items */}
-                      <div className="mb-3">
-                        <p className="text-sm text-gray-600 mb-1">
-                          {sale.items?.length || 0} artículo(s):
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {sale.items?.slice(0, 3).map((item, index) => (
-                            <span key={index} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                              {item.quantity}x {item.name}
-                            </span>
-                          ))}
-                          {sale.items?.length > 3 && (
-                            <span className="text-xs text-gray-400">
-                              +{sale.items.length - 3} más
-                            </span>
-                          )}
-                        </div>
-                      </div>
 
-                      {/* Totales */}
-                      <div className="flex items-center space-x-6 text-sm">
-                        <span className="text-gray-600">
-                          Subtotal: ${sale.subtotal?.toLocaleString() || '0'}
-                        </span>
-                        {sale.discount > 0 && (
-                          <span className="text-orange-600">
-                            Descuento: -${sale.discount?.toLocaleString()}
-                          </span>
-                        )}
-                        <span className="font-semibold text-green-600">
-                          Total: ${sale.total?.toLocaleString() || '0'}
-                        </span>
-                      </div>
-                    </div>
+                  <td className="px-4 py-2 text-center space-x-2">
+                    <button
+                      onClick={() => setSelectedSale(sale)}
+                      className="text-blue-600 hover:text-blue-700 text-sm"
+                    >
+                      Ver
+                    </button>
+                    <button
+                      onClick={() => handlePrintReceipt(sale)}
+                      className="text-green-600 hover:text-green-700 text-sm "
+                    >
+                      Imprimir
+                    </button>
 
-                    {/* Acciones */}
-                    <div className="flex items-center space-x-2 ml-4">
-                      <button
-                        onClick={() => handlePrintReceipt(sale)}
-                        className="text-green-600 hover:text-green-700 text-sm font-medium flex items-center space-x-1"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                        </svg>
-                        <span>Imprimir</span>
-                      </button>
-                      <button
-                        onClick={() => setSelectedSale(sale)}
-                        className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                      >
-                        Ver Detalle
-                      </button>
-                      <button
-                        onClick={() => setShowDeleteConfirm(sale.id)}
-                        className="text-red-600 hover:text-red-700 text-sm font-medium"
-                      >
-                        Eliminar
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                    <button
+                      onClick={() => setShowDeleteConfirm(sale.id)}
+                      className="text-bold text-red-600 hover:text-red-700 text-lm"
+                    >
+                      X
+                    </button>
+                  </td>
+                </tr>
               ))}
-            </div>
-          )}
+            </tbody>
+          </table>
         </div>
+
 
         {/* Footer */}
         <div className="p-6 border-t border-gray-200">
@@ -424,8 +384,11 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-gray-500">N° Venta</label>
-                    <p className="text-gray-900 font-mono">{selectedSale.id.slice(-8).toUpperCase()}</p>
+                    <p className="text-gray-900 font-mono">
+                      {selectedSale.saleNumber || selectedSale.id.slice(-8).toUpperCase()}
+                    </p>
                   </div>
+
                   <div>
                     <label className="text-sm font-medium text-gray-500">Cliente</label>
                     <p className="text-gray-900">{selectedSale.customerName || 'Sin nombre'}</p>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { searchProductsForSale, getProductByBarcode, processSale, validateVariantStock } from '../services/salesService';
 import { useProviders } from '../hooks/useProviders';
+import dayjs from "dayjs";
 
 /**
  * Interfaz principal de ventas con búsqueda de productos y gestión de carrito
@@ -229,7 +230,20 @@ const SalesInterface = ({ onSaleComplete }) => {
 
       setLoading(true);
       setErrors({});
+      // --- NUEVO: manejar fecha personalizada ---
+      let finalDate;
+      const today = dayjs().format("YYYY-MM-DD");
 
+      if (typeof saleDate !== "undefined") {
+        if (saleDate === today) {
+          finalDate = new Date().toISOString(); // venta de hoy, con hora actual
+        } else {
+          finalDate = dayjs(saleDate).startOf("day").toISOString(); // venta retroactiva
+        }
+      } else {
+        // fallback si no hay saleDate en este componente
+        finalDate = new Date().toISOString();
+      }
       const saleData = {
         items: cart,
         paymentMethod,
@@ -237,7 +251,8 @@ const SalesInterface = ({ onSaleComplete }) => {
         total,
         cashReceived: paymentMethod === 'Efectivo' ? parseFloat(cashReceived) : total,
         change: paymentMethod === 'Efectivo' ? parseFloat(cashReceived) - total : 0,
-        customerName: customerName.trim()
+        customerName: customerName.trim(),
+        date: finalDate // <- ✅ guardar fecha/hora aquí
       };
 
       const result = await processSale(saleData);

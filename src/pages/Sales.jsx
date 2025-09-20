@@ -145,8 +145,19 @@ const Sales = () => {
       const confirmMessage = generateSaleConfirmationMessage(totals, paymentMethod, discountPercent);
       if (!confirm(confirmMessage)) return;
 
+      let finalDate;
+      const today = dayjs().format("YYYY-MM-DD");
+
+      if (saleDate === today) {
+        // Venta de hoy → fecha y hora exactas
+        finalDate = new Date().toISOString();
+      } else {
+        // Venta retroactiva → fecha seleccionada sin hora (00:00)
+        finalDate = dayjs(saleDate).startOf("day").toISOString();
+      }
+
       // ✅ MEJORADO: Pasar fecha personalizada al procesar venta
-      await finalizeSession(activeSessionId, saleDate);
+      await finalizeSession(activeSessionId, finalDate);
       alert(MESSAGES.SUCCESS.SALE_PROCESSED || 'Venta procesada exitosamente');
     } catch (error) {
       alert(`❌ Error al procesar venta: ${error.message}`);
@@ -158,7 +169,18 @@ const Sales = () => {
       alert('No hay productos en el carrito para imprimir');
       return;
     }
-    const receiptData = prepareReceiptData(cart, totals, paymentMethod, customerName, cashReceived);
+    const today = dayjs().format("YYYY-MM-DD");
+
+    let finalDate;
+    if (saleDate === today) {
+      // Venta de hoy → hora exacta
+      finalDate = new Date();
+    } else {
+      // Venta retroactiva → solo fecha a medianoche
+      finalDate = dayjs(saleDate).startOf("day").toDate();
+    }
+
+    const receiptData = prepareReceiptData(cart, totals, paymentMethod, customerName, cashReceived, finalDate);
     openModal('print', receiptData);
   };
 
