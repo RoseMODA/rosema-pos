@@ -23,6 +23,11 @@ import SessionTabs from '../components/Sales/SessionTabs';
 import PaymentForm from '../components/Sales/PaymentForm';
 import SalesCart from '../components/Sales/SalesCart';
 import DailyStats from '../components/Sales/DailyStats';
+import dayjs from "dayjs";
+import "dayjs/locale/es"; // esto viene dentro de dayjs, no hay que instalarlo aparte
+
+dayjs.locale("es"); // activa español
+
 
 const Sales = () => {
   // ✅ NUEVO: Estado para fecha de venta personalizada
@@ -173,14 +178,11 @@ const Sales = () => {
         <div className="flex flex-wrap gap-2">
           <button onClick={handleNewSale} className="btn-rosema">+ Nueva Venta</button>
           <button onClick={() => openModal('history')} className="btn-secondary">🕒 Historial</button>
-          <button onClick={resetAllSessions} className="bg-violet-800 hover:bg-violet-700 text-white font-bold text-lm py-3 px-6 rounded-lg transition-colors">Borrar Venta</button>
+          <button onClick={resetAllSessions} className="bg-violet-800 hover:bg-violet-700 text-white font-bold text-lm py-3 px-6 rounded-lg transition-colors">Limpiar Ventas</button>
         </div>
       </div>
 
-      {/* ESTADÍSTICAS */}
-      <div className="w-full max-w-6xl">
-        <DailyStats />
-      </div>
+
 
       {/* TABS DE SESIONES */}
       <SessionTabs
@@ -235,17 +237,15 @@ const Sales = () => {
               <div className="text-center">
                 <p className="text-lg font-semibold text-gray-900">
                   {(() => {
-                    const fecha = new Date(saleDate).toLocaleDateString('es-AR', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    });
+                    const fecha = dayjs(saleDate)
+                      .locale("es")
+                      .format("dddd, D [de] MMMM [de] YYYY");
                     return fecha.charAt(0).toUpperCase() + fecha.slice(1);
                   })()}
                 </p>
 
-                {saleDate !== new Date().toISOString().split('T')[0] && (
+
+                {saleDate !== dayjs().format("YYYY-MM-DD") && (
                   <p className="text-sm text-orange-600 mt-1">
                     ⚠️ Fecha personalizada seleccionada
                   </p>
@@ -263,7 +263,7 @@ const Sales = () => {
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                     <button
-                      onClick={() => setSaleDate(new Date().toISOString().split('T')[0])}
+                      onClick={() => setSaleDate(dayjs().format("YYYY-MM-DD"))}
                       className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200"
                     >
                       Hoy
@@ -274,12 +274,14 @@ const Sales = () => {
                   </p>
                 </div>
               )}
+
             </div>
           </div>
         </div>
 
         {/* FILA 2: Carrito + Información de pago  */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[4fr_2fr] gap-6">
+
           <SalesCart
             cart={cart}
             customerName={customerName}
@@ -326,6 +328,10 @@ const Sales = () => {
 
 
         </div>
+      </div>
+      {/* ESTADÍSTICAS */}
+      <div className="w-full max-w-6xl">
+        <DailyStats />
       </div>
 
       {/* MODALES */}

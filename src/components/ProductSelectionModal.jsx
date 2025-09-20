@@ -1,49 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-/**
- * Modal para seleccionar variante (talla y color) al agregar un producto al carrito
- * Actualizado para trabajar con la estructura de variantes de Firebase
- */
-const ProductSelectionModal = ({
-  product,
-  show,
-  onClose,
-  onAddToCart
-}) => {
+const ProductSelectionModal = ({ product, show, onClose, onAddToCart }) => {
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [quantity, setQuantity] = useState(1);
 
-  /**
-   * Manejar confirmación de selección
-   */
   const handleConfirm = () => {
     if (!selectedVariant) {
       alert('Por favor seleccione una variante');
       return;
     }
-
     if (quantity > selectedVariant.stock) {
       alert(`Stock insuficiente. Disponible: ${selectedVariant.stock}`);
       return;
     }
-
     if (quantity <= 0) {
       alert('La cantidad debe ser mayor a 0');
       return;
     }
-
     onAddToCart(product, quantity, selectedVariant);
     handleClose();
   };
 
-  /**
-   * Cerrar modal y limpiar selecciones
-   */
   const handleClose = () => {
     setSelectedVariant(null);
     setQuantity(1);
     onClose();
   };
+
+  // 👇 Capturar Enter
+  useEffect(() => {
+    if (!show) return; // solo cuando el modal está abierto
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault(); // evitar que haga submit u otra acción
+        handleConfirm();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [show, selectedVariant, quantity]); // dependencias
 
   if (!show || !product) return null;
 
@@ -83,82 +82,51 @@ const ProductSelectionModal = ({
           {availableVariants.length > 0 && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Variantes Disponibles *
+                Talles Disponibles *
               </label>
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {availableVariants.map((variant, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedVariant(variant)}
-                    className={`w-full p-4 text-left rounded-lg border transition-colors ${selectedVariant === variant
-                      ? 'bg-red-600 text-white border-red-600'
-                      : 'bg-white text-gray-700 border-gray-300 hover:border-red-300'
-                      }`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="font-medium">
-                          Talle: {variant.talle}
-                          {variant.color && ` • Color: ${variant.color}`}
-                        </div>
-                        <div className="text-lg font-semibold text-green-600">
+              <div className="max-h-60 overflow-y-auto border rounded-lg">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-gray-100 text-gray-700 sticky top-0">
+                    <tr>
+                      <th className="px-4 py-2">Talle</th>
+                      <th className="px-4 py-2">Color</th>
+                      <th className="px-4 py-2">Precio</th>
+                      <th className="px-4 py-2">Stock</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {availableVariants.map((variant, index) => (
+                      <tr
+                        key={index}
+                        onClick={() => setSelectedVariant(variant)}
+                        className={`cursor-pointer transition-colors ${selectedVariant === variant
+                          ? "bg-red-600 text-white"
+                          : "hover:bg-red-50"
+                          }`}
+                      >
+                        <td className="px-4 py-2 font-medium">{variant.talle}</td>
+                        <td className="px-4 py-2">{variant.color || "-"}</td>
+                        <td className="px-4 py-2 font-semibold text-green-600">
                           ${variant.precioVenta?.toLocaleString()}
-                        </div>
-                      </div>
-                      <div className={`text-sm ${variant.stock <= 5 ? 'text-red-600' : 'text-gray-600'}`}>
-                        Stock: {variant.stock}
-                      </div>
-                    </div>
-                  </button>
-                ))}
+                        </td>
+                        <td
+                          className={`px-4 py-2 text-sm ${variant.stock <= 5 ? "text-red-600" : "text-gray-600"
+                            }`}
+                        >
+                          {variant.stock}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
+
             </div>
           )}
 
-          {/* Selección de cantidad */}
-          {selectedVariant && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Cantidad
-              </label>
-              <div className="flex items-center space-x-3">
-                <button
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-8 h-8 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded-full transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                  </svg>
-                </button>
 
-                <span className="w-12 text-center font-medium text-lg">{quantity}</span>
 
-                <button
-                  onClick={() => setQuantity(Math.min(selectedVariant.stock, quantity + 1))}
-                  className="w-8 h-8 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded-full transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                </button>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Stock disponible: {selectedVariant.stock}
-              </p>
-            </div>
-          )}
 
-          {/* Total */}
-          {selectedVariant && (
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="flex justify-between items-center">
-                <span className="font-medium text-gray-900">Total:</span>
-                <span className="text-xl font-bold text-green-600">
-                  ${(selectedVariant.precioVenta * quantity).toLocaleString()}
-                </span>
-              </div>
-            </div>
-          )}
 
           {/* Mensaje si no hay variantes */}
           {availableVariants.length === 0 && (

@@ -25,6 +25,18 @@ const SalesCart = ({
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
+
+      {/* Campo de cliente */}
+      <div className="mb-6">
+        <input
+          type="text"
+          placeholder="Nombre del Cliente (Opcional)"
+          value={customerName}
+          onChange={(e) => onCustomerNameChange(e.target.value)}
+          className="w-full input-rosema"
+        />
+      </div>
+
       {/* Encabezado */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900 flex items-center">
@@ -37,35 +49,26 @@ const SalesCart = ({
         </div>
       </div>
 
-      {/* Campo de cliente */}
-      <div className="mb-6">
-        <input
-          type="text"
-          placeholder="Cliente (Opcional)"
-          value={customerName}
-          onChange={(e) => onCustomerNameChange(e.target.value)}
-          className="w-full input-rosema"
-        />
-      </div>
 
-      {/* Tabla de productos */}
-      <div className="overflow-x-auto mb-6">
+
+      {/* Tabla de productos en carrito – con bordes redondeados */}
+      <div className="overflow-x-auto mb-6 rounded-lg border border-gray-200">
         {cart.length > 0 ? (
-          <table className="min-w-full border border-gray-200 rounded-lg text-sm">
-            <thead className="bg-gray-700 text-white">
-              <tr className="divide-x divide-gray-300">
-                <th className="px-3 py-2 text-left">Código</th>
-                <th className="px-3 py-2 text-left">Producto</th>
-                <th className="px-3 py-2 text-center">Talle</th>
-                <th className="px-3 py-2 text-center">Color</th>
-                <th className="px-3 py-2 text-right">Precio</th>
-                <th className="px-3 py-2 text-center">Cantidad</th>
-                <th className="px-3 py-2 text-right">Subtotal</th>
-                <th className="px-3 py-2 text-center">Acciones</th>
-                <th className="px-3 py-2 text-center">Oferta</th>
+          <table className="min-w-full  rounded-lg text-sm">
+            <thead className="bg-gray-100 text-gray-700 rounded-t-lg">
+              <tr>
+                <th className="px-4 py-3 text-left rounded-tl-lg">Código</th>
+                <th className="px-4 py-3 text-left">Producto</th>
+                <th className="px-4 py-3 text-center">Talle</th>
+                <th className="px-4 py-3 text-center">Color</th>
+                <th className="px-4 py-3 text-right">Precio</th>
+                <th className="px-4 py-3 text-center">Cantidad</th>
+                <th className="px-4 py-3 text-right">Subtotal</th>
+                <th className="px-4 py-3 text-center">Acciones</th>
+                <th className="px-4 py-3 text-center rounded-tr-lg">Oferta</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-500">
+            <tbody className="divide-y divide-gray-200">
               {cart.map((item) => {
                 const itemId = item.lineId || item.id;
                 const quantity = item.qty || item.quantity || 1;
@@ -76,64 +79,58 @@ const SalesCart = ({
                 return (
                   <tr
                     key={itemId}
-                    className={`transition-colors ${isOffer ? "bg-pink-100" : "hover:bg-gray-50 divide-x divide-gray-300"
+                    className={`transition-colors ${isOffer ? "bg-pink-50" : "hover:bg-gray-50"
                       }`}
                   >
-                    <td className="px-3 py-2 font-medium text-gray-500">
-                      {item.productId}
-                    </td>
-                    <td className="px-3 py-2 font-medium">
+                    <td className="px-4 py-3 text-gray-600">{item.productId}</td>
+                    <td className="px-4 py-3 font-medium text-gray-800">
                       {item.nombre || item.name}
                     </td>
-                    <td className="px-3 py-2 text-center">
-                      {item.variant?.talle || "N/A"}
+                    <td className="px-4 py-3 text-center">
+                      {item.variant?.talle || "—"}
                     </td>
-                    <td className="px-3 py-2 text-center">
+                    <td className="px-4 py-3 text-center">
                       {item.variant?.color || "—"}
                     </td>
-                    <td className="px-3 py-2 text-right">
-                      {formatPrice(unitPrice)}{" "}
+                    <td className="px-4 py-3 text-right font-semibold text-green-700">
+                      {formatPrice(unitPrice)}
                       <button
                         onClick={() => onEditPrice?.(item)}
-                        className="text-xs text-blue-600 underline hover:text-blue-800 ml-1"
+                        className="text-xs text-blue-600 underline hover:text-blue-800 ml-2"
                       >
                         Editar
                       </button>
                     </td>
-                    <td className="px-3 py-2 text-center">
-                      <div className="flex items-center justify-center space-x-1">
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex items-center justify-center space-x-2">
                         <button
-                          onClick={() =>
-                            onUpdateQuantity(itemId, quantity - 1)
-                          }
-                          className="w-6 h-6 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center"
+                          onClick={() => onUpdateQuantity(itemId, quantity - 1)}
+                          className="w-7 h-7 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-lg font-bold"
                         >
                           −
                         </button>
-                        <span className="w-6 text-center">{quantity}</span>
+                        <span className="w-6 text-center font-medium">{quantity}</span>
                         <button
-                          onClick={() =>
-                            onUpdateQuantity(itemId, quantity + 1)
-                          }
-                          className="w-6 h-6 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center"
+                          onClick={() => onUpdateQuantity(itemId, quantity + 1)}
+                          className="w-7 h-7 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-lg font-bold"
                         >
                           +
                         </button>
                       </div>
                     </td>
-                    <td className="px-3 py-2 text-right font-bold">
+                    <td className="px-4 py-3 text-right font-bold text-gray-800">
                       {formatPrice(totalPrice)}
                     </td>
-                    <td className="px-3 py-2 text-center">
+                    <td className="px-4 py-3 text-center">
                       <button
                         onClick={() => onRemoveItem(itemId)}
-                        className="w-8 h-8 bg-red-400 hover:bg-red-600 text-white rounded-full flex items-center justify-center"
+                        className="w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center"
                         title="Eliminar producto"
                       >
-                        x
+                        ×
                       </button>
                     </td>
-                    <td className="px-3 py-2 text-center">
+                    <td className="px-4 py-3 text-center">
                       <input
                         type="checkbox"
                         checked={isOffer}
@@ -145,11 +142,17 @@ const SalesCart = ({
                 );
               })}
             </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan={9} className="rounded-b-lg"></td>
+              </tr>
+            </tfoot>
           </table>
         ) : (
           <EmptyCartMessage />
         )}
       </div>
+
     </div>
   );
 };
