@@ -31,6 +31,7 @@ dayjs.locale("es"); // activa español
 
 const Sales = () => {
   // ✅ NUEVO: Estado para fecha de venta personalizada
+  const searchInputRef = React.useRef(null);
   const [saleDate, setSaleDate] = React.useState(new Date().toISOString().split('T')[0]);
   const [showDatePicker, setShowDatePicker] = React.useState(false);
 
@@ -76,6 +77,7 @@ const Sales = () => {
     resetAllSessions,
   } = useSales();
 
+
   // Hook de búsqueda de productos
   const {
     searchTerm,
@@ -103,6 +105,12 @@ const Sales = () => {
 
   const pendingSales = formatSessionsForUI(sessions);
   const productStats = getProductStats();
+
+  React.useEffect(() => {
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [activeSessionId]); // se dispara al entrar y al cambiar sesión
 
   function handleProductSelection(product, quantity = 1, variant = null, needsModal = false) {
     if (needsModal) {
@@ -199,6 +207,7 @@ const Sales = () => {
         {/* FILA 1: Buscar producto + Botón cambio */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <ProductSearch
+            ref={searchInputRef}
             searchTerm={searchTerm}
             searchResults={searchResults}
             showResults={showResults}

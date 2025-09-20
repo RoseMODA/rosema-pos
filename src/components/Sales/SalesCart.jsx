@@ -44,7 +44,7 @@ const SalesCart = ({
           Carrito de Compra
         </h3>
 
-        <div className="w-8 h-8 bg-gray-800 hover:bg-gray-900 text-white rounded-lg flex items-center justify-center transition-colors">
+        <div className="w-8 h-8 bg-gray-500 hover:bg-gray-500 text-white rounded-lg flex items-center justify-center transition-colors">
           <span className="text-sm font-bold">{cart.length}</span>
         </div>
       </div>
@@ -55,16 +55,16 @@ const SalesCart = ({
       <div className="overflow-x-auto mb-6 rounded-lg border border-gray-200">
         {cart.length > 0 ? (
           <table className="min-w-full  rounded-lg text-sm">
-            <thead className="bg-gray-100 text-gray-700 rounded-t-lg">
+            <thead className="bg-gray-200 text-gray-700 rounded-t-lg">
               <tr>
                 <th className="px-4 py-3 text-left rounded-tl-lg">Código</th>
                 <th className="px-4 py-3 text-left">Producto</th>
                 <th className="px-4 py-3 text-center">Talle</th>
                 <th className="px-4 py-3 text-center">Color</th>
-                <th className="px-4 py-3 text-right">Precio</th>
+                <th className="px-4 py-3 text-left">Precio</th>
                 <th className="px-4 py-3 text-center">Cantidad</th>
                 <th className="px-4 py-3 text-right">Subtotal</th>
-                <th className="px-4 py-3 text-center">Acciones</th>
+                <th className="px-4 py-3 text-center">Quitar</th>
                 <th className="px-4 py-3 text-center rounded-tr-lg">Oferta</th>
               </tr>
             </thead>
@@ -92,7 +92,7 @@ const SalesCart = ({
                     <td className="px-4 py-3 text-center">
                       {item.variant?.color || "—"}
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold text-green-700">
+                    <td className="px-4 py-3 text-center font-semibold text-green-700">
                       {formatPrice(unitPrice)}
                       <button
                         onClick={() => onEditPrice?.(item)}
@@ -121,10 +121,10 @@ const SalesCart = ({
                     <td className="px-4 py-3 text-right font-bold text-gray-800">
                       {formatPrice(totalPrice)}
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-8 py-3 text-center">
                       <button
                         onClick={() => onRemoveItem(itemId)}
-                        className="w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center"
+                        className="w-8 h-8 bg-red-500 hover:bg-red-600 text-white  rounded-full flex items-center justify-center "
                         title="Eliminar producto"
                       >
                         ×

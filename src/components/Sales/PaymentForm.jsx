@@ -187,31 +187,48 @@ const PaymentForm = ({
   );
 };
 
-const CashPaymentFields = ({ cashReceived, totals, onCashReceivedChange }) => (
-  <div className="grid grid-cols-2 gap-4">
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Recibido en Efectivo
-      </label>
-      <input
-        type="number"
-        value={cashReceived || ''}
-        onChange={(e) => onCashReceivedChange(Number(e.target.value) || 0)}
-        className="w-full input-rosema text-2xl"
-        placeholder="Ingrese monto recibido"
-      />
-    </div>
+const CashPaymentFields = ({ cashReceived, totals, onCashReceivedChange }) => {
+  let change = 0
+  let isNegative = false
 
-    <div className="flex flex-col justify-center">
-      <div className="text-lg font-semibold flex items-center">
-        <span className="mr-2">Vuelto:</span>
-        <span className={totals.change >= 0 ? 'text-blue-600' : 'text-red-600'}>
-          <span className='text-3xl'>{formatPrice(totals.change)}</span>
-        </span>
+  if (cashReceived > 0) {
+    change = cashReceived - totals.total
+    isNegative = change < 0
+  }
+
+  const displayValue = isNegative
+    ? `- ${formatPrice(Math.abs(change))}`
+    : formatPrice(change)
+
+  return (
+    <div className="grid grid-cols-2 gap-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Recibido en Efectivo
+        </label>
+        <input
+          type="number"
+          value={cashReceived || ''}
+          onChange={(e) => onCashReceivedChange(Number(e.target.value) || 0)}
+          className="w-full input-rosema text-2xl"
+          placeholder="$ Ingrese monto"
+        />
+      </div>
+
+      <div className="flex flex-col justify-center">
+        <div className="text-lg font-semibold flex items-center">
+          <span className="mr-2">Vuelto:</span>
+          <span className={isNegative ? 'text-red-600' : 'text-blue-600'}>
+            <span className="text-3xl">{displayValue}</span>
+          </span>
+        </div>
       </div>
     </div>
-  </div>
-);
+  )
+}
+
+
+
 
 const CreditPaymentFields = ({
   cardName,

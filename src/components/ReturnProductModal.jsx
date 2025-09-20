@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-
+import React, { useState, useEffect } from 'react';
 /**
  * Modal para seleccionar variante en cambios de prenda
  * Permite seleccionar variantes con stock 0 (para devoluciones)
@@ -60,6 +59,22 @@ const ReturnProductModal = ({
     onClose();
   };
 
+  // Detectar tecla Enter
+  useEffect(() => {
+    if (!show) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Enter' && selectedVariant) {
+        e.preventDefault(); // evita submit de formularios
+        handleConfirm();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [show, selectedVariant]); // depende de show y variant
+
+
   if (!show || !product) return null;
 
   return (
@@ -86,49 +101,58 @@ const ReturnProductModal = ({
           <div className="bg-gray-50 rounded-lg p-4">
             <h4 className="font-medium text-gray-900">{product.articulo}</h4>
             <p className="text-sm text-gray-600">Código: {product.id}</p>
-            <p className="text-xs text-blue-600 mt-1">
-              * Se pueden seleccionar variantes sin stock para devoluciones
-            </p>
+
           </div>
 
-          {/* Lista de todas las variantes (incluyendo sin stock) */}
+          {/* Lista de todas las variantes (máximo 12 visibles sin scroll) */}
           {product.variantes && product.variantes.length > 0 && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Variante Devuelta *
+                Talle Devuelto *
               </label>
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {product.variantes.map((variant, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedVariant(variant)}
-                    className={`w-full p-4 text-left rounded-lg border transition-colors ${selectedVariant === variant
-                      ? 'bg-red-600 text-white border-red-600'
-                      : 'bg-white text-gray-700 border-gray-300 hover:border-red-300'
-                      }`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="font-medium">
-                          Talle: {variant.talle}
-                          {variant.color && ` • Color: ${variant.color}`}
-                        </div>
-                        <div className="text-lg font-semibold text-green-600">
-                          ${variant.precioVenta?.toLocaleString()}
-                        </div>
-                      </div>
-                      <div className={`text-sm ${variant.stock <= 0 ? 'text-red-600' : 'text-gray-600'}`}>
-                        Stock: {variant.stock}
-                        {variant.stock <= 0 && (
-                          <span className="block text-xs text-red-500">Sin stock</span>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                ))}
+
+              <div className="border rounded-lg">
+                <table className="w-full text-sm text-left borders-collapse">
+                  <thead className="bg-gray-100 text-gray-700 sticky top-0">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">Talle</th>
+                      <th className="px-3 py-2 font-medium">Color</th>
+                      <th className="px-3 py-2 font-medium">Precio</th>
+                      <th className="px-3 py-2 font-medium">Stock</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {product.variantes.slice(0, 12).map((variant, index) => {
+                      const isSelected = selectedVariant === variant
+                      return (
+                        <tr
+                          key={index}
+                          onClick={() => setSelectedVariant(variant)}
+                          className={`cursor-pointer transition-colors ${isSelected
+                            ? 'bg-red-600 text-white'
+                            : 'hover:bg-gray-50'
+                            }`}
+                        >
+                          <td className="px-3 py-2">{variant.talle}</td>
+                          <td className="px-3 py-2">{variant.color || '-'}</td>
+                          <td className="px-3 py-2 font-semibold">
+                            ${variant.precioVenta?.toLocaleString()}
+                          </td>
+                          <td
+                            className={`px-3 py-2 ${variant.stock <= 0 ? 'text-red-600' : ''
+                              }`}
+                          >
+                            {variant.stock > 0 ? variant.stock : 'Sin stock'}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
+
 
           {/* Campo de descuento aplicado */}
           {selectedVariant && (
@@ -182,8 +206,8 @@ const ReturnProductModal = ({
               <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
               </svg>
-              <p>No hay variantes disponibles</p>
-              <p className="text-sm">Este producto no tiene variantes configuradas</p>
+              <p>No hay talles disponibles</p>
+              <p className="text-sm">Este producto no tiene talles configurados</p>
             </div>
           )}
         </div>
