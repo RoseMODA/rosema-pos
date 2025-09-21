@@ -231,6 +231,19 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
+  // Agrupar ventas por día
+  const groupSalesByDay = (sales) => {
+    return sales.reduce((groups, sale) => {
+      const dateKey = dayjs(sale.saleDate).format("dddd DD/MM/YYYY"); // ej: "viernes 19/09/2025"
+      if (!groups[dateKey]) {
+        groups[dateKey] = [];
+      }
+      groups[dateKey].push(sale);
+      return groups;
+    }, {});
+  };
+
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] flex flex-col">
@@ -332,111 +345,124 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
             </thead>
 
             <tbody className="bg-blue-50 divide-y divide-blue-800">
-              {salesHistory.map((sale) => (
-                <React.Fragment key={sale.id}>
-                  {/* Fila principal de la venta */}
-                  <tr className="hover:bg-blue-50">
-                    <td className="px-4 py-2 font-medium text-xs text-gray-500">
-                      {sale.saleNumber || sale.id.slice(-8).toUpperCase()}
-                    </td>
-                    <td className="px-4 py-2 text-sm">
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full ${getPaymentMethodColor(
-                          sale.paymentMethod
-                        )}`}
-                      >
-                        {sale.paymentMethod}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-700 font-bold">
-                      {sale.customerName || "__"}
-                    </td>
-                    <td className="px-4 py-2 text-right text-sm font-semibold text-green-600">
-                      ${sale.total?.toLocaleString() || "0"}
-                    </td>
-                    <td className="px-4 py-2 text-right text-sm text-blue-600 font-semibold">
-                      ${calculateNetReceived(sale)?.toLocaleString() || "0"}
-                    </td>
-                    <td className="px-4 py-2 text-right text-sm text-orange-600">
-                      {sale.discount > 0
-                        ? `${((sale.discount / (sale.subtotal || sale.total)) * 100).toFixed(0)}%`
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-500">
-                      {formatDate(sale.saleDate)}
-                    </td>
-                    <td className="px-4 py-2 text-center space-x-2">
-                      <button
-                        onClick={() => handlePrintReceipt(sale)}
-                        className="text-green-600 hover:text-green-700 text-sm"
-                      >
-                        Imprimir
-                      </button>
-                      <button
-                        onClick={() => setShowDeleteConfirm(sale.id)}
-                        className="text-bold text-red-600 hover:text-red-700 text-lm"
-                      >
-                        X
-                      </button>
+              {Object.entries(groupSalesByDay(salesHistory)).map(([day, sales]) => (
+                <React.Fragment key={day}>
+                  {/* Encabezado del día */}
+                  <tr className="bg-gray-800">
+                    <td colSpan={8} className="px-4 py-2 text-lm font-bold text-white uppercase">
+                      <div className="flex items-center w-full">
+                        <span>{day}</span>
+                        <span className="ml-auto text-white">
+                          TOTAL: ${sales.reduce((sum, sale) => sum + calculateNetReceived(sale), 0).toLocaleString()}
+                        </span>
+                      </div>
                     </td>
                   </tr>
 
-                  {/* 👇 Subdetalle de los items */}
-                  {sale.items?.length > 0 && (
-                    <tr className="bg-white">
-                      <td colSpan={8} className="px-6 py-2">
-                        <ul className="space-y-1">
-                          {sale.items.map((item, idx) => (
-                            <li
-                              key={`${sale.id}-item-${idx}`}
-                              className="flex items-center text-sm text-gray-700"
-                            >
-                              {/* └── con indentación */}
-                              <span className="ml-6 mr-2 text-gray-400">└──</span>
 
-                              {/* Contenedor controlado */}
-                              <div className="flex-1 max-w-sm flex">
-                                {/* Nombre */}
-                                <span className="flex-1 font-semibold">
-                                  {item.productName || item.articulo || item.name || "Producto"}{" "}
-                                  {item.size && (
-                                    <span className="text-xs text-gray-500 font-normal">({item.size})</span>
-                                  )}
-                                  {item.quantity && (
-                                    <span className="ml-1 text-xs text-gray-500 font-normal">
-                                      (x{item.quantity})
-                                    </span>
-                                  )}
-                                </span>
 
-                                {/* Precio */}
-                                <span
-                                  className={`w-20 text-right text-xs ${item.price < 0 ? "text-red-600 font-semibold" : "text-gray-500"
-                                    }`}
+
+                  {/* Ventas de ese día */}
+                  {sales.map((sale) => (
+                    <React.Fragment key={sale.id}>
+                      {/* Fila principal */}
+                      <tr className="hover:bg-blue-50">
+                        <td className="px-4 py-2 font-medium text-xs text-gray-500">
+                          {sale.saleNumber || sale.id.slice(-8).toUpperCase()}
+                        </td>
+                        <td className="px-4 py-2 text-sm">
+                          <span
+                            className={`px-2 py-1 text-xs font-medium rounded-full ${getPaymentMethodColor(
+                              sale.paymentMethod
+                            )}`}
+                          >
+                            {sale.paymentMethod}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 text-sm text-gray-700 font-bold">
+                          {sale.customerName || "__"}
+                        </td>
+                        <td className="px-4 py-2 text-right text-sm font-semibold text-green-600">
+                          ${sale.total?.toLocaleString() || "0"}
+                        </td>
+                        <td className="px-4 py-2 text-right text-sm text-blue-600 font-semibold">
+                          ${calculateNetReceived(sale)?.toLocaleString() || "0"}
+                        </td>
+                        <td className="px-4 py-2 text-right text-sm text-orange-600">
+                          {sale.discount > 0
+                            ? `${((sale.discount / (sale.subtotal || sale.total)) * 100).toFixed(0)}%`
+                            : "—"}
+                        </td>
+                        <td className="px-4 py-2 text-sm text-gray-500">
+                          {formatDate(sale.saleDate)}
+                        </td>
+                        <td className="px-4 py-2 text-center space-x-2">
+                          <button
+                            onClick={() => handlePrintReceipt(sale)}
+                            className="text-green-600 hover:text-green-700 text-sm"
+                          >
+                            Imprimir
+                          </button>
+                          <button
+                            onClick={() => setShowDeleteConfirm(sale.id)}
+                            className="text-bold text-red-600 hover:text-red-700 text-lm"
+                          >
+                            X
+                          </button>
+                        </td>
+                      </tr>
+
+                      {/* Items de la venta */}
+                      {sale.items?.length > 0 && (
+                        <tr className="bg-white">
+                          <td colSpan={8} className="px-6 py-2">
+                            <ul className="space-y-1">
+                              {sale.items.map((item, idx) => (
+                                <li
+                                  key={`${sale.id}-item-${idx}`}
+                                  className="flex items-center text-sm text-gray-700"
                                 >
-                                  ${item.price?.toLocaleString() || "0"}
-                                </span>
-
-
-                                {/* Código de barras */}
-                                <span className="w-28 text-right text-xs font-normal text-gray-400">
-                                  {item.code || item.productId || ""}
-                                </span>
-                              </div>
-                            </li>
-
-
-
-
-                          ))}
-                        </ul>
-                      </td>
-                    </tr>
-                  )}
-
+                                  <span className="ml-6 mr-2 text-gray-400">└──</span>
+                                  {/* Contenedor controlado */}
+                                  <div className="flex-1 max-w-sm flex">
+                                    {/* Nombre */}
+                                    <span className="flex-1 font-semibold">
+                                      {item.productName || item.articulo || item.name || "Producto"}{" "}
+                                      {item.size && (
+                                        <span className="text-xs text-gray-500 font-normal">
+                                          ({item.size})
+                                        </span>
+                                      )}
+                                      {item.quantity && (
+                                        <span className="ml-1 text-xs text-gray-500 font-normal">
+                                          (x{item.quantity})
+                                        </span>
+                                      )}
+                                    </span>
+                                    {/* Precio */}
+                                    <span
+                                      className={`w-20 text-right text-xs ${item.price < 0 ? "text-red-600 font-semibold" : "text-gray-500"
+                                        }`}
+                                    >
+                                      ${item.price?.toLocaleString() || "0"}
+                                    </span>
+                                    {/* Código de barras */}
+                                    <span className="w-28 text-right text-xs font-normal text-gray-400">
+                                      {item.code || item.productId || ""}
+                                    </span>
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  ))}
                 </React.Fragment>
               ))}
             </tbody>
+
           </table>
         </div>
 
