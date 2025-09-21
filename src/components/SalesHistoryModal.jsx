@@ -28,6 +28,9 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [saleForPrint, setSaleForPrint] = useState(null);
+  const [filteredSales, setFilteredSales] = useState([]);
+
+
   const [dateRange, setDateRange] = useState([
     {
       startDate: new Date(),
@@ -46,24 +49,36 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
     }
   }, [dateRange, paymentFilter]);
 
+
+
+
   /**
    * Cargar historial al abrir el modal
    */
   useEffect(() => {
-    if (isOpen) {
-      const today = new Date();
-      const start = new Date(today.setHours(0, 0, 0, 0));
-      const end = new Date(today.setHours(23, 59, 59, 999));
+    if (!searchTerm.trim()) {
+      setFilteredSales(salesHistory);
+    } else {
+      const term = searchTerm.toLowerCase();
 
-      setDateRange([{ startDate: start, endDate: end, key: "selection" }]);
+      const filtered = salesHistory.filter(sale => {
+        const saleNumber = (sale.saleNumber || sale.id || "").toLowerCase();
+        const customer = (sale.customerName || "").toLowerCase();
+        const items = sale.items?.some(item =>
+          (item.code || item.productId || "").toLowerCase().includes(term)
+        );
 
-      loadSalesHistory({
-        startDate: Timestamp.fromDate(start),
-        endDate: Timestamp.fromDate(end),
-        limit: 50
+        return (
+          saleNumber.includes(term) ||
+          customer.includes(term) ||
+          items
+        );
       });
+
+      setFilteredSales(filtered);
     }
-  }, [isOpen, loadSalesHistory]);
+  }, [searchTerm, salesHistory]);
+
 
 
 
@@ -71,16 +86,112 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
   /**
    * Manejar búsqueda y filtros
    */
-  const handleSearch = async (term = searchTerm) => {
+  const handleSearch = (term) => {
     setSearchTerm(term);
-
-    if (term.trim()) {
-      await searchSalesHistory(term);
-    } else {
-      // Si no hay término de búsqueda, aplicar filtros
-      applyFilters();
-    }
   };
+
+  const handlePrintSummary = () => {
+    if (!filteredSales.length) {
+      alert("No hay ventas para este rango.");
+      return;
+    }
+
+    // Agrupar ventas por día
+    const grouped = groupSalesByDay(filteredSales);
+
+    // Abrir ventana de impresión
+    const summaryWindow = window.open("", "_blank");
+
+    let html = `
+    <html>
+    <head>
+      <title>Resumen de Ventas</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h2 { color: #dc2626; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; font-size: 12px; text-align: left; }
+        th { background: #f4f4f4; }
+        .day-header { background: #eee; font-weight: bold; }
+        .total { font-weight: bold; color: green; }
+        .items { font-size: 11px; color: #555; margin-left: 20px; }
+        .item-row { border-top: 1px dashed #ccc; }
+      </style>
+    </head>
+    <body>
+      <h2>Resumen de Ventas</h2>
+  `;
+
+    Object.entries(grouped).forEach(([day, sales]) => {
+      const totalDay = sales.reduce((sum, s) => sum + calculateNetReceived(s), 0);
+
+      html += `
+      <h3>${day} - TOTAL: $${totalDay.toLocaleString()}</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>N° Venta</th>
+            <th>Cliente</th>
+            <th>Método</th>
+            <th>Total</th>
+            <th>Neto</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+      sales.forEach(s => {
+        html += `
+        <tr>
+          <td>${s.saleNumber || s.id}</td>
+          <td>${s.customerName || "__"}</td>
+          <td>${s.paymentMethod}</td>
+          <td>$${s.total.toLocaleString()}</td>
+          <td class="total">$${calculateNetReceived(s).toLocaleString()}</td>
+        </tr>
+      `;
+
+        // 👇 Detalle de artículos vendidos
+        if (s.items && s.items.length > 0) {
+          html += `
+          <tr class="item-row">
+            <td colspan="5">
+              <div class="items">
+                <ul>
+        `;
+          s.items.forEach(item => {
+            html += `
+            <li>
+              ${item.productName || item.articulo || item.name || "Producto"} 
+              ${item.size ? `(${item.size})` : ""} 
+              x${item.quantity} - 
+              $${item.price?.toLocaleString() || "0"} 
+              ${item.code ? ` [${item.code}]` : ""}
+            </li>
+          `;
+          });
+          html += `
+                </ul>
+              </div>
+            </td>
+          </tr>
+        `;
+        }
+      });
+
+      html += `</tbody></table>`;
+    });
+
+    html += `
+    </body></html>
+  `;
+
+    summaryWindow.document.write(html);
+    summaryWindow.document.close();
+    summaryWindow.print();
+  };
+
+
 
   /**
    * Aplicar filtros
@@ -103,8 +214,8 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
 
 
   /**
- * Aplicar filtros rápidos
- */
+  * Aplicar filtros rápidos
+  */
   const applyQuickFilter = (type) => {
     let start, end;
 
@@ -234,7 +345,9 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
   // Agrupar ventas por día
   const groupSalesByDay = (sales) => {
     return sales.reduce((groups, sale) => {
-      const dateKey = dayjs(sale.saleDate).format("dddd DD/MM/YYYY"); // ej: "viernes 19/09/2025"
+      // Ej: "domingo 21 de septiembre 2025"
+      const dateKey = dayjs(sale.saleDate).format("dddd D [de] MMMM YYYY");
+
       if (!groups[dateKey]) {
         groups[dateKey] = [];
       }
@@ -242,6 +355,7 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
       return groups;
     }, {});
   };
+
 
 
   return (
@@ -297,6 +411,15 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
               >
                 {showCalendar ? "Ocultar calendario" : "📅 Elegir rango"}
               </button>
+              <button
+                onClick={handlePrintSummary}
+                className="btn-rosema text-sm ml-2"
+              >
+                📄 Resumen
+              </button>
+
+
+
             </div>
 
             {/* Calendario plegable */}
@@ -319,7 +442,7 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
           <div className="relative">
             <input
               type="text"
-              placeholder="Buscar por cliente o N° Venta..."
+              placeholder="Buscar por Codigo, Cliente o N° Venta..."
               value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
               className="w-full input-rosema pl-10"
@@ -345,7 +468,8 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
             </thead>
 
             <tbody className="bg-blue-50 divide-y divide-blue-800">
-              {Object.entries(groupSalesByDay(salesHistory)).map(([day, sales]) => (
+              {Object.entries(groupSalesByDay(filteredSales)).map(([day, sales]) => (
+
                 <React.Fragment key={day}>
                   {/* Encabezado del día */}
                   <tr className="bg-gray-800">
@@ -422,7 +546,8 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
                                   key={`${sale.id}-item-${idx}`}
                                   className="flex items-center text-sm text-gray-700"
                                 >
-                                  <span className="ml-6 mr-2 text-gray-400">└──</span>
+                                  <span className="ml-6 mr-2 text-gray-400">|→</span>
+
                                   {/* Contenedor controlado */}
                                   <div className="flex-1 max-w-sm flex">
                                     {/* Nombre */}
