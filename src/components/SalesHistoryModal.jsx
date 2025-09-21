@@ -28,9 +28,19 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
    */
   useEffect(() => {
     if (isOpen) {
-      loadSalesHistory({ limit: 50 });
+      const today = new Date();
+      const start = new Date(today);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(today);
+      end.setHours(23, 59, 59, 999);
+
+      setStartDate(start.toISOString().split("T")[0]);
+      setEndDate(end.toISOString().split("T")[0]);
+
+      loadSalesHistory({ startDate: start, endDate: end, limit: 50 });
     }
   }, [isOpen, loadSalesHistory]);
+
 
   /**
    * Manejar búsqueda y filtros
@@ -52,34 +62,67 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
   const applyFilters = async () => {
     const filters = { limit: 50 };
 
-    // Filtro por fechas
     if (startDate) {
-      filters.startDate = new Date(startDate);
-    }
-    if (endDate) {
-      const endDateTime = new Date(endDate);
-      endDateTime.setHours(23, 59, 59, 999); // Incluir todo el día
-      filters.endDate = endDateTime;
+      const parts = startDate.split("-"); // "YYYY-MM-DD"
+      const start = new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
+      filters.startDate = start;
     }
 
-    // Filtro por método de pago
-    if (paymentFilter !== 'all') {
+    if (endDate) {
+      const parts = endDate.split("-");
+      const end = new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999);
+      filters.endDate = end;
+    }
+
+    if (paymentFilter !== "all") {
       filters.paymentMethod = paymentFilter;
     }
 
     await loadSalesHistory(filters);
   };
 
+
   /**
-   * Limpiar filtros
+   * Aplicar filtros rapidos
    */
-  const clearFilters = () => {
-    setStartDate('');
-    setEndDate('');
-    setPaymentFilter('all');
-    setSearchTerm('');
-    loadSalesHistory({ limit: 50 });
+  const applyQuickFilter = (type) => {
+    const today = new Date();
+    let start, end;
+
+    if (type === "today") {
+      start = new Date(today);
+      start.setHours(0, 0, 0, 0);
+      end = new Date(today);
+      end.setHours(23, 59, 59, 999);
+    }
+
+    if (type === "yesterday") {
+      start = new Date(today);
+      start.setDate(start.getDate() - 1);
+      start.setHours(0, 0, 0, 0);
+
+      end = new Date(today);
+      end.setDate(end.getDate() - 1);
+      end.setHours(23, 59, 59, 999);
+    }
+
+    if (type === "week") {
+      const dayOfWeek = today.getDay(); // 0 = domingo, 1 = lunes...
+      start = new Date(today);
+      start.setDate(today.getDate() - dayOfWeek + 1); // lunes
+      start.setHours(0, 0, 0, 0);
+
+      end = new Date(today);
+      end.setHours(23, 59, 59, 999);
+    }
+
+    setStartDate(start.toISOString().split("T")[0]);
+    setEndDate(end.toISOString().split("T")[0]);
+
+    loadSalesHistory({ startDate: start, endDate: end, limit: 50 });
   };
+
+
 
   /**
    * Formatear fecha
@@ -212,7 +255,10 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
               <input
                 type="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  applyFilters();
+                }}
                 className="w-full input-rosema"
               />
             </div>
@@ -221,48 +267,39 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
               <input
                 type="date"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  applyFilters();
+                }}
                 className="w-full input-rosema"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Método de pago</label>
-              <select
-                value={paymentFilter}
-                onChange={(e) => setPaymentFilter(e.target.value)}
-                className="w-full input-rosema"
+            <div className="flex space-x-2 mt-2">
+              <button
+                onClick={() => applyQuickFilter("today")}
+                className="btn-rosema text-lm"
               >
-                <option value="all">Todos los métodos</option>
-                <option value="Efectivo">Efectivo</option>
-                <option value="Transferencia">Transferencia</option>
-                <option value="Débito">Débito</option>
-                <option value="Crédito">Crédito</option>
-                <option value="QR">QR</option>
-              </select>
+                Hoy
+              </button>
+              <button
+                onClick={() => applyQuickFilter("yesterday")}
+                className="btn-rosema text-lm"
+              >
+                Ayer
+              </button>
+              <button
+                onClick={() => applyQuickFilter("week")}
+                className="btn-rosema text-xs"
+              >
+                Esta semana
+              </button>
             </div>
+
+
+
           </div>
 
-          {/* Botones de filtro */}
-          <div className="flex space-x-3 mb-4">
-            <button
-              onClick={applyFilters}
-              className="btn-rosema flex items-center space-x-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
-              </svg>
-              <span>Aplicar Filtros</span>
-            </button>
-            <button
-              onClick={clearFilters}
-              className="btn-secondary flex items-center space-x-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-              <span>Limpiar</span>
-            </button>
-          </div>
+
 
           {/* Búsqueda */}
           <div className="relative">
@@ -361,162 +398,168 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
       </div>
 
       {/* Modal de detalle de venta */}
-      {selectedSale && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h4 className="text-lg font-semibold text-gray-900">
-                  Detalle de Venta
-                </h4>
-                <button
-                  onClick={() => setSelectedSale(null)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Información de la venta */}
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">N° Venta</label>
-                    <p className="text-gray-900 font-mono">
-                      {selectedSale.saleNumber || selectedSale.id.slice(-8).toUpperCase()}
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Cliente</label>
-                    <p className="text-gray-900">{selectedSale.customerName || 'Sin nombre'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Fecha</label>
-                    <p className="text-gray-900">{formatDate(selectedSale.saleDate)}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Método de Pago</label>
-                    <p className="text-gray-900">{selectedSale.paymentMethod}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Total</label>
-                    <p className="text-green-600 font-semibold">${selectedSale.total?.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Dinero Recibido</label>
-                    <p className="text-blue-600 font-semibold">${calculateNetReceived(selectedSale)?.toLocaleString() || '0'}</p>
-                  </div>
+      {
+        selectedSale && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60">
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h4 className="text-lg font-semibold text-gray-900">
+                    Detalle de Venta
+                  </h4>
+                  <button
+                    onClick={() => setSelectedSale(null)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
 
-                {/* Items */}
-                <div>
-                  <label className="text-sm font-medium text-gray-500 mb-2 block">Artículos</label>
-                  <div className="space-y-2">
-                    {selectedSale.items?.map((item, index) => (
-                      <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {item.productName || item.articulo || item.name || 'Producto sin nombre'}
-                          </p>
-                          {(item.code || item.productId) && (
-                            <p className="text-sm text-gray-500">
-                              Código: {item.code || item.productId}
-                            </p>
-                          )}
-                          {/* ✅ MEJORADO: Mostrar talle y color con fallbacks */}
-                          {(item.talle || item.size || item.color) && (
-                            <p className="text-sm text-gray-500">
-                              {(item.talle || item.size) && `Talle: ${item.talle || item.size}`}
-                              {(item.talle || item.size) && item.color && ' | '}
-                              {item.color && `Color: ${item.color}`}
-                            </p>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium text-gray-900">
-                            {item.quantity} x ${item.price?.toLocaleString()}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            ${(item.price * item.quantity)?.toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Resumen */}
-                <div className="border-t border-gray-200 pt-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Subtotal:</span>
-                      <span className="text-gray-900">${selectedSale.subtotal?.toLocaleString()}</span>
+                {/* Información de la venta */}
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">N° Venta</label>
+                      <p className="text-gray-900 font-mono">
+                        {selectedSale.saleNumber || selectedSale.id.slice(-8).toUpperCase()}
+                      </p>
                     </div>
-                    {selectedSale.discount > 0 && (
+
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Cliente</label>
+                      <p className="text-gray-900">{selectedSale.customerName || 'Sin nombre'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Fecha</label>
+                      <p className="text-gray-900">{formatDate(selectedSale.saleDate)}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Método de Pago</label>
+                      <p className="text-gray-900">{selectedSale.paymentMethod}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Total</label>
+                      <p className="text-green-600 font-semibold">${selectedSale.total?.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Dinero Recibido</label>
+                      <p className="text-blue-600 font-semibold">${calculateNetReceived(selectedSale)?.toLocaleString() || '0'}</p>
+                    </div>
+                  </div>
+
+                  {/* Items */}
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 mb-2 block">Artículos</label>
+                    <div className="space-y-2">
+                      {selectedSale.items?.map((item, index) => (
+                        <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {item.productName || item.articulo || item.name || 'Producto sin nombre'}
+                            </p>
+                            {(item.code || item.productId) && (
+                              <p className="text-sm text-gray-500">
+                                Código: {item.code || item.productId}
+                              </p>
+                            )}
+                            {/* ✅ MEJORADO: Mostrar talle y color con fallbacks */}
+                            {(item.talle || item.size || item.color) && (
+                              <p className="text-sm text-gray-500">
+                                {(item.talle || item.size) && `Talle: ${item.talle || item.size}`}
+                                {(item.talle || item.size) && item.color && ' | '}
+                                {item.color && `Color: ${item.color}`}
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <p className="font-medium text-gray-900">
+                              {item.quantity} x ${item.price?.toLocaleString()}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              ${(item.price * item.quantity)?.toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Resumen */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <div className="space-y-2">
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Descuento:</span>
-                        <span className="text-orange-600">-${selectedSale.discount?.toLocaleString()}</span>
+                        <span className="text-gray-600">Subtotal:</span>
+                        <span className="text-gray-900">${selectedSale.subtotal?.toLocaleString()}</span>
                       </div>
-                    )}
-                    <div className="flex justify-between text-lg font-semibold">
-                      <span className="text-gray-900">Total:</span>
-                      <span className="text-green-600">${selectedSale.total?.toLocaleString()}</span>
+                      {selectedSale.discount > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Descuento:</span>
+                          <span className="text-orange-600">-${selectedSale.discount?.toLocaleString()}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-lg font-semibold">
+                        <span className="text-gray-900">Total:</span>
+                        <span className="text-green-600">${selectedSale.total?.toLocaleString()}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Confirmación de eliminación */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="p-6">
-              <div className="flex items-center mb-4">
-                <svg className="w-6 h-6 text-red-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-                <h4 className="text-lg font-semibold text-gray-900">
-                  Confirmar Eliminación
-                </h4>
-              </div>
-              <p className="text-gray-600 mb-6">
-                ¿Estás seguro de que deseas eliminar esta venta? Esta acción no se puede deshacer.
-              </p>
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => setShowDeleteConfirm(null)}
-                  className="flex-1 btn-secondary"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={() => handleDeleteSale(showDeleteConfirm)}
-                  className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-                >
-                  Eliminar
-                </button>
+      {
+        showDeleteConfirm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+              <div className="p-6">
+                <div className="flex items-center mb-4">
+                  <svg className="w-6 h-6 text-red-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                  <h4 className="text-lg font-semibold text-gray-900">
+                    Confirmar Eliminación
+                  </h4>
+                </div>
+                <p className="text-gray-600 mb-6">
+                  ¿Estás seguro de que deseas eliminar esta venta? Esta acción no se puede deshacer.
+                </p>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => setShowDeleteConfirm(null)}
+                    className="flex-1 btn-secondary"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={() => handleDeleteSale(showDeleteConfirm)}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                  >
+                    Eliminar
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Modal de impresión de recibo */}
-      {showPrintModal && saleForPrint && (
-        <PrintReceiptModal
-          isOpen={showPrintModal}
-          onClose={() => setShowPrintModal(false)}
-          saleData={saleForPrint}
-        />
-      )}
-    </div>
+      {
+        showPrintModal && saleForPrint && (
+          <PrintReceiptModal
+            isOpen={showPrintModal}
+            onClose={() => setShowPrintModal(false)}
+            saleData={saleForPrint}
+          />
+        )
+      }
+    </div >
   );
 };
 
