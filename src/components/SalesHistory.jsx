@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { getAllSales, searchSales, getSalesStats } from '../services/salesService';
+import dayjs from "dayjs";
+import "dayjs/locale/es";
+dayjs.locale("es");
 
 /**
  * Componente para mostrar el historial de ventas con filtros
@@ -78,21 +81,22 @@ const SalesHistory = () => {
   const applyFilters = () => {
     let filtered = [...sales];
 
-    // Filtro por fecha
+    // Filtro por fecha de inicio
     if (filters.startDate) {
-      const startDate = new Date(filters.startDate);
+      const startDate = dayjs(filters.startDate).startOf("day");
       filtered = filtered.filter(sale =>
-        new Date(sale.createdAt) >= startDate
+        dayjs(sale.createdAt).isAfter(startDate) || dayjs(sale.createdAt).isSame(startDate)
       );
     }
 
+    // Filtro por fecha de fin
     if (filters.endDate) {
-      const endDate = new Date(filters.endDate);
-      endDate.setHours(23, 59, 59, 999); // Incluir todo el día
+      const endDate = dayjs(filters.endDate).endOf("day");
       filtered = filtered.filter(sale =>
-        new Date(sale.createdAt) <= endDate
+        dayjs(sale.createdAt).isBefore(endDate) || dayjs(sale.createdAt).isSame(endDate)
       );
     }
+
 
     // Filtro por nombre de producto
     if (filters.productName) {
@@ -427,10 +431,10 @@ const SalesHistory = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${sale.paymentMethod === 'Efectivo'
-                            ? 'bg-green-100 text-green-800'
-                            : sale.paymentMethod === 'Tarjeta'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-purple-100 text-purple-800'
+                          ? 'bg-green-100 text-green-800'
+                          : sale.paymentMethod === 'Tarjeta'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-purple-100 text-purple-800'
                           }`}>
                           {sale.paymentMethod}
                         </span>
@@ -466,8 +470,8 @@ const SalesHistory = () => {
                         key={page}
                         onClick={() => setCurrentPage(page)}
                         className={`px-3 py-1 border rounded text-sm ${currentPage === page
-                            ? 'bg-red-600 text-white border-red-600'
-                            : 'border-gray-300 hover:bg-gray-50'
+                          ? 'bg-red-600 text-white border-red-600'
+                          : 'border-gray-300 hover:bg-gray-50'
                           }`}
                       >
                         {page}

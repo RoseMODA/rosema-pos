@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useSales } from '../hooks/useSales';
 import PrintReceiptModal from './PrintReceiptModal';
+import dayjs from "dayjs";
+import "dayjs/locale/es";
+dayjs.locale("es");
+import { Timestamp } from "firebase/firestore"; // 👈 importar
+import { DateRangePicker } from "react-date-range";
+import { es } from "date-fns/locale";
+import "react-date-range/dist/styles.css"; // estilos básicos
+import "react-date-range/dist/theme/default.css"; // tema por defecto
+
 
 /**
  * Modal para mostrar el historial de ventas
@@ -19,9 +28,23 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [saleForPrint, setSaleForPrint] = useState(null);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [dateRange, setDateRange] = useState([
+    {
+      startDate: new Date(),
+      endDate: new Date(),
+      key: "selection",
+    },
+  ]);
+  const [showCalendar, setShowCalendar] = useState(false);
+
+
   const [paymentFilter, setPaymentFilter] = useState('all');
+
+  useEffect(() => {
+    if (isOpen && dateRange.length > 0) {
+      applyFilters();
+    }
+  }, [dateRange, paymentFilter]);
 
   /**
    * Cargar historial al abrir el modal
@@ -29,17 +52,20 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
   useEffect(() => {
     if (isOpen) {
       const today = new Date();
-      const start = new Date(today);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(today);
-      end.setHours(23, 59, 59, 999);
+      const start = new Date(today.setHours(0, 0, 0, 0));
+      const end = new Date(today.setHours(23, 59, 59, 999));
 
-      setStartDate(start.toISOString().split("T")[0]);
-      setEndDate(end.toISOString().split("T")[0]);
+      setDateRange([{ startDate: start, endDate: end, key: "selection" }]);
 
-      loadSalesHistory({ startDate: start, endDate: end, limit: 50 });
+      loadSalesHistory({
+        startDate: Timestamp.fromDate(start),
+        endDate: Timestamp.fromDate(end),
+        limit: 50
+      });
     }
   }, [isOpen, loadSalesHistory]);
+
+
 
 
   /**
@@ -62,17 +88,11 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
   const applyFilters = async () => {
     const filters = { limit: 50 };
 
-    if (startDate) {
-      const parts = startDate.split("-"); // "YYYY-MM-DD"
-      const start = new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
-      filters.startDate = start;
-    }
+    const start = dateRange[0].startDate;
+    const end = dateRange[0].endDate;
 
-    if (endDate) {
-      const parts = endDate.split("-");
-      const end = new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999);
-      filters.endDate = end;
-    }
+    filters.startDate = Timestamp.fromDate(new Date(start.setHours(0, 0, 0, 0)));
+    filters.endDate = Timestamp.fromDate(new Date(end.setHours(23, 59, 59, 999)));
 
     if (paymentFilter !== "all") {
       filters.paymentMethod = paymentFilter;
@@ -83,44 +103,36 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
 
 
   /**
-   * Aplicar filtros rapidos
-   */
+ * Aplicar filtros rápidos
+ */
   const applyQuickFilter = (type) => {
-    const today = new Date();
     let start, end;
 
     if (type === "today") {
-      start = new Date(today);
-      start.setHours(0, 0, 0, 0);
-      end = new Date(today);
-      end.setHours(23, 59, 59, 999);
+      start = dayjs().startOf("day").toDate();
+      end = dayjs().endOf("day").toDate();
     }
 
     if (type === "yesterday") {
-      start = new Date(today);
-      start.setDate(start.getDate() - 1);
-      start.setHours(0, 0, 0, 0);
-
-      end = new Date(today);
-      end.setDate(end.getDate() - 1);
-      end.setHours(23, 59, 59, 999);
+      start = dayjs().subtract(1, "day").startOf("day").toDate();
+      end = dayjs().subtract(1, "day").endOf("day").toDate();
     }
 
     if (type === "week") {
-      const dayOfWeek = today.getDay(); // 0 = domingo, 1 = lunes...
-      start = new Date(today);
-      start.setDate(today.getDate() - dayOfWeek + 1); // lunes
-      start.setHours(0, 0, 0, 0);
-
-      end = new Date(today);
-      end.setHours(23, 59, 59, 999);
+      start = dayjs().startOf("week").toDate();
+      end = dayjs().endOf("day").toDate();
     }
 
-    setStartDate(start.toISOString().split("T")[0]);
-    setEndDate(end.toISOString().split("T")[0]);
+    setDateRange([{ startDate: start, endDate: end, key: "selection" }]);
 
-    loadSalesHistory({ startDate: start, endDate: end, limit: 50 });
+    loadSalesHistory({
+      startDate: Timestamp.fromDate(start),
+      endDate: Timestamp.fromDate(end),
+      limit: 50,
+    });
   };
+
+
 
 
 
@@ -128,16 +140,10 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
    * Formatear fecha
    */
   const formatDate = (date) => {
-    if (!date) return 'Fecha no disponible';
-    const dateObj = date instanceof Date ? date : new Date(date);
-    return dateObj.toLocaleDateString('es-AR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    if (!date) return "Fecha no disponible";
+    return dayjs(date).format("DD/MM/YYYY HH:mm");
   };
+
 
   /**
    * Obtener color del método de pago
@@ -249,55 +255,50 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
         {/* Búsqueda y Filtros */}
         <div className="p-6 border-b border-gray-200">
           {/* Filtros por fecha */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de inicio</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => {
-                  setStartDate(e.target.value);
-                  applyFilters();
-                }}
-                className="w-full input-rosema"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de fin</label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => {
-                  setEndDate(e.target.value);
-                  applyFilters();
-                }}
-                className="w-full input-rosema"
-              />
-            </div>
-            <div className="flex space-x-2 mt-2">
+          <div className="mb-4">
+            {/* Fila de botones */}
+            <div className="flex justify-end space-x-2 mb-3">
               <button
                 onClick={() => applyQuickFilter("today")}
-                className="btn-rosema text-lm"
+                className="btn-rosema text-sm"
               >
                 Hoy
               </button>
               <button
                 onClick={() => applyQuickFilter("yesterday")}
-                className="btn-rosema text-lm"
+                className="btn-rosema text-sm"
               >
                 Ayer
               </button>
               <button
                 onClick={() => applyQuickFilter("week")}
-                className="btn-rosema text-xs"
+                className="btn-rosema text-sm"
               >
                 Esta semana
               </button>
+
+              {/* Botón para desplegar calendario */}
+              <button
+                onClick={() => setShowCalendar(!showCalendar)}
+                className="btn-secondary text-sm"
+              >
+                {showCalendar ? "Ocultar calendario" : "📅 Elegir rango"}
+              </button>
             </div>
 
-
-
+            {/* Calendario plegable */}
+            {showCalendar && (
+              <div className="border rounded-lg p-3 shadow-sm">
+                <DateRangePicker
+                  ranges={dateRange}
+                  onChange={(item) => setDateRange([item.selection])}
+                  locale={es}
+                  rangeColors={["#dc2626"]}
+                />
+              </div>
+            )}
           </div>
+
 
 
 
@@ -317,68 +318,128 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
         {/* Lista de ventas */}
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-gray-800">
               <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">N° Venta</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Método</th>
-
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
-
-
-                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">N° Venta</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">Método</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">Cliente</th>
+                <th className="px-4 py-2 text-right text-xs font-medium text-white uppercase">Total</th>
+                <th className="px-4 py-2 text-right text-xs font-medium text-white uppercase">Neto</th>
+                <th className="px-4 py-2 text-right text-xs font-medium text-white uppercase">%OFF</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">Fecha</th>
+                <th className="px-4 py-2 text-center text-xs font-medium text-white uppercase">Acciones</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+
+            <tbody className="bg-blue-50 divide-y divide-blue-800">
               {salesHistory.map((sale) => (
-                <tr key={sale.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 font-medium text-xs text-gray-500">
-                    {sale.saleNumber || sale.id.slice(-8).toUpperCase()}
-                  </td>
-                  <td className="px-4 py-2 text-sm">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPaymentMethodColor(sale.paymentMethod)}`}>
-                      {sale.paymentMethod}
-                    </span>
-                  </td>
+                <React.Fragment key={sale.id}>
+                  {/* Fila principal de la venta */}
+                  <tr className="hover:bg-blue-50">
+                    <td className="px-4 py-2 font-medium text-xs text-gray-500">
+                      {sale.saleNumber || sale.id.slice(-8).toUpperCase()}
+                    </td>
+                    <td className="px-4 py-2 text-sm">
+                      <span
+                        className={`px-2 py-1 text-xs font-medium rounded-full ${getPaymentMethodColor(
+                          sale.paymentMethod
+                        )}`}
+                      >
+                        {sale.paymentMethod}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-sm text-gray-700 font-bold">
+                      {sale.customerName || "__"}
+                    </td>
+                    <td className="px-4 py-2 text-right text-sm font-semibold text-green-600">
+                      ${sale.total?.toLocaleString() || "0"}
+                    </td>
+                    <td className="px-4 py-2 text-right text-sm text-blue-600 font-semibold">
+                      ${calculateNetReceived(sale)?.toLocaleString() || "0"}
+                    </td>
+                    <td className="px-4 py-2 text-right text-sm text-orange-600">
+                      {sale.discount > 0
+                        ? `${((sale.discount / (sale.subtotal || sale.total)) * 100).toFixed(0)}%`
+                        : "—"}
+                    </td>
+                    <td className="px-4 py-2 text-sm text-gray-500">
+                      {formatDate(sale.saleDate)}
+                    </td>
+                    <td className="px-4 py-2 text-center space-x-2">
+                      <button
+                        onClick={() => handlePrintReceipt(sale)}
+                        className="text-green-600 hover:text-green-700 text-sm"
+                      >
+                        Imprimir
+                      </button>
+                      <button
+                        onClick={() => setShowDeleteConfirm(sale.id)}
+                        className="text-bold text-red-600 hover:text-red-700 text-lm"
+                      >
+                        X
+                      </button>
+                    </td>
+                  </tr>
 
-                  <td className="px-4 py-2 text-sm text-gray-700">
-                    {sale.customerName || '__'}
-                  </td>
-                  <td className="px-4 py-2 text-right text-sm font-semibold text-green-600">
-                    ${sale.total?.toLocaleString() || '0'}
-                  </td>
-                  <td className="px-4 py-2 text-sm text-gray-500">
-                    {formatDate(sale.saleDate)}
-                  </td>
+                  {/* 👇 Subdetalle de los items */}
+                  {sale.items?.length > 0 && (
+                    <tr className="bg-white">
+                      <td colSpan={8} className="px-6 py-2">
+                        <ul className="space-y-1">
+                          {sale.items.map((item, idx) => (
+                            <li
+                              key={`${sale.id}-item-${idx}`}
+                              className="flex items-center text-sm text-gray-700"
+                            >
+                              {/* └── con indentación */}
+                              <span className="ml-6 mr-2 text-gray-400">└──</span>
+
+                              {/* Contenedor controlado */}
+                              <div className="flex-1 max-w-sm flex">
+                                {/* Nombre */}
+                                <span className="flex-1 font-semibold">
+                                  {item.productName || item.articulo || item.name || "Producto"}{" "}
+                                  {item.size && (
+                                    <span className="text-xs text-gray-500 font-normal">({item.size})</span>
+                                  )}
+                                  {item.quantity && (
+                                    <span className="ml-1 text-xs text-gray-500 font-normal">
+                                      (x{item.quantity})
+                                    </span>
+                                  )}
+                                </span>
+
+                                {/* Precio */}
+                                <span
+                                  className={`w-20 text-right text-xs ${item.price < 0 ? "text-red-600 font-semibold" : "text-gray-500"
+                                    }`}
+                                >
+                                  ${item.price?.toLocaleString() || "0"}
+                                </span>
 
 
-                  <td className="px-4 py-2 text-center space-x-2">
-                    <button
-                      onClick={() => setSelectedSale(sale)}
-                      className="text-blue-600 hover:text-blue-700 text-sm"
-                    >
-                      Ver
-                    </button>
-                    <button
-                      onClick={() => handlePrintReceipt(sale)}
-                      className="text-green-600 hover:text-green-700 text-sm "
-                    >
-                      Imprimir
-                    </button>
+                                {/* Código de barras */}
+                                <span className="w-28 text-right text-xs font-normal text-gray-400">
+                                  {item.code || item.productId || ""}
+                                </span>
+                              </div>
+                            </li>
 
-                    <button
-                      onClick={() => setShowDeleteConfirm(sale.id)}
-                      className="text-bold text-red-600 hover:text-red-700 text-lm"
-                    >
-                      X
-                    </button>
-                  </td>
-                </tr>
+
+
+
+                          ))}
+                        </ul>
+                      </td>
+                    </tr>
+                  )}
+
+                </React.Fragment>
               ))}
             </tbody>
           </table>
         </div>
+
 
 
         {/* Footer */}
@@ -397,120 +458,7 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
         </div>
       </div>
 
-      {/* Modal de detalle de venta */}
-      {
-        selectedSale && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60">
-            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h4 className="text-lg font-semibold text-gray-900">
-                    Detalle de Venta
-                  </h4>
-                  <button
-                    onClick={() => setSelectedSale(null)}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
 
-                {/* Información de la venta */}
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">N° Venta</label>
-                      <p className="text-gray-900 font-mono">
-                        {selectedSale.saleNumber || selectedSale.id.slice(-8).toUpperCase()}
-                      </p>
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Cliente</label>
-                      <p className="text-gray-900">{selectedSale.customerName || 'Sin nombre'}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Fecha</label>
-                      <p className="text-gray-900">{formatDate(selectedSale.saleDate)}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Método de Pago</label>
-                      <p className="text-gray-900">{selectedSale.paymentMethod}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Total</label>
-                      <p className="text-green-600 font-semibold">${selectedSale.total?.toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Dinero Recibido</label>
-                      <p className="text-blue-600 font-semibold">${calculateNetReceived(selectedSale)?.toLocaleString() || '0'}</p>
-                    </div>
-                  </div>
-
-                  {/* Items */}
-                  <div>
-                    <label className="text-sm font-medium text-gray-500 mb-2 block">Artículos</label>
-                    <div className="space-y-2">
-                      {selectedSale.items?.map((item, index) => (
-                        <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                          <div>
-                            <p className="font-medium text-gray-900">
-                              {item.productName || item.articulo || item.name || 'Producto sin nombre'}
-                            </p>
-                            {(item.code || item.productId) && (
-                              <p className="text-sm text-gray-500">
-                                Código: {item.code || item.productId}
-                              </p>
-                            )}
-                            {/* ✅ MEJORADO: Mostrar talle y color con fallbacks */}
-                            {(item.talle || item.size || item.color) && (
-                              <p className="text-sm text-gray-500">
-                                {(item.talle || item.size) && `Talle: ${item.talle || item.size}`}
-                                {(item.talle || item.size) && item.color && ' | '}
-                                {item.color && `Color: ${item.color}`}
-                              </p>
-                            )}
-                          </div>
-                          <div className="text-right">
-                            <p className="font-medium text-gray-900">
-                              {item.quantity} x ${item.price?.toLocaleString()}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              ${(item.price * item.quantity)?.toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Resumen */}
-                  <div className="border-t border-gray-200 pt-4">
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Subtotal:</span>
-                        <span className="text-gray-900">${selectedSale.subtotal?.toLocaleString()}</span>
-                      </div>
-                      {selectedSale.discount > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Descuento:</span>
-                          <span className="text-orange-600">-${selectedSale.discount?.toLocaleString()}</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between text-lg font-semibold">
-                        <span className="text-gray-900">Total:</span>
-                        <span className="text-green-600">${selectedSale.total?.toLocaleString()}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )
-      }
 
       {/* Confirmación de eliminación */}
       {
