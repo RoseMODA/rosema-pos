@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from "react";
+
 import { useProducts } from '../hooks/useProducts';
 
 import { useSales } from '../hooks/useSales';
@@ -32,7 +33,11 @@ dayjs.locale("es"); // activa español
 const Sales = () => {
   // ✅ NUEVO: Estado para fecha de venta personalizada
   const searchInputRef = React.useRef(null);
-  const [saleDate, setSaleDate] = React.useState(new Date().toISOString().split('T')[0]);
+  const [saleDate, setSaleDate] = useState(() =>
+    dayjs().format("YYYY-MM-DD")
+  );
+
+
   const [showDatePicker, setShowDatePicker] = React.useState(false);
 
   // Hooks de datos
@@ -120,10 +125,13 @@ const Sales = () => {
     }
   }
 
-  const handleVariantSelection = (product, quantity, variant) => {
-    addToCart(product, quantity, variant);
+  const handleVariantSelection = (product, quantity, variants) => {
+    addToCart(product, quantity, variants); // ahora acepta array
     closeModal('productSelection');
   };
+
+
+
 
   const handleNewSale = () => {
     try {
@@ -268,12 +276,12 @@ const Sales = () => {
               <div className="text-center">
                 <p className="text-lg font-semibold text-gray-900">
                   {(() => {
-                    const fecha = dayjs(saleDate)
-                      .locale("es")
+                    const fecha = dayjs(saleDate).locale("es")
                       .format("dddd, D [de] MMMM [de] YYYY");
                     return fecha.charAt(0).toUpperCase() + fecha.slice(1);
                   })()}
                 </p>
+
 
 
                 {saleDate !== dayjs().format("YYYY-MM-DD") && (

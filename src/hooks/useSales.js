@@ -631,40 +631,45 @@ export const useSales = () => {
   const totals = calculateSessionTotals(activeSession);
 
   // Wrappers para la sesión activa - CORREGIDO para manejar variantes
-  const addToCart = useCallback((product, quantity = 1, variant = null) => {
+  const addToCart = useCallback((product, quantity = 1, variants = null) => {
     if (!salesState.activeSessionId) return;
 
-    if (!variant) {
-      alert('Debe seleccionar una variante para el producto');
+    if (!variants || (Array.isArray(variants) && variants.length === 0)) {
+      alert('Debe seleccionar al menos una variante');
       return;
     }
 
-    // Validar stock de la variante
-    if (variant.stock < quantity) {
-      alert(`Stock insuficiente. Disponible: ${variant.stock}, Solicitado: ${quantity}`);
-      return;
-    }
+    // Normalizar: si no es array, lo convertimos en array
+    const variantsArray = Array.isArray(variants) ? variants : [variants];
 
-    console.log('🔍 DEBUG: addToCart llamado con:', {
-      productId: product.id,
-      codigo: product.id,    // 👈 ahora mostramos código real
-      variant,
-      quantity
-    });
+    // Recorrer cada variante seleccionada y agregarla al carrito
+    variantsArray.forEach(variant => {
+      if (variant.stock < quantity) {
+        alert(`Stock insuficiente en talle ${variant.talle}. Disponible: ${variant.stock}`);
+        return;
+      }
 
-    return addItem(salesState.activeSessionId, {
-      productId: product.id,                       // 👈 "id" de la base
-      name: product.articulo,                      // 👈 "articulo" es el nombre
-      code: product.id,   // el id de la base es el código de barras
-      price: variant.precioVenta || product.precioVenta, // 👈 fallback si no tiene precio en la variante
-      quantity,
-      size: variant.talle,                         // talle
-      color: variant.color,                        // color
-      stock: variant.stock,
-      isReturn: product.isReturn || false,
-      isQuickItem: !product.id                     // seguirá false salvo ítems manuales
+      console.log('🔍 DEBUG: addToCart con variante:', {
+        productId: product.id,
+        variant,
+        quantity
+      });
+
+      addItem(salesState.activeSessionId, {
+        productId: product.id,
+        name: product.articulo,
+        code: product.id,
+        price: variant.precioVenta || product.precioVenta,
+        quantity,
+        size: variant.talle,
+        color: variant.color,
+        stock: variant.stock,
+        isReturn: product.isReturn || false,
+        isQuickItem: !product.id
+      });
     });
   }, [salesState.activeSessionId, addItem]);
+
 
 
   const updateCartItemQuantity = useCallback((lineId, newQuantity) => {

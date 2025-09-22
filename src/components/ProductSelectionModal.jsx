@@ -1,53 +1,72 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 
 const ProductSelectionModal = ({ product, show, onClose, onAddToCart }) => {
-  const [selectedVariant, setSelectedVariant] = useState(null);
+  const [selectedVariants, setSelectedVariants] = useState([]);
   const [quantity, setQuantity] = useState(1);
 
+  // Toggle selección de una variante
+  const toggleVariant = (variant) => {
+    setSelectedVariants((prev) => {
+      const exists = prev.find(
+        (v) => v.talle === variant.talle && v.color === variant.color
+      );
+      if (exists) {
+        // Si ya estaba seleccionada → quitarla
+        return prev.filter(
+          (v) => !(v.talle === variant.talle && v.color === variant.color)
+        );
+      } else {
+        // Si no estaba seleccionada → agregarla
+        return [...prev, variant];
+      }
+    });
+  };
+
   const handleConfirm = () => {
-    if (!selectedVariant) {
-      alert('Por favor seleccione una variante');
+    if (selectedVariants.length === 0) {
+      alert("Por favor seleccione al menos una variante");
       return;
     }
-    if (quantity > selectedVariant.stock) {
-      alert(`Stock insuficiente. Disponible: ${selectedVariant.stock}`);
-      return;
+
+    // Validar stocks y cantidades
+    for (let variant of selectedVariants) {
+      if (quantity > variant.stock) {
+        alert(
+          `Stock insuficiente en ${variant.talle}. Disponible: ${variant.stock}`
+        );
+        return;
+      }
     }
-    if (quantity <= 0) {
-      alert('La cantidad debe ser mayor a 0');
-      return;
-    }
-    onAddToCart(product, quantity, selectedVariant);
+
+    // 🚀 Mandar TODAS las variantes al carrito
+    onAddToCart(product, quantity, selectedVariants);
     handleClose();
   };
 
   const handleClose = () => {
-    setSelectedVariant(null);
+    setSelectedVariants([]);
     setQuantity(1);
     onClose();
   };
 
-  // 👇 Capturar Enter
+  // Capturar Enter
   useEffect(() => {
-    if (!show) return; // solo cuando el modal está abierto
+    if (!show) return;
 
     const handleKeyDown = (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault(); // evitar que haga submit u otra acción
+      if (e.key === "Enter") {
+        e.preventDefault();
         handleConfirm();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [show, selectedVariant, quantity]); // dependencias
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [show, selectedVariants, quantity]);
 
   if (!show || !product) return null;
 
-  // Filtrar variantes con stock disponible
-  const availableVariants = product.variantes?.filter(v => v.stock > 0) || [];
+  const availableVariants = product.variantes || [];
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -61,25 +80,22 @@ const ProductSelectionModal = ({ product, show, onClose, onAddToCart }) => {
             onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            ✖
           </button>
         </div>
 
         {/* Contenido */}
         <div className="p-6 space-y-4">
-          {/* Información del producto */}
+          {/* Info producto */}
           <div className="bg-gray-50 rounded-lg p-4">
-            <h4 className="font-medium text-gray-900">{product.articulo || product.name}</h4>
+            <h4 className="font-medium text-gray-900">
+              {product.articulo || product.name}
+            </h4>
             <p className="text-sm text-gray-600">Código: {product.id}</p>
-            {availableVariants.length === 0 && (
-              <p className="text-sm text-red-600 mt-1">Sin variantes disponibles</p>
-            )}
           </div>
 
-          {/* Lista de variantes disponibles */}
-          {availableVariants.length > 0 && (
+          {/* Variantes */}
+          {availableVariants.length > 0 ? (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Talles Disponibles *
@@ -95,62 +111,58 @@ const ProductSelectionModal = ({ product, show, onClose, onAddToCart }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {availableVariants.map((variant, index) => (
-                      <tr
-                        key={index}
-                        onClick={() => setSelectedVariant(variant)}
-                        className={`cursor-pointer transition-colors ${selectedVariant === variant
-                          ? "bg-red-600 text-white"
-                          : "hover:bg-red-50"
-                          }`}
-                      >
-                        <td className="px-4 py-2 font-medium">{variant.talle}</td>
-                        <td className="px-4 py-2">{variant.color || "-"}</td>
-                        <td className="px-4 py-2 font-semibold text-green-600">
-                          ${variant.precioVenta?.toLocaleString()}
-                        </td>
-                        <td
-                          className={`px-4 py-2 text-sm ${variant.stock <= 5 ? "text-red-600" : "text-gray-600"
+                    {availableVariants.map((variant, index) => {
+                      const isSelected = selectedVariants.some(
+                        (v) =>
+                          v.talle === variant.talle && v.color === variant.color
+                      );
+                      const disabled = variant.stock === 0;
+
+                      return (
+                        <tr
+                          key={index}
+                          onClick={() => !disabled && toggleVariant(variant)}
+                          className={`cursor-pointer transition-colors ${disabled
+                              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                              : isSelected
+                                ? "bg-red-600 text-white"
+                                : "hover:bg-red-50"
                             }`}
                         >
-                          {variant.stock}
-                        </td>
-                      </tr>
-                    ))}
+                          <td className="px-4 py-2 font-medium">
+                            {variant.talle}
+                          </td>
+                          <td className="px-4 py-2">
+                            {variant.color || "-"}
+                          </td>
+                          <td className="px-4 py-2 font-semibold text-green-600">
+                            ${variant.precioVenta?.toLocaleString()}
+                          </td>
+                          <td className="px-4 py-2 text-sm">
+                            {variant.stock}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
-
             </div>
-          )}
-
-
-
-
-
-          {/* Mensaje si no hay variantes */}
-          {availableVariants.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-              </svg>
-              <p>No hay variantes disponibles</p>
-              <p className="text-sm">Todas las variantes están sin stock</p>
-            </div>
+          ) : (
+            <p className="text-sm text-red-600 mt-1">
+              Sin variantes disponibles
+            </p>
           )}
         </div>
 
         {/* Botones */}
         <div className="flex space-x-3 p-6 border-t border-gray-200">
-          <button
-            onClick={handleClose}
-            className="flex-1 btn-secondary"
-          >
+          <button onClick={handleClose} className="flex-1 btn-secondary">
             Cancelar
           </button>
           <button
             onClick={handleConfirm}
-            disabled={!selectedVariant || availableVariants.length === 0}
+            disabled={selectedVariants.length === 0}
             className="flex-1 btn-rosema disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Agregar al Carrito

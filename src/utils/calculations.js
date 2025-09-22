@@ -53,8 +53,16 @@ export const roundToNearest500 = (amount) => {
  * Calcular totales de una sesión de venta
  */
 export const calculateSaleTotal = (items, discountPercent = 0) => {
+  // subtotal general (incluye TODO, hasta ofertas)
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.qty), 0);
-  const discountValue = subtotal * (discountPercent / 100);
+
+  // subtotal SOLO de los que no son oferta
+  const subtotalDiscountable = items.reduce((sum, item) => {
+    if (item.isOffer) return sum; // ignora ítems marcados como oferta
+    return sum + (item.price * item.qty);
+  }, 0);
+
+  const discountValue = subtotalDiscountable * (discountPercent / 100);
   const totalBeforeRounding = subtotal - discountValue;
   const total = roundToNearest500(totalBeforeRounding);
 
@@ -64,6 +72,7 @@ export const calculateSaleTotal = (items, discountPercent = 0) => {
     total: total < 0 ? 0 : total
   };
 };
+
 
 /**
  * Calcular vuelto en efectivo

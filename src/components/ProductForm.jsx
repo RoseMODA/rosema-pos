@@ -21,7 +21,7 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
     proveedorId: '',
     precioCosto: '',
     precioVentaSugerido: '',
-    gananciaPercent: 50, // Porcentaje por defecto
+    gananciaPercent: 100, // Porcentaje por defecto
     variantes: [],
     tags: [],
     imagenes: []
@@ -79,7 +79,7 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
         proveedorId: product.proveedorId || '',
         precioCosto: product.precioCosto || '',
         precioVentaSugerido: calculateSuggestedPrice(product.precioCosto, 50),
-        gananciaPercent: 50,
+        gananciaPercent: 100,
         variantes: product.variantes || [],
         tags: product.tags || [],
         imagenes: product.imagenes || []
@@ -104,7 +104,7 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
         proveedorId: '',
         precioCosto: '',
         precioVentaSugerido: '',
-        gananciaPercent: 50,
+        gananciaPercent: 100,
         variantes: [],
         tags: [],
         imagenes: []
@@ -449,7 +449,7 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
       proveedorId: '',
       precioCosto: '',
       precioVentaSugerido: '',
-      gananciaPercent: 50,
+      gananciaPercent: 100,
       variantes: [],
       tags: [],
       imagenes: []
