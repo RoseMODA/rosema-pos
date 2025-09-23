@@ -261,8 +261,8 @@ export const updateProduct = async (productId, updates) => {
       searchName: updates.name ? updates.name.toLowerCase() : undefined,
       updatedAt: new Date()
     };
-
-    // Remover campos undefined
+    
+// Remover campos undefined
     Object.keys(updateData).forEach(key => {
       if (updateData[key] === undefined) {
         delete updateData[key];

@@ -3,6 +3,7 @@
  */
 
 import React from 'react';
+import { Eye, Edit, Trash2, Printer } from 'lucide-react'; // 👈 Importar iconos
 import { formatPrice, formatDateTime } from '../../utils/formatters.js';
 import { calculateTotalStock, calculateAveragePrice } from '../../utils/calculations.js';
 import { getStockStatus } from '../../utils/productHelpers.js';
@@ -23,34 +24,18 @@ const ProductsTable = ({
   return (
     <>
       {/* Vista de tabla para desktop */}
-      <div className="hidden lg:block overflow-x-auto">
-        <table className="w-full">
+      <div className="overflow-x-auto max-w-6xl mx-right">
+        <table className="w-full table-fixed border-collapse">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Producto
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Categoría
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Proveedor
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Precio Costo
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Precio Venta
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Stock
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Fecha Creación
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Acciones
-              </th>
+              <th className="w-1/3 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
+              <th className="w-1/6 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
+              <th className="w-1/4 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Proveedor</th>
+              <th className="w-1/6 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Costo</th>
+              <th className="w-1/6 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Venta</th>
+              <th className="w-1/6 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
+              <th className="w-1/6 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+              <th className="w-1/3 px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Acciones</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -64,32 +49,20 @@ const ProductsTable = ({
                 <tr key={product.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="whitespace-normal break-words text-sm font-medium text-gray-900">
                         {product.articulo || 'Sin nombre'}
                       </div>
                       <div className="text-sm text-gray-500">
                         Código: {product.id}
                       </div>
-                      {product.tags && product.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {product.tags.slice(0, 3).map(tag => (
-                            <span key={tag} className="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">
-                              {tag}
-                            </span>
-                          ))}
-                          {product.tags.length > 3 && (
-                            <span className="text-xs text-gray-400">+{product.tags.length - 3}</span>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="whitespace-normal break-words px-6 py-4">
                     <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                       {product.categoria || 'Sin categoría'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="whitespace-normal break-words px-6 py-4 text-sm text-gray-900">
                     {getProviderName(product.proveedorId)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -100,52 +73,48 @@ const ProductsTable = ({
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${stockStatus.bgColor} ${stockStatus.textColor}`}>
-                      {totalStock} unidades
+                      {totalStock} unid.
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                     {product.createdAt ? (
                       <div>
-                        <div className="font-medium">
-                          {dateTime.date}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {dateTime.time}
-                        </div>
+                        <div className="font-medium">{dateTime.date}</div>
+                        <div className="text-xs text-gray-500">{dateTime.time}</div>
                       </div>
                     ) : (
                       <span className="text-gray-400 text-sm">Sin fecha</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                  <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
                     <div className="flex items-center justify-center space-x-2">
                       <button
                         onClick={() => onView(product)}
-                        className="text-green-600 hover:text-green-900 transition-colors px-2 py-1 text-sm touch-target"
+                        className="p-1 rounded hover:bg-gray-100"
                         title="Ver detalles"
                       >
-                        Ver
+                        <Eye className="w-5 h-5 text-green-600" />
                       </button>
                       <button
                         onClick={() => onEdit(product)}
-                        className="text-blue-600 hover:text-blue-900 transition-colors px-2 py-1 text-sm touch-target"
+                        className="p-1 rounded hover:bg-gray-100"
                         title="Editar"
                       >
-                        Editar
+                        <Edit className="w-5 h-5 text-blue-600" />
                       </button>
                       <button
                         onClick={() => onPrintBarcode(product)}
-                        className="text-purple-600 hover:text-purple-900 transition-colors px-2 py-1 text-sm touch-target"
+                        className="p-1 rounded hover:bg-gray-100"
                         title="Imprimir código"
                       >
-                        Imprimir
+                        <Printer className="w-5 h-5 text-purple-600" />
                       </button>
                       <button
                         onClick={() => onDelete(product.id)}
-                        className="text-red-600 hover:text-red-900 transition-colors px-2 py-1 text-sm touch-target"
+                        className="p-1 rounded hover:bg-gray-100"
                         title="Eliminar"
                       >
-                        Eliminar
+                        <Trash2 className="w-5 h-5 text-red-600" />
                       </button>
                     </div>
                   </td>

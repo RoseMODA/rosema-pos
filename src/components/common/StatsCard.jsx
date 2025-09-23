@@ -5,13 +5,13 @@
 import React from 'react';
 import { formatPrice } from '../../utils/formatters.js';
 
-const StatsCard = ({ 
-  title, 
-  value, 
-  color = 'blue', 
+const StatsCard = ({
+  title,
+  value,
+  color = 'blue',
   format = 'number',
   subtitle,
-  className = '' 
+  className = ''
 }) => {
   // Formatear valor según el tipo
   const formatValue = (val, formatType) => {
@@ -40,14 +40,14 @@ const StatsCard = ({
 
   return (
     <div className={`bg-white rounded-lg shadow-md p-6 text-center ${className}`}>
-      <div className={`text-3xl font-bold mb-2 ${textColorClass}`}>
+      <div className={`text-3xl font-bold mb-1 ${textColorClass}`}>
         {formatValue(value, format)}
       </div>
-      <div className="text-gray-600 font-medium">
+      <div className="text-xs text-gray-500 font-medium">
         {title}
       </div>
       {subtitle && (
-        <div className="text-sm text-gray-500 mt-1">
+        <div className="text-xs text-gray-500 mt-1">
           {subtitle}
         </div>
       )}

@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useProviders } from '../hooks/useProviders';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../services/firebase';
+import { useProducts } from "../hooks/useProducts";
+import ProviderForm from './ProviderForm';
+
 
 /**
  * Componente modal para crear y editar productos
@@ -38,11 +41,13 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
   const [imagePreview, setImagePreview] = useState([]);
   const [uploadingImages, setUploadingImages] = useState(false);
 
+
+
   // Opciones predefinidas
   const categorias = ['mujer', 'hombre', 'niños-bebes', 'otros'];
   const temporadas = ['verano', 'invierno', 'otoño', 'primavera', 'todo el año'];
   const subcategoriasComunes = [
-    'remeras', 'pantalones', 'vestidos', 'faldas', 'shorts', 'buzos', 'camperas',
+    'NIÑOS', 'NIÑAS', 'BEBES', 'Deportivo', 'Fiesta', 'FORMAL', 'remeras', 'pantalones', 'vestidos', 'faldas', 'shorts', 'buzos', 'camperas',
     'jeans', 'camisas', 'blusas', 'sweaters', 'abrigos', 'ropa interior',
     'calzado', 'accesorios', 'carteras', 'cinturones'
   ];
@@ -78,7 +83,7 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
         temporada: product.temporada || '',
         proveedorId: product.proveedorId || '',
         precioCosto: product.precioCosto || '',
-        precioVentaSugerido: calculateSuggestedPrice(product.precioCosto, 50),
+        precioVentaSugerido: calculateSuggestedPrice(product.precioCosto, 100),
         gananciaPercent: 100,
         variantes: product.variantes || [],
         tags: product.tags || [],
@@ -171,6 +176,19 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
     }
   };
 
+
+  // Manejar cuando se guarda un nuevo proveedor desde ProviderForm
+  const handleProviderCreated = (newProvider) => {
+    // Agregarlo a la lista de proveedores ya cargada
+    setFilteredProviders(prev => [...prev, newProvider]);
+
+    // Seleccionarlo automáticamente en el formulario de producto
+    setProviderSearch(newProvider.proveedor);
+    handleInputChange('proveedorId', newProvider.id);
+
+    // Cerrar modal
+    setShowProviderForm(false);
+  };
   /**
    * Agregar nueva variante
    */
@@ -215,6 +233,25 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
       )
     }));
   };
+
+  const { products, validateProductCode } = useProducts();
+
+
+  const [codeStatus, setCodeStatus] = useState(null);
+  // null | "available" | "taken"
+
+  const handleCodeChange = async (value) => {
+    const code = value.toUpperCase();
+    handleInputChange('id', code);
+
+    if (code.length > 3) { // evitar validar con pocos caracteres
+      const exists = await validateProductCode(code, mode === 'edit' ? formData.id : null);
+      setCodeStatus(exists ? "taken" : "available");
+    } else {
+      setCodeStatus(null);
+    }
+  };
+
 
 
   /**
@@ -291,6 +328,7 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
     setProviderSearch(provider.proveedor);
     setFilteredProviders([]);
   };
+
 
   /**
    * Manejar selección de imágenes
@@ -493,12 +531,37 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
                 Código de Barras *
               </label>
               <input
+                list="codigo-sugerencias"
                 type="text"
                 value={formData.id}
-                onChange={(e) => handleInputChange('id', e.target.value)}
-                className={`w-full input-rosema ${errors.id ? 'border-red-500' : ''}`}
+                onChange={(e) => handleCodeChange(e.target.value)}
+                className={`w-full input-rosema uppercase ${errors.id ? 'border-red-500' : ''}`}
                 placeholder="Ingrese código de barras"
+                disabled={mode === 'edit'}
               />
+
+              {/* Sugerencias (autocomplete con coincidencias) */}
+              <datalist id="codigo-sugerencias">
+                {products
+                  .filter((p) =>
+                    p.id.toUpperCase().startsWith(formData.id.toUpperCase())
+                  )
+                  .slice(0, 15)
+                  .map((p) => (
+                    <option key={p.id} value={p.id} />
+                  ))}
+              </datalist>
+
+
+              {/* Validación visual */}
+              {codeStatus === "available" && (
+                <p className="text-green-600 text-sm mt-1"> * Código disponible</p>
+              )}
+              {codeStatus === "taken" && (
+                <p className="text-red-500 text-sm mt-1"> * Código ya existe</p>
+              )}
+
+
               {errors.id && <p className="text-red-500 text-sm mt-1">{errors.id}</p>}
             </div>
 
@@ -510,12 +573,13 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
               <input
                 type="text"
                 value={formData.articulo}
-                onChange={(e) => handleInputChange('articulo', e.target.value)}
-                className={`w-full input-rosema ${errors.articulo ? 'border-red-500' : ''}`}
+                onChange={(e) => handleInputChange('articulo', e.target.value.toUpperCase())}
+                className={`w-full input-rosema uppercase ${errors.articulo ? 'border-red-500' : ''}`}
                 placeholder="Ingrese nombre del artículo"
               />
               {errors.articulo && <p className="text-red-500 text-sm mt-1">{errors.articulo}</p>}
             </div>
+
           </div>
 
           {/* Descripción */}
@@ -597,7 +661,7 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
                   onClick={() => addSubcategoria(sub)}
                   className={`px-3 py-1 text-sm rounded-full border transition-colors ${formData.subcategorias.includes(sub)
                     ? 'bg-blue-500 text-white border-blue-500'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                    : 'bg-white text-gray-700 border-gray-500 hover:bg-blue-200'
                     }`}
                 >
                   {sub}
@@ -646,10 +710,21 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
                 <input
                   type="text"
                   value={providerSearch}
-                  onChange={(e) => setProviderSearch(e.target.value)}
+                  onChange={(e) => {
+                    setProviderSearch(e.target.value);
+                    if (!e.target.value.trim()) {
+                      setFilteredProviders([]); // limpiar si está vacío
+                    }
+                  }}
+                  onBlur={() => {
+                    // esperar 150ms antes de cerrar para que alcance a ejecutarse onClick
+                    setTimeout(() => setFilteredProviders([]), 50);
+                  }}
                   className={`w-full input-rosema ${errors.proveedorId ? 'border-red-500' : ''}`}
                   placeholder="Buscar proveedor..."
                 />
+
+
                 {filteredProviders.length > 0 && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                     {filteredProviders.map(provider => (
@@ -976,8 +1051,34 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
           </div>
         </form>
       </div>
+      <ProviderForm
+        isOpen={showProviderForm}
+        onClose={() => setShowProviderForm(false)}
+        onSave={async (newProviderData) => {
+          try {
+            // Crear en la BD
+            const newProvider = await addProvider(newProviderData);
+
+            // Vincular con el producto actual
+            setFormData(prev => ({ ...prev, proveedorId: newProvider.id }));
+            setProviderSearch(newProvider.proveedor);
+
+            // Cerrar modal
+            setShowProviderForm(false);
+          } catch (error) {
+            console.error("Error al crear proveedor desde ProductForm:", error);
+            alert("No se pudo crear el proveedor.");
+          }
+        }}
+      />
+
+
     </div>
+
+
+
   );
+
 };
 
 export default ProductForm;
