@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import { getAllProviders } from "../services/providersService";
+
 
 /**
  * Formulario para crear/editar proveedores
  * Implementa todos los campos requeridos según la Etapa 5
  */
-const ProviderForm = ({ 
-  provider = null, 
-  isOpen, 
-  onClose, 
-  onSave, 
-  loading = false 
+const ProviderForm = ({
+  provider = null,
+  isOpen,
+  onClose,
+  onSave,
+  loading = false
 }) => {
   const [formData, setFormData] = useState({
     proveedor: '',
@@ -32,6 +34,31 @@ const ProviderForm = ({
   const [tagInput, setTagInput] = useState('');
   const [tallesInput, setTallesInput] = useState('');
   const [categoriaInput, setCategoriaInput] = useState('');
+  const [direcciones, setDirecciones] = useState([]);
+  const [areas, setAreas] = useState([]);
+  const [galerias, setGalerias] = useState([]);
+
+  // Dirección
+  const [direccionInput, setDireccionInput] = useState("");
+  const [direccionSugs, setDireccionSugs] = useState([]);
+
+  // Área
+  const [areaInput, setAreaInput] = useState("");
+  const [areaSugs, setAreaSugs] = useState([]);
+
+  // Galería
+  const [galeriaInput, setGaleriaInput] = useState("");
+  const [galeriaSugs, setGaleriaSugs] = useState([]);
+
+
+  const getSuggestions = (value, list) => {
+    if (!value.trim()) return [];
+    return list.filter(item =>
+      item.toLowerCase().includes(value.toLowerCase())
+    );
+  };
+
+
 
   // Opciones predefinidas
   const categoriaOptions = [
@@ -57,8 +84,8 @@ const ProviderForm = ({
         catalogo: provider.catalogo || '',
         web: provider.web || '',
         categoria: provider.categoria || '',
-        locales: provider.locales && provider.locales.length > 0 
-          ? provider.locales 
+        locales: provider.locales && provider.locales.length > 0
+          ? provider.locales
           : [{ direccion: '', area: '', galeria: '', pasillo: '', local: '' }],
         tags: Array.isArray(provider.tags) ? provider.tags : [],
         instagram: provider.instagram || '',
@@ -92,6 +119,29 @@ const ProviderForm = ({
     }
   }, [provider]);
 
+  useEffect(() => {
+    if (isOpen) {
+      // cuando abre el modal cargo sugerencias globales
+      getAllProviders().then(providers => {
+        const allDirecciones = [];
+        const allAreas = [];
+        const allGalerias = [];
+
+        providers.forEach(p => {
+          (p.locales || []).forEach(l => {
+            if (l.direccion) allDirecciones.push(l.direccion.toUpperCase());
+            if (l.area) allAreas.push(l.area.toUpperCase());
+            if (l.galeria) allGalerias.push(l.galeria.toUpperCase());
+          });
+        });
+
+        setDirecciones([...new Set(allDirecciones)]);
+        setAreas([...new Set(allAreas)]);
+        setGalerias([...new Set(allGalerias)]);
+      });
+    }
+  }, [isOpen]);
+
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
@@ -107,6 +157,8 @@ const ProviderForm = ({
       locales: newLocales
     }));
   };
+
+
 
   const addLocal = () => {
     setFormData(prev => ({
@@ -167,7 +219,7 @@ const ProviderForm = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     // Validación básica
     if (!formData.proveedor.trim()) {
       alert('El nombre del proveedor es requerido');
@@ -175,7 +227,7 @@ const ProviderForm = ({
     }
 
     // Limpiar locales vacíos
-    const localesLimpios = formData.locales.filter(local => 
+    const localesLimpios = formData.locales.filter(local =>
       local.direccion || local.area || local.galeria || local.pasillo || local.local
     );
 
@@ -188,7 +240,9 @@ const ProviderForm = ({
       catalogo: formData.catalogo.trim() || null,
       web: formData.web.trim() || null,
       categoria: formData.categoria.trim() || null,
-      locales: localesLimpios.length > 0 ? localesLimpios : [{ direccion: '', area: '', galeria: '', pasillo: '', local: '' }],
+      locales: localesLimpios.length > 0
+        ? localesLimpios
+        : [{ direccion: '', area: '', galeria: '', pasillo: '', local: '' }],
       tags: Array.isArray(formData.tags) ? formData.tags : [],
       instagram: formData.instagram.trim() || null,
       tiktok: formData.tiktok.trim() || null,
@@ -198,9 +252,21 @@ const ProviderForm = ({
       talles: Array.isArray(formData.talles) ? formData.talles : []
     };
 
+    // 🔥 Actualizar las listas de sugerencias
+    setDirecciones(prev => [
+      ...new Set([...prev, ...localesLimpios.map(l => l.direccion).filter(Boolean)])
+    ]);
+    setAreas(prev => [
+      ...new Set([...prev, ...localesLimpios.map(l => l.area).filter(Boolean)])
+    ]);
+    setGalerias(prev => [
+      ...new Set([...prev, ...localesLimpios.map(l => l.galeria).filter(Boolean)])
+    ]);
+
     console.log('🔍 DEBUG: Datos a enviar:', dataToSave);
     onSave(dataToSave);
   };
+
 
   if (!isOpen) return null;
 
@@ -223,7 +289,7 @@ const ProviderForm = ({
               <input
                 type="text"
                 value={formData.proveedor}
-                onChange={(e) => handleInputChange('proveedor', e.target.value)}
+                onChange={(e) => handleInputChange('proveedor', e.target.value.toUpperCase())}
                 className="w-full input-rosema"
                 placeholder="Nombre del proveedor"
                 required
@@ -277,14 +343,25 @@ const ProviderForm = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Catálogo (Link)
+                Catálogo (WhatsApp)
               </label>
               <input
-                type="url"
+                type="text"
                 value={formData.catalogo}
-                onChange={(e) => handleInputChange('catalogo', e.target.value)}
+                onChange={(e) => {
+                  let value = e.target.value.trim();
+
+                  // Si escribe solo el número, armamos el link wa.me
+                  if (value && !value.startsWith("https://wa.me/")) {
+                    // quitar espacios y símbolos tipo "+" o "-"
+                    value = value.replace(/\D/g, "");
+                    value = "https://wa.me/c/549" + value;
+                  }
+
+                  handleInputChange("catalogo", value);
+                }}
                 className="w-full input-rosema"
-                placeholder="https://wa.me/c/..."
+                placeholder="Ej: 5491122334455 → https://wa.me/5491122334455"
               />
             </div>
 
@@ -293,13 +370,23 @@ const ProviderForm = ({
                 Página Web
               </label>
               <input
-                type="url"
+                type="text"
                 value={formData.web}
-                onChange={(e) => handleInputChange('web', e.target.value)}
+                onChange={(e) => {
+                  let value = e.target.value.trim();
+
+                  // Si no empieza con http:// o https://, lo completamos
+                  if (value && !/^https?:\/\//i.test(value)) {
+                    value = "https://" + value;
+                  }
+
+                  handleInputChange("web", value);
+                }}
                 className="w-full input-rosema"
-                placeholder="https://..."
+                placeholder="Ej: mi-tienda.com → https://mi-tienda.com"
               />
             </div>
+
           </div>
 
           {/* Categoría */}
@@ -354,7 +441,7 @@ const ProviderForm = ({
                 Agregar Local
               </button>
             </div>
-            
+
             {formData.locales.map((local, index) => (
               <div key={index} className="border border-gray-200 rounded-lg p-4 mb-3">
                 <div className="flex justify-between items-center mb-3">
@@ -369,29 +456,115 @@ const ProviderForm = ({
                     </button>
                   )}
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  <input
-                    type="text"
-                    value={local.direccion}
-                    onChange={(e) => handleLocalChange(index, 'direccion', e.target.value)}
-                    placeholder="Dirección"
-                    className="input-rosema"
-                  />
-                  <input
-                    type="text"
-                    value={local.area}
-                    onChange={(e) => handleLocalChange(index, 'area', e.target.value)}
-                    placeholder="Área"
-                    className="input-rosema"
-                  />
-                  <input
-                    type="text"
-                    value={local.galeria}
-                    onChange={(e) => handleLocalChange(index, 'galeria', e.target.value)}
-                    placeholder="Galería"
-                    className="input-rosema"
-                  />
+                  {/* Dirección */}
+                  {/* Dirección */}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={direccionInput}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase();
+                        setDireccionInput(val);
+                        setDireccionSugs(getSuggestions(val, direcciones));
+                        handleLocalChange(index, "direccion", val);
+                      }}
+                      onBlur={() => setTimeout(() => setDireccionSugs([]), 150)}
+                      placeholder="Dirección"
+                      className="input-rosema w-full"
+                    />
+                    {direccionSugs.length > 0 && (
+                      <div className="absolute z-10 bg-white border border-gray-300 rounded-lg shadow-lg max-h-40 overflow-y-auto w-full">
+                        {direccionSugs.map((sug, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            className="block w-full text-left px-3 py-2 hover:bg-gray-100"
+                            onClick={() => {
+                              setDireccionInput(sug);
+                              handleLocalChange(index, "direccion", sug);
+                              setDireccionSugs([]);
+                            }}
+                          >
+                            {sug}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Área */}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={areaInput}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase();
+                        setAreaInput(val);
+                        setAreaSugs(getSuggestions(val, areas));
+                        handleLocalChange(index, "area", val);
+                      }}
+                      onBlur={() => setTimeout(() => setAreaSugs([]), 150)}
+                      placeholder="Área"
+                      className="input-rosema w-full"
+                    />
+                    {areaSugs.length > 0 && (
+                      <div className="absolute z-10 bg-white border border-gray-300 rounded-lg shadow-lg max-h-40 overflow-y-auto w-full">
+                        {areaSugs.map((sug, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            className="block w-full text-left px-3 py-2 hover:bg-gray-100"
+                            onClick={() => {
+                              setAreaInput(sug);
+                              handleLocalChange(index, "area", sug);
+                              setAreaSugs([]);
+                            }}
+                          >
+                            {sug}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Galería */}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={galeriaInput}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase();
+                        setGaleriaInput(val);
+                        setGaleriaSugs(getSuggestions(val, galerias));
+                        handleLocalChange(index, "galeria", val);
+                      }}
+                      onBlur={() => setTimeout(() => setGaleriaSugs([]), 150)}
+                      placeholder="Galería"
+                      className="input-rosema w-full"
+                    />
+                    {galeriaSugs.length > 0 && (
+                      <div className="absolute z-10 bg-white border border-gray-300 rounded-lg shadow-lg max-h-40 overflow-y-auto w-full">
+                        {galeriaSugs.map((sug, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            className="block w-full text-left px-3 py-2 hover:bg-gray-100"
+                            onClick={() => {
+                              setGaleriaInput(sug);
+                              handleLocalChange(index, "galeria", sug);
+                              setGaleriaSugs([]);
+                            }}
+                          >
+                            {sug}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+
                   <input
                     type="text"
                     value={local.pasillo}
@@ -461,11 +634,17 @@ const ProviderForm = ({
                 Instagram
               </label>
               <input
-                type="url"
+                type="text"
                 value={formData.instagram}
-                onChange={(e) => handleInputChange('instagram', e.target.value)}
+                onChange={(e) => {
+                  let value = e.target.value;
+                  if (value && !value.startsWith("https://www.instagram.com/")) {
+                    value = "https://www.instagram.com/" + value.replace(/^https?:\/\/(www\.)?instagram\.com\//, "");
+                  }
+                  handleInputChange("instagram", value);
+                }}
                 className="w-full input-rosema"
-                placeholder="https://www.instagram.com/..."
+                placeholder="usuario"
               />
             </div>
 
@@ -474,14 +653,21 @@ const ProviderForm = ({
                 TikTok
               </label>
               <input
-                type="url"
+                type="text"
                 value={formData.tiktok}
-                onChange={(e) => handleInputChange('tiktok', e.target.value)}
+                onChange={(e) => {
+                  let value = e.target.value;
+                  if (value && !value.startsWith("https://www.tiktok.com/@")) {
+                    value = "https://www.tiktok.com/@" + value.replace(/^https?:\/\/(www\.)?tiktok\.com\/@?/, "");
+                  }
+                  handleInputChange("tiktok", value);
+                }}
                 className="w-full input-rosema"
-                placeholder="https://www.tiktok.com/..."
+                placeholder="usuario"
               />
             </div>
           </div>
+
 
           {/* Calidad y Precios */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -526,7 +712,7 @@ const ProviderForm = ({
             <input
               type="text"
               value={tallesInput}
-              onChange={(e) => handleTallesChange(e.target.value)}
+              onChange={(e) => handleTallesChange(e.target.value.toUpperCase())}
               className="w-full input-rosema"
               placeholder="Separar por comas: S, M, L, XL, 38, 40, 42"
             />

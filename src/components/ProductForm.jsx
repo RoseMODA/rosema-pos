@@ -43,6 +43,7 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
 
 
 
+
   // Opciones predefinidas
   const categorias = ['mujer', 'hombre', 'niños-bebes', 'otros'];
   const temporadas = ['verano', 'invierno', 'otoño', 'primavera', 'todo el año'];
@@ -195,7 +196,8 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
     letras: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL', '6XL'],
     numeros: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'],
     europeos: ['34', '36', '38', '40', '42', '44', '46', '48', '50', '52', '54', '58', '60'],
-    ninos: ['4', '6', '8', '10', '12', '14', '16', '18']
+    ninos: ['4', '6', '8', '10', '12', '14', '16', '18'],
+    bebes: ['0M', '3M', '6M', '9M', '1A', '2A', '3A', '4A']
   };
 
   // 2) Detectar la secuencia que mejor encaja con los talles existentes
@@ -888,9 +890,9 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Talla</th>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Color</th>
                       <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Stock</th>
                       <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Precio Venta *</th>
+                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Color</th>
                       <th className="px-4 py-2 text-center text-sm font-medium text-gray-700">Acciones</th>
                     </tr>
                   </thead>
@@ -901,18 +903,9 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
                           <input
                             type="text"
                             value={variante.talle}
-                            onChange={(e) => updateVariante(index, 'talle', e.target.value)}
+                            onChange={(e) => updateVariante(index, 'talle', e.target.value.toUpperCase())}
                             className="w-full input-rosema"
                             placeholder="XS, S, M..."
-                          />
-                        </td>
-                        <td className="px-4 py-2">
-                          <input
-                            type="text"
-                            value={variante.color}
-                            onChange={(e) => updateVariante(index, 'color', e.target.value)}
-                            className="w-full input-rosema"
-                            placeholder="Rojo, Azul..."
                           />
                         </td>
                         <td className="px-4 py-2">
@@ -937,6 +930,17 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
                             <p className="text-red-500 text-xs mt-1">{errors[`variante_${index}_precio`]}</p>
                           )}
                         </td>
+                        <td className="px-4 py-2">
+                          <input
+                            type="text"
+                            value={variante.color}
+                            onChange={(e) => updateVariante(index, 'color', e.target.value.toUpperCase())}
+                            className="w-full input-rosema"
+                            placeholder="Rojo, Azul..."
+                          />
+                        </td>
+
+
                         <td className="px-4 py-2 text-center">
                           <button
                             type="button"
