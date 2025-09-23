@@ -60,6 +60,7 @@ const ProviderForm = ({
 
 
 
+
   // Opciones predefinidas
   const categoriaOptions = [
     'mujer', 'hombre', 'niños', 'niñas', 'bebes', 'juvenil', 'ambos', 'lenceria', 'importado'
@@ -202,6 +203,7 @@ const ProviderForm = ({
       talles: tallesArray
     }));
   };
+
 
   const handleCategoriaSelect = (categoria) => {
     setFormData(prev => ({
@@ -669,40 +671,92 @@ const ProviderForm = ({
           </div>
 
 
-          {/* Calidad y Precios */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Calidad
-              </label>
-              <select
-                value={formData.calidad}
-                onChange={(e) => handleInputChange('calidad', e.target.value)}
-                className="w-full input-rosema"
-              >
-                <option value="">Seleccionar calidad</option>
-                {calidadOptions.map(calidad => (
-                  <option key={calidad} value={calidad}>{calidad}</option>
-                ))}
-              </select>
-            </div>
+          {/* Calidad */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Calidad
+            </label>
+            <div className="flex gap-2 flex-wrap">
+              {calidadOptions.map(c => {
+                const colorMap = {
+                  excelente: {
+                    base: "bg-green-100 text-green-700 border-green-300 hover:bg-green-200",
+                    active: "bg-green-500 text-white border-green-500"
+                  },
+                  buena: {
+                    base: "bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-200",
+                    active: "bg-blue-500 text-white border-blue-500"
+                  },
+                  media: {
+                    base: "bg-yellow-100 text-yellow-700 border-yellow-300 hover:bg-yellow-200",
+                    active: "bg-yellow-500 text-white border-yellow-500"
+                  },
+                  mala: {
+                    base: "bg-red-100 text-red-700 border-red-300 hover:bg-red-200",
+                    active: "bg-red-500 text-white border-red-500"
+                  },
+                }
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Precios
-              </label>
-              <select
-                value={formData.precios}
-                onChange={(e) => handleInputChange('precios', e.target.value)}
-                className="w-full input-rosema"
-              >
-                <option value="">Seleccionar nivel de precios</option>
-                {preciosOptions.map(precio => (
-                  <option key={precio} value={precio}>{precio}</option>
-                ))}
-              </select>
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => handleInputChange("calidad", c)}
+                    className={`px-3 py-2 rounded-lg border transition ${formData.calidad === c ? colorMap[c].active : colorMap[c].base
+                      }`}
+                  >
+                    {c}
+                  </button>
+                )
+              })}
             </div>
           </div>
+
+          {/* Precios */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Precios
+            </label>
+            <div className="flex gap-2 flex-wrap">
+              {preciosOptions.map(p => {
+                const colorMap = {
+                  baratos: {
+                    base: "bg-green-100 text-green-700 border-green-300 hover:bg-green-200",
+                    active: "bg-green-500 text-white border-green-500"
+                  },
+                  buenos: {
+                    base: "bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-200",
+                    active: "bg-blue-500 text-white border-blue-500"
+                  },
+                  medios: {
+                    base: "bg-yellow-100 text-yellow-700 border-yellow-300 hover:bg-yellow-200",
+                    active: "bg-yellow-500 text-white border-yellow-500"
+                  },
+                  razonable: {
+                    base: "bg-pink-100 text-pink-700 border-pink-300 hover:bg-pink-200",
+                    active: "bg-pink-500 text-white border-pink-500"
+                  },
+                  caro: {
+                    base: "bg-red-100 text-red-700 border-red-300 hover:bg-red-200",
+                    active: "bg-red-500 text-white border-red-500"
+                  },
+                }
+
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => handleInputChange("precios", p)}
+                    className={`px-3 py-2 rounded-lg border transition ${formData.precios === p ? colorMap[p].active : colorMap[p].base
+                      }`}
+                  >
+                    {p}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
 
           {/* Talles */}
           <div>
@@ -719,7 +773,42 @@ const ProviderForm = ({
             <p className="text-sm text-gray-500 mt-1">
               Ingrese los talles separados por comas
             </p>
+
+            {/* Tabla visual de talles */}
+            <div className="mt-3 space-y-2 text-sm">
+              <div>
+                <span className="font-medium text-gray-700">Adulto (letras):</span>
+                <p className="text-gray-600">
+                  XS, S, M, L, XL, XXL, 3XL, 4XL, 5XL, 6XL
+                </p>
+              </div>
+              <div>
+                <span className="font-medium text-gray-700">Adulto (números):</span>
+                <p className="text-gray-600">
+                  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
+                </p>
+              </div>
+              <div>
+                <span className="font-medium text-gray-700">Adulto (europeo):</span>
+                <p className="text-gray-600">
+                  34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 58, 60
+                </p>
+              </div>
+              <div>
+                <span className="font-medium text-gray-700">Niños:</span>
+                <p className="text-gray-600">
+                  4, 6, 8, 10, 12, 14, 16, 18
+                </p>
+              </div>
+              <div>
+                <span className="font-medium text-gray-700">Bebés:</span>
+                <p className="text-gray-600">
+                  0M, 3M, 6M, 9M, 1A, 2A, 3A, 4A
+                </p>
+              </div>
+            </div>
           </div>
+
 
           {/* Notas */}
           <div>
@@ -734,6 +823,7 @@ const ProviderForm = ({
               placeholder="Notas adicionales sobre el proveedor..."
             />
           </div>
+
 
           {/* Botones */}
           <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
