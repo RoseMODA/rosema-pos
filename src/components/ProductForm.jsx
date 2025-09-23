@@ -189,21 +189,75 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
     // Cerrar modal
     setShowProviderForm(false);
   };
-  /**
-   * Agregar nueva variante
-   */
-  const addVariante = () => {
-    const newVariante = {
-      talle: '',
-      color: '',
-      stock: 0,
-      precioVenta: formData.precioVentaSugerido || 0
-    };
-    setFormData(prev => ({
-      ...prev,
-      variantes: [...prev.variantes, newVariante]
-    }));
+
+  // 1) Secuencias de talles (puedes ajustarlas si querés)
+  const talleSequences = {
+    letras: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL', '6XL'],
+    numeros: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'],
+    europeos: ['34', '36', '38', '40', '42', '44', '46', '48', '50', '52', '54', '58', '60'],
+    ninos: ['4', '6', '8', '10', '12', '14', '16', '18']
   };
+
+  // 2) Detectar la secuencia que mejor encaja con los talles existentes
+  const detectSequence = (talles) => {
+    const clean = talles.map(t => String(t).trim().toUpperCase()).filter(Boolean);
+    if (clean.length < 2) return null; // necesitamos al menos 2 para decidir confiablemente
+
+    // candidatos: secuencias que contienen todos los talles dados
+    const candidates = Object.values(talleSequences).filter(seq =>
+      clean.every(t => seq.includes(t))
+    );
+
+    if (candidates.length === 0) return null;
+    if (candidates.length === 1) return candidates[0];
+
+    // si hay varios candidatos, elegir el que tenga la menor distancia media
+    const scoreFor = (seq) => {
+      const indices = clean.map(t => seq.indexOf(t)).filter(i => i !== -1);
+      if (indices.length < 2) return Infinity;
+      let diffs = [];
+      for (let i = 1; i < indices.length; i++) {
+        diffs.push(Math.abs(indices[i] - indices[i - 1]));
+      }
+      const avg = diffs.reduce((s, n) => s + n, 0) / diffs.length;
+      return avg;
+    };
+
+    candidates.sort((a, b) => scoreFor(a) - scoreFor(b));
+    return candidates[0];
+  };
+
+  // 3) Obtener el siguiente talle según la secuencia detectada
+  const getNextTalle = (existingTalles) => {
+    const cleaned = existingTalles.map(t => String(t).trim().toUpperCase()).filter(Boolean);
+    const seq = detectSequence(cleaned);
+    if (!seq) return ''; // si no detectamos, dejamos vacío (que el usuario complete)
+    // buscar el índice máximo entre los talles existentes y devolver el siguiente
+    const indices = cleaned.map(t => seq.indexOf(t)).filter(i => i !== -1);
+    const maxIndex = Math.max(...indices);
+    return seq[maxIndex + 1] || '';
+  };
+
+  // 4) addVariante usando la versión funcional de setFormData (lee el estado más reciente)
+  const addVariante = () => {
+    setFormData(prev => {
+      const existingTalles = prev.variantes.map(v => v.talle);
+      const nextTalle = getNextTalle(existingTalles);
+
+      const newVariante = {
+        talle: nextTalle,                 // sugerencia inteligente
+        color: '',
+        stock: 1,                         // stock por defecto = 1
+        precioVenta: prev.precioVentaSugerido || 0
+      };
+
+      return {
+        ...prev,
+        variantes: [...prev.variantes, newVariante]
+      };
+    });
+  };
+
 
   /**
    * Eliminar variante
@@ -718,7 +772,7 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
                   }}
                   onBlur={() => {
                     // esperar 150ms antes de cerrar para que alcance a ejecutarse onClick
-                    setTimeout(() => setFilteredProviders([]), 50);
+                    setTimeout(() => setFilteredProviders([]), 150);
                   }}
                   className={`w-full input-rosema ${errors.proveedorId ? 'border-red-500' : ''}`}
                   placeholder="Buscar proveedor..."

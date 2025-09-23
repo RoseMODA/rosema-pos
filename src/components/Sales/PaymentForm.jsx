@@ -60,7 +60,7 @@ const PaymentForm = ({
               key={method.value}
               type="button"
               onClick={() => onPaymentMethodChange(method.value)}
-              className={`px-4 py-2 rounded border text-sm font-medium transition 
+              className={`px-4 py-2 rounded border text-sm font-bold transition 
                 ${paymentMethod === method.value
                   ? 'bg-rose-600 text-white border-rose-600'
                   : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'}`}
@@ -82,7 +82,7 @@ const PaymentForm = ({
               key={option.value}
               type="button"
               onClick={() => onDiscountChange(Number(option.value))}
-              className={`px-3 py-1 rounded border text-sm font-medium transition
+              className={`px-3 py-1 rounded border text-sm font-bold transition
                 ${discountPercent === option.value
                   ? 'bg-green-600 text-white border-green-600'
                   : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'}`}
