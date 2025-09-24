@@ -15,10 +15,10 @@ const BarcodeSVG = ({ value, height = 60, width = 1.2 }) => {
         lineColor: "#000000",
         width: 1.5,   // barras seguras
         height: 60,
-        margin: 8,
         displayValue: false,
-        margin: 0,
+        margin: 0,   // deja solo uno
       });
+
     }
   }, [value, height, width]);
 
@@ -152,16 +152,28 @@ const BarcodeModal = ({ isOpen, onClose, product }) => {
     setSelected(newSelected);
   };
 
+
+
   // Talle para previsualización
   const previewTalle = useMemo(() => {
     const firstSel = Object.entries(selected).find(([, v]) => v?.checked)?.[0];
     return firstSel ?? product?.variantes?.[0]?.talle ?? "-";
   }, [selected, product]);
 
+  // Eliminar talles repetidos (conservando el primero que aparece)
+  const uniqueVariantes = useMemo(() => {
+    const seen = new Set();
+    return (product?.variantes || []).filter(v => {
+      if (seen.has(v.talle)) return false;
+      seen.add(v.talle);
+      return true;
+    });
+  }, [product]);
+
   // Lista de etiquetas a imprimir
   const labels = useMemo(() => {
     const out = [];
-    (product?.variantes || []).forEach((v) => {
+    uniqueVariantes.forEach((v) => {
       const t = v.talle;
       const row = selected[t];
       if (row?.checked) {
@@ -170,7 +182,10 @@ const BarcodeModal = ({ isOpen, onClose, product }) => {
       }
     });
     return out.length ? out : [{ talle: previewTalle }];
-  }, [product, selected, previewTalle]);
+  }, [uniqueVariantes, selected, previewTalle]);
+
+
+
 
   if (!isOpen || !product) return null;
 
@@ -247,6 +262,11 @@ ${html}
     }, 30);
   };
 
+
+
+
+
+
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-white p-8 rounded-xl shadow-lg w-[560px] max-h-[90vh] overflow-y-auto">
@@ -268,10 +288,16 @@ ${html}
         <label className="flex items-center gap-2 mb-2">
           <input
             type="checkbox"
-            onChange={(e) => toggleAllTalles(e.target.checked)}
+            onChange={(e) => {
+              const newSelected = {};
+              uniqueVariantes.forEach((v) => {
+                newSelected[v.talle] = { checked: e.target.checked, qty: selected[v.talle]?.qty || 1 };
+              });
+              setSelected(newSelected);
+            }}
             checked={
-              (product?.variantes || []).length > 0 &&
-              (product?.variantes || []).every((v) => selected[v.talle]?.checked)
+              uniqueVariantes.length > 0 &&
+              uniqueVariantes.every((v) => selected[v.talle]?.checked)
             }
           />
           Seleccionar todos
@@ -279,7 +305,7 @@ ${html}
 
 
         <div className="grid grid-cols-2 gap-2 mb-3">
-          {(product?.variantes || []).map((v, i) => (
+          {uniqueVariantes.map((v, i) => (
             <div key={i} className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -298,6 +324,7 @@ ${html}
             </div>
           ))}
         </div>
+
 
         {/* Precio */}
         <label className="flex items-center gap-2 mb-2">
