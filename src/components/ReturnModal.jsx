@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useProducts } from '../hooks/useProducts';
 import ReturnProductModal from './ReturnProductModal';
 
@@ -19,6 +19,18 @@ const ReturnModal = ({ isOpen, onClose, onAddReturn }) => {
   const [showResults, setShowResults] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showReturnProductModal, setShowReturnProductModal] = useState(false);
+
+  // 👉 ref para el input de búsqueda
+  const searchInputRef = useRef(null);
+
+  // 👉 cada vez que el modal se abre, enfocar el input
+  useEffect(() => {
+    if (isOpen && searchInputRef.current) {
+      setTimeout(() => {
+        searchInputRef.current.focus();
+      }, 50);
+    }
+  }, [isOpen]);
 
   /**
    * Manejar búsqueda de productos (prioriza coincidencias exactas por ID)
@@ -147,6 +159,7 @@ const ReturnModal = ({ isOpen, onClose, onAddReturn }) => {
               </label>
               <div className="relative">
                 <input
+                  ref={searchInputRef}
                   type="text"
                   placeholder="Escanee o escriba el código de barras del producto..."
                   value={searchTerm}

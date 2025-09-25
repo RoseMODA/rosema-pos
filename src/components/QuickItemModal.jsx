@@ -1,8 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
-/**
- * Modal para agregar artículos rápidos (productos no registrados)
- */
 const QuickItemModal = ({ isOpen, onClose, onAddItem }) => {
   const [itemData, setItemData] = useState({
     name: '',
@@ -13,6 +10,18 @@ const QuickItemModal = ({ isOpen, onClose, onAddItem }) => {
 
   const [errors, setErrors] = useState({});
 
+  // 👉 Ref para el input del nombre
+  const nameInputRef = useRef(null);
+
+  // 👉 Cuando el modal se abre, enfocar el input
+  useEffect(() => {
+    if (isOpen && nameInputRef.current) {
+      // pequeño delay evita problemas si el modal se monta con animación
+      setTimeout(() => {
+        nameInputRef.current.focus();
+      }, 50);
+    }
+  }, [isOpen]);
   /**
    * Validar formulario
    */
@@ -120,6 +129,7 @@ const QuickItemModal = ({ isOpen, onClose, onAddItem }) => {
                 Nombre del Artículo *
               </label>
               <input
+                ref={nameInputRef}
                 type="text"
                 value={itemData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}

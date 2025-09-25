@@ -1,13 +1,9 @@
-/**
- * Componente de búsqueda de productos para ventas
- */
-
-import React from 'react';
+import React, { useRef, forwardRef, useImperativeHandle } from 'react';
 import SearchBar from '../common/SearchBar.jsx';
 import LoadingSpinner from '../common/LoadingSpinner.jsx';
 import { formatVariantPriceRange } from '../../utils/salesHelpers.js';
 
-const ProductSearch = ({
+const ProductSearch = forwardRef(({
   searchTerm,
   searchResults,
   showResults,
@@ -17,7 +13,26 @@ const ProductSearch = ({
   onProductSelect,
   onCreateSampleData,
   onQuickItemClick
-}) => {
+}, ref) => {
+  const searchBarRef = useRef(null);
+
+  // 🔑 Exponer el focus al padre (Sales.jsx)
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      if (searchBarRef.current) {
+        searchBarRef.current.focus();
+      }
+    }
+  }));
+
+  const handleSelectProduct = (product) => {
+    onProductSelect(product);
+    onSearch(''); // limpiar búsqueda
+    if (searchBarRef.current) {
+      searchBarRef.current.focus(); // volver a enfocar al seleccionar
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <div className="flex items-center justify-between mb-4">
@@ -26,21 +41,22 @@ const ProductSearch = ({
           Buscar Productos
         </h3>
 
-
         <button
           onClick={onQuickItemClick}
           className="btn-rosema bg-violet-800 hover:bg-violet-700 text-white font-bold text-lm py-3 px-6 rounded-lg transition-colors"
         >
           <span>+</span>
-          <span>Artículo Rápido</span>
+          <span>Artículo Rápido [ F9 ]</span>
         </button>
       </div>
 
       <div className="relative">
         <SearchBar
+          ref={searchBarRef}
           value={searchTerm}
           onChange={onSearch}
           placeholder="Buscar por código o nombre del producto..."
+          autoFocus={true}
         />
 
         {/* Resultados de búsqueda */}
@@ -68,7 +84,7 @@ const ProductSearch = ({
                   <ProductSearchItem
                     key={product.id}
                     product={product}
-                    onSelect={() => onProductSelect(product)}
+                    onSelect={() => handleSelectProduct(product)}
                   />
                 ))}
               </div>
@@ -78,31 +94,32 @@ const ProductSearch = ({
       </div>
     </div>
   );
-};
+});
 
 const ProductSearchItem = ({ product, onSelect }) => {
-  const totalStock = product.variantes?.reduce((sum, v) => sum + (v.stock || 0), 0) || 0;
+  const totalStock = product.variantes?.reduce(
+    (sum, v) => sum + (v.stock || 0),
+    0
+  ) || 0;
 
   return (
     <div
       onClick={onSelect}
-      className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${totalStock <= 0 ? 'opacity-50' : ''
-        }`}
+      className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${totalStock <= 0 ? 'opacity-50' : ''}`}
     >
       <div className="flex justify-between items-start">
         <div className="flex-1">
           <h4 className="font-medium text-gray-900">
             {product.articulo || product.name}
           </h4>
-          <p className="text-sm text-gray-500">
-            Código: {product.id}
-          </p>
+          <p className="text-sm text-gray-500">Código: {product.id}</p>
           <div className="flex items-center space-x-4 mt-1">
             <span className="text-lg font-semibold text-green-600">
               {formatVariantPriceRange(product.variantes)}
             </span>
-            <span className={`text-sm ${totalStock <= 5 ? 'text-red-600' : 'text-gray-600'
-              }`}>
+            <span
+              className={`text-sm ${totalStock <= 5 ? 'text-red-600' : 'text-gray-600'}`}
+            >
               Stock: {totalStock}
             </span>
             {product.categoria && (
@@ -126,12 +143,18 @@ const ProductSearchItem = ({ product, onSelect }) => {
           <div className="flex items-center space-x-1">
             <span className="text-xs text-gray-500">Variantes:</span>
             {product.variantes.slice(0, 3).map((variant, index) => (
-              <span key={index} className="text-xs bg-blue-100 text-blue-600 px-1 py-0.5 rounded">
-                {variant.talle}{variant.color ? ` - ${variant.color}` : ''} ({variant.stock})
+              <span
+                key={index}
+                className="text-xs bg-blue-100 text-blue-600 px-1 py-0.5 rounded"
+              >
+                {variant.talle}
+                {variant.color ? ` - ${variant.color}` : ''} ({variant.stock})
               </span>
             ))}
             {product.variantes.length > 3 && (
-              <span className="text-xs text-gray-400">+{product.variantes.length - 3}</span>
+              <span className="text-xs text-gray-400">
+                +{product.variantes.length - 3}
+              </span>
             )}
           </div>
         </div>

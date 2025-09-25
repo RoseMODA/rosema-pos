@@ -49,6 +49,13 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
     }
   }, [dateRange, paymentFilter]);
 
+  useEffect(() => {
+    if (isOpen) {
+      applyQuickFilter("today"); // 👈 por defecto cargar HOY
+    }
+  }, [isOpen]);
+
+
 
 
 

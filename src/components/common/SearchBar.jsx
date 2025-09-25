@@ -2,9 +2,9 @@
  * Componente reutilizable de barra de búsqueda
  */
 
-import React from 'react';
+import React, { forwardRef, useRef, useEffect } from 'react';
 
-const SearchBar = ({
+const SearchBar = forwardRef(({
   value,
   onChange,
   onClear,
@@ -12,7 +12,16 @@ const SearchBar = ({
   className = '',
   disabled = false,
   autoFocus = false
-}) => {
+}, ref) => {
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (autoFocus && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [autoFocus]);
+
+
   const handleChange = (e) => {
     onChange(e.target.value);
   };
@@ -22,6 +31,9 @@ const SearchBar = ({
       onClear();
     } else {
       onChange('');
+    }
+    if (inputRef.current) {
+      inputRef.current.focus(); // vuelve a enfocar después de limpiar
     }
   };
 
@@ -34,13 +46,18 @@ const SearchBar = ({
   return (
     <div className={`relative ${className}`}>
       <input
+        ref={(node) => {
+          inputRef.current = node;
+          if (typeof ref === 'function') ref(node);
+          else if (ref) ref.current = node;
+        }}
         type="text"
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         disabled={disabled}
-        autoFocus={autoFocus}
+        autoFocus={true}
         className="w-full input-rosema pl-10 pr-10"
       />
 
@@ -63,6 +80,6 @@ const SearchBar = ({
       )}
     </div>
   );
-};
+});
 
 export default SearchBar;

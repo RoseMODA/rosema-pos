@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from 'react';
 
 import { useProducts } from '../hooks/useProducts';
 
@@ -122,12 +122,20 @@ const Sales = () => {
       openModal('productSelection', product);
     } else {
       addToCart(product, quantity, variant);
+      // ✅ Reenfocar el buscador después de agregar
+      if (searchInputRef.current) {
+        searchInputRef.current.focus();
+      }
     }
   }
 
   const handleVariantSelection = (product, quantity, variants) => {
     addToCart(product, quantity, variants); // ahora acepta array
     closeModal('productSelection');
+    // ✅ Reenfocar el buscador después de cerrar el modal
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
   };
 
 
@@ -203,6 +211,27 @@ const Sales = () => {
     }
   };
 
+  React.useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "F9") {
+        e.preventDefault(); // evita que el navegador use la tecla
+        openModal("quickItem");
+      }
+      if (e.key === "F8") {
+        e.preventDefault();
+        openModal("return");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    // Limpieza al desmontar
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [openModal]);
+
+
   return (
     <div key={activeSessionId} className="min-h-screen bg-gray-50 p-4 space-y-4">
 
@@ -255,7 +284,7 @@ const Sales = () => {
               onClick={() => openModal('return')}
               className="bg-violet-800 hover:bg-violet-700 text-white font-bold text-lg py-3 px-6 rounded-lg transition-colors"
             >
-              Agregar Devolución
+              Agregar Devolución [ F8 ]
             </button>
 
             {/* ✅ NUEVO: Selector de fecha de venta */}
