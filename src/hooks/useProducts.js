@@ -94,48 +94,63 @@ export const useProducts = () => {
   }, []);
 
   /**
-   * Crear nuevo producto
-   */
-  const addProduct = useCallback(async (productData) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const newProduct = await createProduct(productData);
-      setProducts(prev => [newProduct, ...prev]);
-      return newProduct;
-    } catch (err) {
-      setError(err.message);
-      console.error('Error al crear producto:', err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+ * Crear nuevo producto
+ */
+const addProduct = useCallback(async (productData) => {
+  setLoading(true);
+  setError(null);
+  
+  try {
+    // 👇 Aseguramos valores por defecto
+    const enrichedData = {
+      ...productData,
+      ecommerce: productData.ecommerce ?? false,
+      deposito: productData.deposito ?? { guardado: false, fila: null, columna: "", lugar: "" }
+    };
 
-  /**
-   * Actualizar producto existente
-   */
-  const updateProductData = useCallback(async (productId, updates) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const updatedProduct = await updateProduct(productId, updates);
-      setProducts(prev => 
-        prev.map(product => 
-          product.id === productId ? { ...product, ...updatedProduct } : product
-        )
-      );
-      return updatedProduct;
-    } catch (err) {
-      setError(err.message);
-      console.error('Error al actualizar producto:', err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    const newProduct = await createProduct(enrichedData);
+    setProducts(prev => [newProduct, ...prev]);
+    return newProduct;
+  } catch (err) {
+    setError(err.message);
+    console.error('Error al crear producto:', err);
+    throw err;
+  } finally {
+    setLoading(false);
+  }
+}, []);
+
+/**
+ * Actualizar producto existente
+ */
+const updateProductData = useCallback(async (productId, updates) => {
+  setLoading(true);
+  setError(null);
+  
+  try {
+    // 👇 Igual que arriba: valores por defecto
+    const enrichedUpdates = {
+      ...updates,
+      ecommerce: updates.ecommerce ?? false,
+      deposito: updates.deposito ?? { guardado: false, fila: null, columna: "", lugar: "" }
+    };
+
+    const updatedProduct = await updateProduct(productId, enrichedUpdates);
+    setProducts(prev => 
+      prev.map(product => 
+        product.id === productId ? { ...product, ...updatedProduct } : product
+      )
+    );
+    return updatedProduct;
+  } catch (err) {
+    setError(err.message);
+    console.error('Error al actualizar producto:', err);
+    throw err;
+  } finally {
+    setLoading(false);
+  }
+}, []);
+
 
   /**
    * Eliminar producto

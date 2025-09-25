@@ -27,7 +27,14 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
     gananciaPercent: 100, // Porcentaje por defecto
     variantes: [],
     tags: [],
-    imagenes: []
+    imagenes: [],
+    ecommerce: false, // 👈 nuevo
+    deposito: {       // 👈 nuevo
+      guardado: false,
+      fila: "",
+      columna: "",
+      lugar: ""
+    }
   });
 
   const [errors, setErrors] = useState({});
@@ -1128,6 +1135,82 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
             </div>
           </div>
 
+          {/* Mostrar en Ecommerce */}
+          <div className="mb-4">
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={formData.ecommerce || false}
+                onChange={(e) =>
+                  setFormData({ ...formData, ecommerce: e.target.checked })
+                }
+              />
+              <span>Mostrar en Ecommerce</span>
+            </label>
+          </div>
+
+          {/* En Depósito */}
+          <div className="mb-4">
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={formData.deposito?.guardado || false}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    deposito: {
+                      ...formData.deposito,
+                      guardado: e.target.checked
+                    }
+                  })
+                }
+              />
+              <span>En depósito</span>
+            </label>
+
+            {formData.deposito?.guardado && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+                <input
+                  type="number"
+                  placeholder="Fila"
+                  className="input-rosema"
+                  value={formData.deposito?.fila || ""}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      deposito: { ...formData.deposito, fila: e.target.value }
+                    })
+                  }
+                />
+                <input
+                  type="text"
+                  placeholder="Columna"
+                  className="input-rosema"
+                  value={formData.deposito?.columna || ""}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      deposito: { ...formData.deposito, columna: e.target.value }
+                    })
+                  }
+                />
+                <input
+                  type="text"
+                  placeholder="Lugar"
+                  className="input-rosema"
+                  value={formData.deposito?.lugar || ""}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      deposito: { ...formData.deposito, lugar: e.target.value }
+                    })
+                  }
+                />
+              </div>
+            )}
+          </div>
+
+
 
 
           {/* Botones de acción */}
@@ -1148,6 +1231,10 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
               {uploadingImages ? 'Subiendo imágenes...' : loading ? 'Guardando...' : (mode === 'create' ? 'Crear Producto' : 'Actualizar Producto')}
             </button>
           </div>
+
+
+
+
         </form>
       </div>
       <ProviderForm
