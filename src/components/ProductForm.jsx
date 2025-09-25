@@ -425,6 +425,48 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
     });
   };
 
+  // 👉 Agregar esto junto a handleImageSelect
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length === 0) return;
+
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    const validFiles = files.filter(file => validTypes.includes(file.type));
+
+    if (validFiles.length !== files.length) {
+      alert('Solo se permiten archivos de imagen (JPG, PNG, WEBP)');
+    }
+
+    const totalImages = imageFiles.length + validFiles.length;
+    if (totalImages > 5) {
+      alert('Máximo 5 imágenes permitidas');
+      return;
+    }
+
+    setImageFiles(prev => [...prev, ...validFiles]);
+
+    validFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(prev => [...prev, {
+          file,
+          url: e.target.result,
+          name: file.name
+        }]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+
   /**
    * Eliminar imagen
    */
@@ -1062,32 +1104,31 @@ const ProductForm = ({ isOpen, onClose, onSubmit, product = null, mode = 'create
               </div>
             )}
 
-            {/* Input para seleccionar imágenes */}
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+            {/* Subida de imágenes con drag & drop */}
+            <div
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              className="w-full p-6 border-2 border-dashed border-gray-400 rounded-lg text-center cursor-pointer hover:border-blue-500 transition-colors"
+            >
+              <p className="text-gray-600">Arrastra y suelta imágenes aquí o haz clic para seleccionarlas</p>
               <input
                 type="file"
+                accept="image/jpeg,image/png,image/webp"
                 multiple
-                accept="image/*"
                 onChange={handleImageSelect}
                 className="hidden"
-                id="image-upload"
+                id="fileUpload"
               />
               <label
-                htmlFor="image-upload"
-                className="cursor-pointer flex flex-col items-center"
+                htmlFor="fileUpload"
+                className="mt-2 inline-block px-4 py-2 bg-blue-500 text-white rounded cursor-pointer hover:bg-blue-600"
               >
-                <svg className="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-                <span className="text-sm text-gray-600">
-                  Haz clic para seleccionar imágenes
-                </span>
-                <span className="text-xs text-gray-500 mt-1">
-                  JPG, PNG, WEBP (máximo 5 imágenes)
-                </span>
+                Seleccionar imágenes
               </label>
             </div>
           </div>
+
+
 
           {/* Botones de acción */}
           <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
