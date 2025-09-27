@@ -13,6 +13,24 @@ const ReturnProductModal = ({
   const [discountApplied, setDiscountApplied] = useState(0);
 
   /**
+   * Redondear al múltiplo de 500 más cercano (para ventas)
+   */
+  const roundToNearest500 = (amount) => {
+    return Math.round(amount / 500) * 500;
+  };
+
+  // Suponiendo que selectedVariant y discountApplied ya están definidos
+  const listPrice = selectedVariant?.precioVenta || 0;
+  const discountValue = (listPrice * discountApplied) / 100;
+  const rawReturnValue = listPrice - discountValue;
+
+  // Aplicamos el redondeo (igual que en calculateSessionTotal)
+  const roundedReturnValue = roundToNearest500(rawReturnValue);
+
+
+
+
+  /**
    * Manejar confirmación de devolución
    */
   const handleConfirm = () => {
@@ -26,24 +44,27 @@ const ReturnProductModal = ({
       return;
     }
 
-    // Calcular el valor real pagado
+    /** Calcular el valor real pagado
     const originalPrice = selectedVariant.precioVenta;
     const discountAmount = (originalPrice * discountApplied) / 100;
-    const actualPricePaid = originalPrice - discountAmount;
+    const actualPricePaid = originalPrice - discountAmount;**/
+
+
+
 
     const returnData = {
       productId: product.id,
       nombre: product.articulo,
       code: product.id,
-      price: actualPricePaid, // Precio real pagado (con descuento aplicado)
-      originalPrice: originalPrice, // Precio original de lista
-      discountApplied: discountApplied,
+      price: roundedReturnValue,   // ahora usamos el valor redondeado
+      originalPrice: listPrice,
+      discountApplied,
       quantity: 1,
       variant: {
         talle: selectedVariant.talle,
-        color: selectedVariant.color
+        color: selectedVariant.color,
       },
-      isReturn: true
+      isReturn: true,
     };
 
     onAddReturn(returnData);
@@ -184,21 +205,22 @@ const ReturnProductModal = ({
               <div className="text-sm text-yellow-800 space-y-1">
                 <div className="flex justify-between">
                   <span>Precio de lista:</span>
-                  <span>${selectedVariant.precioVenta?.toLocaleString()}</span>
+                  <span>${listPrice.toLocaleString()}</span>
                 </div>
                 {discountApplied > 0 && (
                   <div className="flex justify-between text-red-600">
                     <span>Descuento ({discountApplied}%):</span>
-                    <span>-${((selectedVariant.precioVenta * discountApplied) / 100).toLocaleString()}</span>
+                    <span>-${discountValue.toLocaleString()}</span>
                   </div>
                 )}
                 <div className="flex justify-between font-medium border-t border-yellow-300 pt-1">
                   <span>Valor de devolución:</span>
-                  <span>${(selectedVariant.precioVenta - ((selectedVariant.precioVenta * discountApplied) / 100)).toLocaleString()}</span>
+                  <span>${roundedReturnValue.toLocaleString()}</span>
                 </div>
               </div>
             </div>
           )}
+
 
           {/* Mensaje si no hay variantes */}
           {(!product.variantes || product.variantes.length === 0) && (
