@@ -29,7 +29,7 @@ const PAYMENT_METHODS = {
 };
 
 // Configuración
-const MAX_SESSIONS = 6;
+const MAX_SESSIONS = 10;
 const STORAGE_KEY = 'pos.sessions.v1';
 
 /**
@@ -267,8 +267,8 @@ export const useSales = () => {
     }
 
     const totals = calculateSessionTotals(session);
-    if (totals.total <= 0) {
-      throw new Error('El total debe ser mayor a cero');
+    if (totals.total < 0) {
+      throw new Error('El total no puede ser negativo');
     }
 
     // Validaciones específicas para crédito
