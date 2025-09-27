@@ -1,73 +1,65 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import { getStockByCategoryAndSize } from '../utils/productHelpers';
+import { sortSizes } from '../utils/sizeOrder';
+import { useProducts } from '../hooks/useProducts';
 
-/**
- * Página de Estadísticas del sistema POS Rosema
- * Muestra reportes y análisis de ventas (Etapa 7)
- */
 const Statistics = () => {
+  const { products } = useProducts();
+  const stockData = useMemo(() => getStockByCategoryAndSize(products), [products]);
+
+  // 👉 Orden de prioridad de las categorías
+  const CATEGORY_ORDER = ["Mujer", "Hombre", "Niños-Bebes", "Otros"];
+
+  // 👉 Ordenamos las categorías según la lista
+  const categories = Object.keys(stockData).sort((a, b) => {
+    const order = ["mujer", "hombre", "niños-bebes", "otros"];
+
+    const indexA = order.indexOf(a.toLowerCase());
+    const indexB = order.indexOf(b.toLowerCase());
+
+    return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+  });
+
+
   return (
     <div className="p-6">
-      {/* Header de la página */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">📊 Estadísticas</h1>
-        <p className="text-gray-600 mt-2">Reportes y análisis de ventas</p>
-      </div>
+      <h1 className="text-3xl font-bold text-gray-900 mb-6">📊 Estadísticas</h1>
 
-      {/* Contenido principal */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Card de información */}
-        <div className="card-rosema">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Próximamente en Etapa 7
-          </h2>
-          <div className="space-y-3">
-            <div className="flex items-center text-gray-600">
-              <span className="text-green-500 mr-2">✅</span>
-              Gráficos con Chart.js o Recharts
-            </div>
-            <div className="flex items-center text-gray-600">
-              <span className="text-green-500 mr-2">✅</span>
-              Ventas diarias, semanales y mensuales
-            </div>
-            <div className="flex items-center text-gray-600">
-              <span className="text-green-500 mr-2">✅</span>
-              Total en $ de activos
-            </div>
-            <div className="flex items-center text-gray-600">
-              <span className="text-green-500 mr-2">✅</span>
-              Total en $ invertido en productos
-            </div>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-4 lg:grid-cols-4 gap-4">
+        {categories.map(category => {
+          const sizes = Object.keys(stockData[category]).sort(sortSizes);
 
-        {/* Card de vista previa */}
-        <div className="card-rosema">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Vista Previa
-          </h2>
-          <div className="bg-gray-50 rounded-lg p-4 text-center">
-            <div className="text-6xl mb-4">📈</div>
-            <p className="text-gray-600">
-              Aquí se mostrarán gráficos interactivos con las estadísticas de ventas
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Cards de estadísticas mock */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-        <div className="card-rosema text-center">
-          <div className="text-3xl font-bold text-red-600 mb-2">$0</div>
-          <div className="text-gray-600">Ventas Hoy</div>
-        </div>
-        <div className="card-rosema text-center">
-          <div className="text-3xl font-bold text-blue-600 mb-2">$0</div>
-          <div className="text-gray-600">Ventas Mes</div>
-        </div>
-        <div className="card-rosema text-center">
-          <div className="text-3xl font-bold text-green-600 mb-2">0</div>
-          <div className="text-gray-600">Productos Vendidos</div>
-        </div>
+          return (
+            <div key={category} className="bg-white shadow rounded-lg p-3 border border-gray-200">
+              <h2 className="text-md font-semibold text-gray-900 mb-2 text-center">
+                {category}
+              </h2>
+              <div className="overflow-x-auto">
+                <table className="  border border-gray-200 text-sm">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="px-2 py-1 border text-center">Talle</th>
+                      <th className="px-2 py-1 border text-center bg-blue-200">Stock</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sizes.map(size => (
+                      <tr key={size}>
+                        <td className="px-2 py-1  border text-center font-medium ">{size}</td>
+                        <td
+                          className={`px-2 py-1 border text-center bg-blue-50 font-bold ${stockData[category][size] <= 5 ? 'text-red-600 font-bold' : ''
+                            }`}
+                        >
+                          {stockData[category][size]}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -3,6 +3,36 @@
  */
 
 import { calculateTotalStock, calculateAveragePrice } from './calculations.js';
+import { normalizeSize } from './sizeMapping';
+/**
+ * Agrupa stock por categoría y por talle (usando equivalencias)
+ */
+export const getStockByCategoryAndSize = (products = []) => {
+  const result = {}; // { Mujer: {S: 10, M: 12}, Hombre: {...} }
+
+  products.forEach(product => {
+    const category = product.categoria || 'Otros';
+
+    if (!result[category]) result[category] = {};
+
+    if (Array.isArray(product.variantes)) {
+      product.variantes.forEach(variant => {
+        // 🔑 Normalizamos el talle en vez de usarlo "crudo"
+        const rawSize = variant.talle || 'SIN TALLE';
+        const size = normalizeSize(rawSize);   // <<--- aquí el cambio
+
+        const stock = variant.stock || 0;
+
+        if (!result[category][size]) {
+          result[category][size] = 0;
+        }
+        result[category][size] += stock;
+      });
+    }
+  });
+
+  return result;
+};
 
 /**
  * Filtrar y ordenar productos según criterios
@@ -39,6 +69,8 @@ export const filterAndSortProducts = (products, filters = {}, providers = []) =>
       "8": "5XL",
       "9": "6XL",
       "10": "7XL",
+      "11": "8XL",
+      "12": "9XL",
       // Mapeo inverso (letras a números)
       "S": "1",
       "M": "2",
@@ -50,6 +82,8 @@ export const filterAndSortProducts = (products, filters = {}, providers = []) =>
       "5XL": "8",
       "6XL": "9",
       "7XL": "10",
+      "8XL": "11",
+      "9XL": "12",
 
        // Aquí agregamos "Único"
       "ÚNICO": "ÚNICO",
