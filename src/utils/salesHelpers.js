@@ -136,8 +136,8 @@ export const validateSaleBeforeProcessing = (cart, totals) => {
     return { isValid: false, message: 'El carrito está vacío' };
   }
 
-  if (totals.total <= 0) {
-    return { isValid: false, message: 'El total debe ser mayor a cero' };
+  if (totals.total < 0) {
+    return { isValid: false, message: 'El total no puede ser negativo' };
   }
 
   return { isValid: true, message: null };
