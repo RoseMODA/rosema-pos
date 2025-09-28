@@ -291,15 +291,24 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
   };
 
   /**
-   * Calcular dinero realmente recibido (considerando comisiones)
-   */
+ * Calcular dinero realmente recibido (considerando comisiones)
+ * Prioriza el valor guardado en la base de datos (netAmount) para ventas nuevas.
+ */
   const calculateNetReceived = (sale) => {
+    // ✅ Si la venta ya tiene el neto guardado en BD, usarlo
+    if (sale.netAmount != null) {
+      return sale.netAmount;
+    }
+
+    // 🔙 Compatibilidad con ventas viejas (sin netAmount)
     if (sale.paymentMethod === 'Efectivo') {
       return sale.cashReceived || sale.total;
     }
+
     if (['Crédito', 'Débito', 'QR'].includes(sale.paymentMethod) && sale.commission) {
       return sale.total - (sale.total * sale.commission / 100);
     }
+
     return sale.total;
   };
 

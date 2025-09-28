@@ -2,10 +2,12 @@
  * Componente de formulario de pago para ventas (versión mejorada)
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { PAYMENT_METHODS, DISCOUNT_OPTIONS } from '../../utils/constants.js';
 import { formatPrice } from '../../utils/formatters.js';
 import { calculateCommissionInfo } from '../../utils/salesHelpers.js';
+
+
 
 const PaymentForm = ({
   paymentMethod,
@@ -14,6 +16,7 @@ const PaymentForm = ({
   cardName,
   installments,
   commission,
+  netAmount,
   totals,
   cart, // ✅ AGREGADO: Necesario para calcular saldo de devoluciones
   onPaymentMethodChange,
@@ -21,9 +24,25 @@ const PaymentForm = ({
   onCashReceivedChange,
   onCardNameChange,
   onInstallmentsChange,
-  onCommissionChange
+  onCommissionChange,
+  onNetAmountChange
 }) => {
   const commissionInfo = calculateCommissionInfo(totals.total, commission);
+
+  useEffect(() => {
+    if (netAmount != null && totals.total > 0) {
+      const timeout = setTimeout(() => {
+        const calcPercent = ((totals.total - netAmount) / totals.total) * 100;
+        if (!isNaN(calcPercent) && isFinite(calcPercent)) {
+          onCommissionChange(Number(calcPercent.toFixed(2)));
+        }
+      }, 300); // espera 300ms antes de recalcular
+
+      return () => clearTimeout(timeout);
+    }
+  }, [netAmount, totals.total]);
+
+
 
   // ✅ NUEVO: Calcular información de devoluciones
   const returnInfo = React.useMemo(() => {
@@ -124,20 +143,26 @@ const PaymentForm = ({
           cardName={cardName}
           installments={installments}
           commission={commission}
+          netAmount={netAmount}
           totals={totals}
           commissionInfo={commissionInfo}
           onCardNameChange={onCardNameChange}
           onInstallmentsChange={onInstallmentsChange}
           onCommissionChange={onCommissionChange}
+          onNetAmountChange={onNetAmountChange}
         />
       )}
+
 
       {(paymentMethod === 'Débito' || paymentMethod === 'QR') && (
         <CommissionFields
           commission={commission}
+          netAmount={netAmount}
           totals={totals}
           commissionInfo={commissionInfo}
           onCommissionChange={onCommissionChange}
+          onNetAmountChange={onNetAmountChange}
+          paymentMethod={paymentMethod}
         />
       )}
 
@@ -234,11 +259,13 @@ const CreditPaymentFields = ({
   cardName,
   installments,
   commission,
+  netAmount,
   totals,
   commissionInfo,
   onCardNameChange,
   onInstallmentsChange,
-  onCommissionChange
+  onCommissionChange,
+  onNetAmountChange
 }) => (
   <>
     <div>
@@ -287,35 +314,70 @@ const CreditPaymentFields = ({
       </div>
     </div>
 
-    {commission > 0 && (
-      <CommissionInfo commissionInfo={commissionInfo} />
-    )}
-  </>
-);
-
-const CommissionFields = ({ commission, commissionInfo, onCommissionChange }) => (
-  <>
-    <div>
+    {/* ✅ Nuevo campo Neto recibido */}
+    <div className="mt-3">
       <label className="block text-sm font-medium text-gray-700 mb-1">
-        Comisión (%)
+        Neto recibido ($)
       </label>
       <input
         type="number"
-        value={commission || ''}
-        onChange={(e) => onCommissionChange(Number(e.target.value) || 0)}
-        className="w-full input-rosema"
-        placeholder="% de comisión"
-        min="0"
-        max="100"
-        step="0.1"
+        className="w-full p-2 border rounded"
+        value={netAmount ?? ''}   // ✅ usa nullish coalescing
+        onChange={(e) => onNetAmountChange(Number(e.target.value) || 0)}
+        placeholder="Monto neto recibido"
       />
+
     </div>
 
-    {commission > 0 && (
+    {(commission > 0 || netAmount > 0) && (
       <CommissionInfo commissionInfo={commissionInfo} />
     )}
   </>
 );
+
+
+const CommissionFields = ({
+  commission,
+  netAmount,
+  totals,
+  onCommissionChange,
+  onNetAmountChange
+}) => {
+  return (
+    <div className="grid grid-cols-2 gap-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Comisión (%)
+        </label>
+        <input
+          type="number"
+          value={commission || ''}
+          onChange={(e) => onCommissionChange(Number(e.target.value) || 0)}
+          className="w-full input-rosema"
+          placeholder="% de comisión"
+          min="0"
+          max="100"
+          step="0.1"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Neto recibido ($)
+        </label>
+        <input
+          type="number"
+          value={netAmount || ''}
+          onChange={(e) => onNetAmountChange(Number(e.target.value) || 0)}
+          className="w-full input-rosema"
+          placeholder="Monto real recibido"
+          min="0"
+        />
+      </div>
+    </div>
+  );
+};
+
 
 const CommissionInfo = ({ commissionInfo }) => (
   <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">

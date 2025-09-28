@@ -217,6 +217,21 @@ export const processSale = async (saleData) => {
 
     // ✅ MEJORADO: Usar fecha personalizada si se proporciona
     const saleDate = customSaleDate ? new Date(customSaleDate) : new Date();
+
+    // 💰 Calcular el neto recibido
+    let netAmount;
+    if (saleData.netAmount != null && saleData.netAmount > 0) {
+      // ✅ Si el usuario ingresó neto real, usar ese valor
+      netAmount = saleData.netAmount;
+    } else if (['Crédito', 'Débito', 'QR'].includes(paymentMethod)) {
+      // ✅ Si no, calcular con la comisión estimada
+      netAmount = total - (total * (commission || 0) / 100);
+    } else {
+      // ✅ Efectivo u otros
+      netAmount = total;
+    }
+
+
     
     // Crear la venta con estructura mejorada
     const sale = {
@@ -244,6 +259,7 @@ export const processSale = async (saleData) => {
       discount: discount || 0,
       subtotal: items.reduce((sum, item) => sum + (item.price * item.quantity), 0),
       total,
+      netAmount, // 💰 Guardar neto calculado
       customerName: customerName || '',
       clientId: clientId || null,
       // Campos adicionales para crédito
@@ -583,11 +599,26 @@ export const getSalesStats = async (period = 'today') => {
 
     const stats = {
       totalSales: sales.length,
-      totalRevenue: sales.reduce((sum, sale) => sum + (sale.total || 0), 0),
-      averageSale: sales.length > 0 ? sales.reduce((sum, sale) => sum + (sale.total || 0), 0) / sales.length : 0,
+
+      // 💰 Usar netAmount cuando exista, de lo contrario fallback a total
+      totalRevenue: sales.reduce(
+        (sum, sale) => sum + (sale.netAmount != null ? sale.netAmount : (sale.total || 0)),
+        0
+      ),
+
+      // 📊 Calcular promedio usando también netAmount
+      averageSale:
+        sales.length > 0
+          ? sales.reduce(
+              (sum, sale) => sum + (sale.netAmount != null ? sale.netAmount : (sale.total || 0)),
+              0
+            ) / sales.length
+          : 0,
+
       paymentMethods: {},
       topProducts: {}
     };
+
 
     // Analizar métodos de pago
     sales.forEach(sale => {

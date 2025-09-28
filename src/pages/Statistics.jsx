@@ -65,7 +65,8 @@ function groupSales(sales, period = 'day') {
         key = d.format('YYYY-MM-DD');
     }
 
-    groups[key] = (groups[key] || 0) + (s.total || 0);
+    groups[key] = (groups[key] || 0) + (s.netAmount ?? s.total ?? 0);
+
   });
 
   // convertir a array ordenado cronológicamente (usando dayjs en TZ AR)
@@ -112,7 +113,8 @@ const Statistics = () => {
         const endOfDay = dayjs().tz('America/Argentina/Buenos_Aires').add(1, 'day').startOf('day').toDate();
 
         const todaySales = await getSalesHistory({ startDate: startOfDay, endDate: endOfDay });
-        const totalToday = todaySales.reduce((s, it) => s + (it.total || 0), 0);
+        const totalToday = todaySales.reduce((s, it) => s + (it.netAmount ?? it.total ?? 0), 0);
+
         setTodayStats({ total: totalToday, count: todaySales.length });
 
         // --- Mes actual (inicio mes local -> ahora) ---
@@ -122,9 +124,10 @@ const Statistics = () => {
 
         let monthTotal = 0, monthItems = 0;
         monthSales.forEach(sale => {
-          monthTotal += sale.total || 0;
+          monthTotal += sale.netAmount ?? sale.total ?? 0;
           sale.items?.forEach(it => { monthItems += it.quantity || it.qty || 0; });
         });
+
         setMonthStats({ total: monthTotal, count: monthSales.length });
         setProductsSold(monthItems);
       } catch (err) {

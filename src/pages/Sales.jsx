@@ -60,6 +60,7 @@ const Sales = () => {
     cardName,
     installments,
     commission,
+    netAmount,
     totals,
     loading: salesLoading,
     createSession,
@@ -73,6 +74,7 @@ const Sales = () => {
     setPaymentMethod,
     setDiscountPercent,
     setCashReceived,
+    setNetAmount,
     setCustomerName,
     setCardName,
     setInstallments,
@@ -372,6 +374,8 @@ const Sales = () => {
               cardName={cardName}
               installments={installments}
               commission={commission}
+              netAmount={netAmount}                    // ✅ pasar el valor actual
+              onNetAmountChange={setNetAmount}         // ✅ pasar el setter del hook
               totals={totals}
               cart={cart} // ✅ AGREGADO: Pasar cart para calcular saldo de devoluciones
               onPaymentMethodChange={setPaymentMethod}

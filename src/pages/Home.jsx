@@ -47,10 +47,10 @@ const Home = () => {
 
         let total = 0;
         sales.forEach(sale => {
-          total += sale.total || 0;
+          total += sale.netAmount ?? sale.total ?? 0;
         });
-
         setTodayStats({ total, count: sales.length });
+
       } catch (err) {
         console.error('❌ Error cargando ventas de hoy:', err);
         setTodayStats({ total: 0, count: 0 });
@@ -81,10 +81,10 @@ const Home = () => {
 
         let total = 0;
         sales.forEach(sale => {
-          total += sale.total || 0;
+          total += sale.netAmount ?? sale.total ?? 0;
         });
-
         setMonthStats({ total, count: sales.length });
+
       } catch (err) {
         console.error('❌ Error cargando ventas del mes:', err);
         setMonthStats({ total: 0, count: 0 });

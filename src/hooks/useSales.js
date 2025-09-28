@@ -53,6 +53,7 @@ const createEmptySession = (label) => ({
   cardName: '',
   installments: 0,
   commission: 0,
+  netAmount: null,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString()
 });
@@ -306,6 +307,9 @@ export const useSales = () => {
         paymentMethod: session.paymentMethod,
         discount: totals.discountValue,
         total: totals.total,
+        netAmount: (['Crédito','Débito','QR'].includes(session.paymentMethod))
+           ? totals.total - ((totals.total * (session.commission || 0)) / 100)
+           : totals.total,
         customerName: session.customerName,
         clientId: sessionId,
         cardName: session.paymentMethod === PAYMENT_METHODS.CREDITO ? session.cardName : null,
@@ -556,6 +560,24 @@ export const useSales = () => {
     }));
   }, [salesState.sessions, updateSalesState]);
 
+  const setNetAmount = useCallback((sessionId, amount) => {
+    const session = salesState.sessions[sessionId];
+    if (!session) return;
+
+    updateSalesState(prevState => ({
+      ...prevState,
+      sessions: {
+        ...prevState.sessions,
+        [sessionId]: {
+          ...session,
+          netAmount: amount,
+          updatedAt: new Date().toISOString()
+        }
+      }
+    }));
+  }, [salesState.sessions, updateSalesState]);
+
+
   /**
    * Establecer datos del cliente
    */
@@ -740,7 +762,9 @@ export const useSales = () => {
     cardName: activeSession?.cardName || '',
     installments: activeSession?.installments || 0,
     commission: activeSession?.commission || 0,
+    netAmount: activeSession?.netAmount || null,
     totals,
+    
     
     // Estado general
     salesHistory,
@@ -761,6 +785,7 @@ export const useSales = () => {
     setCashReceived: (amount) => salesState.activeSessionId && setCashReceived(salesState.activeSessionId, amount),
     attachCustomer: (name) => salesState.activeSessionId && attachCustomer(salesState.activeSessionId, name),
     setCreditCardData: (cardName, installments, commission) => salesState.activeSessionId && setCreditCardData(salesState.activeSessionId, cardName, installments, commission),
+    setNetAmount: (amount) => salesState.activeSessionId && setNetAmount(salesState.activeSessionId, amount),
     clearSession: () => salesState.activeSessionId && clearSession(salesState.activeSessionId),
     resetAllSessions,
     
