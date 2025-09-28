@@ -13,6 +13,8 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import 'dayjs/locale/es';
+import { DateRangePicker } from 'react-date-range';
+import { es } from 'date-fns/locale';
 
 // configurar dayjs
 dayjs.extend(utc);
@@ -78,6 +80,22 @@ function groupSales(sales, period = 'day') {
     );
 }
 
+function groupItemsBySupplier(sales) {
+  const groups = {};
+  sales.forEach(sale => {
+    sale.items?.forEach(it => {
+      const supplier = it.supplier || 'Sin proveedor';
+      groups[supplier] = (groups[supplier] || 0) + (it.quantity || it.qty || 0);
+    });
+  });
+
+  return Object.entries(groups).map(([proveedor, cantidad]) => ({
+    proveedor,
+    cantidad
+  }));
+}
+
+
 const Statistics = () => {
   const { products } = useProducts();
   const { loadCustomers } = useCustomers();
@@ -92,14 +110,25 @@ const Statistics = () => {
     return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
   });
 
+  // estado para rango
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [dateRange, setDateRange] = useState([{
+    startDate: dayjs().tz('America/Argentina/Buenos_Aires').startOf('month').toDate(),
+    endDate: dayjs().tz('America/Argentina/Buenos_Aires').endOf('month').toDate(),
+    key: 'selection'
+  }]);
+
   // resumen
   const [todayStats, setTodayStats] = useState({ total: 0, count: 0 });
   const [monthStats, setMonthStats] = useState({ total: 0, count: 0 });
   const [productsSold, setProductsSold] = useState(0);
 
+
+
   // gráfico
   const [period, setPeriod] = useState('day'); // day | week | month | year
   const [chartData, setChartData] = useState([]);
+  const [suppliersData, setSuppliersData] = useState([]);
 
   // cargar clientes (solo para contar si lo necesitás)
   useEffect(() => { loadCustomers(); }, [loadCustomers]);
@@ -138,24 +167,29 @@ const Statistics = () => {
     loadStats();
   }, []);
 
-  // cargar datos del gráfico según periodo (usa saleDate y timezone)
+  // cargar datos del gráfico según periodo y rango seleccionado
   useEffect(() => {
     const loadChart = async () => {
       try {
-        // traemos, por ejemplo, último año para permitir ver day/week/month/year
-        const start = dayjs().tz('America/Argentina/Buenos_Aires').subtract(1, 'year').startOf('day').toDate();
-        const end = new Date();
+        const start = dateRange[0].startDate;
+        const end = dayjs(dateRange[0].endDate).endOf('day').toDate();
 
         const sales = await getSalesHistory({ startDate: start, endDate: end });
+
+        // ventas por periodo
         const grouped = groupSales(sales, period);
         setChartData(grouped);
+
+        // artículos por proveedor
+        const groupedSuppliers = groupItemsBySupplier(sales);
+        setSuppliersData(groupedSuppliers);
       } catch (err) {
         console.error('Error cargando datos del gráfico:', err);
       }
     };
 
     loadChart();
-  }, [period]);
+  }, [period, dateRange]);
 
   return (
     <div className="p-6">
@@ -196,13 +230,33 @@ const Statistics = () => {
             📈 Ventas por {period === 'day' ? 'Día' : period === 'week' ? 'Semana' : period === 'month' ? 'Mes' : 'Año'}
           </h2>
 
-          <select value={period} onChange={e => setPeriod(e.target.value)} className="border rounded p-1 text-sm">
-            <option value="day">Día</option>
-            <option value="week">Semana</option>
-            <option value="month">Mes</option>
-            <option value="year">Año</option>
-          </select>
+          <div className="flex items-center gap-3">
+            <select value={period} onChange={e => setPeriod(e.target.value)} className="border rounded p-1 text-sm">
+              <option value="day">Día</option>
+              <option value="week">Semana</option>
+              <option value="month">Mes</option>
+              <option value="year">Año</option>
+            </select>
+
+            <button
+              onClick={() => setShowCalendar(!showCalendar)}
+              className="text-sm px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+            >
+              {showCalendar ? 'Ocultar calendario' : 'Cambiar rango'}
+            </button>
+          </div>
         </div>
+
+        {showCalendar && (
+          <div className="border rounded-lg p-3 shadow-sm mb-4">
+            <DateRangePicker
+              ranges={dateRange}
+              onChange={(item) => setDateRange([item.selection])}
+              locale={es}
+              rangeColors={["#dc2626"]}
+            />
+          </div>
+        )}
 
         <div style={{ height: 500 }}>
           <ResponsiveBar
@@ -274,6 +328,27 @@ const Statistics = () => {
 
 
         </div>
+
+        {/*  <div className="card-rosema p-4 mb-8">
+          <h2 className="text-xl font-semibold text-gray-900">📦 Artículos vendidos por Proveedor</h2>
+          <div style={{ height: 400 }}>
+            <ResponsiveBar
+              data={suppliersData}
+              keys={['cantidad']}
+              indexBy="proveedor"
+              margin={{ top: 30, right: 30, bottom: 70, left: 70 }}
+              padding={0.3}
+              colors={['#16a34a']}
+              axisBottom={{ tickRotation: -30 }}
+              axisLeft={{ legend: 'Unidades vendidas', legendOffset: -55, legendPosition: 'middle' }}
+            />
+          </div>
+        </div>
+      */}
+
+
+
+
       </div>
 
       {/* stock tables */}
