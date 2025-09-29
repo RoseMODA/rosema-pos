@@ -19,13 +19,15 @@ const PaymentForm = ({
   netAmount,
   totals,
   cart, // ✅ AGREGADO: Necesario para calcular saldo de devoluciones
+  dni,
   onPaymentMethodChange,
   onDiscountChange,
   onCashReceivedChange,
   onCardNameChange,
   onInstallmentsChange,
   onCommissionChange,
-  onNetAmountChange
+  onNetAmountChange,
+  onDniChange          // ✅ nuevo
 }) => {
   const commissionInfo = calculateCommissionInfo(totals.total, commission);
 
@@ -146,15 +148,29 @@ const PaymentForm = ({
           netAmount={netAmount}
           totals={totals}
           commissionInfo={commissionInfo}
+          dni={dni}                           // ✅
           onCardNameChange={onCardNameChange}
           onInstallmentsChange={onInstallmentsChange}
           onCommissionChange={onCommissionChange}
           onNetAmountChange={onNetAmountChange}
+          onDniChange={onDniChange}
+        />
+      )}
+
+      {paymentMethod === 'Débito' && (
+        <CommissionFields
+          commission={commission}
+          netAmount={netAmount}
+          totals={totals}
+          dni={dni}                           // ✅
+          onCommissionChange={onCommissionChange}
+          onNetAmountChange={onNetAmountChange}
+          onDniChange={onDniChange}           // ✅
         />
       )}
 
 
-      {(paymentMethod === 'Débito' || paymentMethod === 'QR') && (
+      {paymentMethod === 'QR' && (
         <CommissionFields
           commission={commission}
           netAmount={netAmount}
@@ -262,27 +278,28 @@ const CreditPaymentFields = ({
   netAmount,
   totals,
   commissionInfo,
+  dni,
   onCardNameChange,
   onInstallmentsChange,
   onCommissionChange,
-  onNetAmountChange
+  onNetAmountChange,
+  onDniChange
 }) => (
   <>
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Nombre de la Tarjeta
-      </label>
-      <input
-        type="text"
-        value={cardName}
-        onChange={(e) => onCardNameChange(e.target.value)}
-        className="w-full input-rosema"
-        placeholder="Ingrese nombre de la tarjeta"
-        required
-      />
-    </div>
-
     <div className="grid grid-cols-2 gap-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Nombre de la Tarjeta
+        </label>
+        <input
+          type="text"
+          value={cardName}
+          onChange={(e) => onCardNameChange(e.target.value)}
+          className="w-full input-rosema"
+          placeholder="Nombre de la tarjeta"
+          required
+        />
+      </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Cuotas sin Interés
@@ -297,6 +314,24 @@ const CreditPaymentFields = ({
         />
       </div>
 
+    </div>
+
+    <div className="grid grid-cols-2 gap-4">
+      {/* ✅ Nuevo campo Neto recibido */}
+      <div>
+        <label className="block text-sm font-bold text-gray-700 mb-1">
+          Neto recibido ($)
+        </label>
+        <input
+          type="number"
+          className="w-full input-rosema"
+          value={netAmount ?? ''}   // ✅ usa nullish coalescing
+          onChange={(e) => onNetAmountChange(Number(e.target.value) || 0)}
+          placeholder="Monto neto recibido"
+        />
+
+      </div>
+
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Comisión (%)
@@ -312,21 +347,22 @@ const CreditPaymentFields = ({
           step="0.1"
         />
       </div>
+
     </div>
 
-    {/* ✅ Nuevo campo Neto recibido */}
-    <div className="mt-3">
+
+    <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">
-        Neto recibido ($)
+        DNI del Cliente
       </label>
       <input
-        type="number"
-        className="w-full p-2 border rounded"
-        value={netAmount ?? ''}   // ✅ usa nullish coalescing
-        onChange={(e) => onNetAmountChange(Number(e.target.value) || 0)}
-        placeholder="Monto neto recibido"
+        type="text"
+        value={dni || ''}
+        onChange={(e) => onDniChange(e.target.value)}
+        className="w-full input-rosema"
+        placeholder="Ingrese DNI"
+        required
       />
-
     </div>
 
     {(commission > 0 || netAmount > 0) && (
@@ -340,11 +376,28 @@ const CommissionFields = ({
   commission,
   netAmount,
   totals,
+  dni,
   onCommissionChange,
-  onNetAmountChange
+  onNetAmountChange,
+  onDniChange
 }) => {
   return (
     <div className="grid grid-cols-2 gap-4">
+      <div>
+        <label className="block text-sm font-bold text-gray-700 mb-1">
+          Neto recibido ($)
+        </label>
+        <input
+          type="number"
+          value={netAmount || ''}
+          onChange={(e) => onNetAmountChange(Number(e.target.value) || 0)}
+          className="w-full input-rosema"
+          placeholder="Monto real recibido"
+          min="0"
+        />
+      </div>
+
+
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Comisión (%)
@@ -361,20 +414,23 @@ const CommissionFields = ({
         />
       </div>
 
+
+
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Neto recibido ($)
+          DNI del Cliente
         </label>
         <input
-          type="number"
-          value={netAmount || ''}
-          onChange={(e) => onNetAmountChange(Number(e.target.value) || 0)}
+          type="text"
+          value={dni || ''}
+          onChange={(e) => onDniChange(e.target.value)}
           className="w-full input-rosema"
-          placeholder="Monto real recibido"
-          min="0"
+          placeholder="Ingrese DNI"
+          required
         />
       </div>
     </div>
+
   );
 };
 

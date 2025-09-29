@@ -475,6 +475,7 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
                 <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">N° Venta</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">Método</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">Cliente</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">DNI</th>
                 <th className="px-4 py-2 text-right text-xs font-medium text-white uppercase">Total</th>
                 <th className="px-4 py-2 text-right text-xs font-medium text-white uppercase">Neto</th>
                 <th className="px-4 py-2 text-right text-xs font-medium text-white uppercase">%OFF</th>
@@ -522,6 +523,13 @@ const SalesHistoryModal = ({ isOpen, onClose }) => {
                         <td className="px-4 py-2 text-sm text-gray-700 font-bold">
                           {sale.customerName || "__"}
                         </td>
+                        <td className="px-4 py-2 text-sm text-gray-700">
+                          {['Crédito', 'Débito'].includes(sale.paymentMethod)
+                            ? sale.dni || "—"
+                            : "—"}
+                        </td>
+
+
                         <td className="px-4 py-2 text-right text-sm font-semibold text-green-600">
                           ${sale.total?.toLocaleString() || "0"}
                         </td>

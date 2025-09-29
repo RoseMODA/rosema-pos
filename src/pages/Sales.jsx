@@ -62,6 +62,7 @@ const Sales = () => {
     commission,
     netAmount,
     totals,
+    dni,
     loading: salesLoading,
     createSession,
     switchSession,
@@ -76,6 +77,7 @@ const Sales = () => {
     setCashReceived,
     setNetAmount,
     setCustomerName,
+    setCustomerDni,
     setCardName,
     setInstallments,
     setCommission,
@@ -384,6 +386,8 @@ const Sales = () => {
               onCardNameChange={setCardName}
               onInstallmentsChange={setInstallments}
               onCommissionChange={setCommission}
+              dni={dni}
+              onDniChange={setCustomerDni}
             />
 
             <div className="flex gap-5 mt-6 ">

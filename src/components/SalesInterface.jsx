@@ -20,6 +20,8 @@ const SalesInterface = ({ onSaleComplete }) => {
   const [discount, setDiscount] = useState(0);
   const [cashReceived, setCashReceived] = useState('');
   const [customerName, setCustomerName] = useState('');
+  const [customerDni, setCustomerDni] = useState('');
+
 
   // Estados de validación
   const [errors, setErrors] = useState({});
@@ -252,6 +254,7 @@ const SalesInterface = ({ onSaleComplete }) => {
         cashReceived: paymentMethod === 'Efectivo' ? parseFloat(cashReceived) : total,
         change: paymentMethod === 'Efectivo' ? parseFloat(cashReceived) - total : 0,
         customerName: customerName.trim(),
+        dni: customerDni.trim(),
         date: finalDate // <- ✅ guardar fecha/hora aquí
       };
 
@@ -262,6 +265,8 @@ const SalesInterface = ({ onSaleComplete }) => {
       setDiscount(0);
       setCashReceived('');
       setCustomerName('');
+      setCustomerDni('');
+
       setSearchTerm('');
       setSelectedProduct(null);
       setShowVariants(false);
@@ -494,6 +499,21 @@ const SalesInterface = ({ onSaleComplete }) => {
                 placeholder="Nombre del cliente"
               />
             </div>
+
+            {/* DNI del cliente (opcional, solo tarjetas/transferencia) */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                DNI del cliente (opcional)
+              </label>
+              <input
+                type="text"
+                value={customerDni}
+                onChange={(e) => setCustomerDni(e.target.value)}
+                className="w-full input-rosema"
+                placeholder="Ej: 40123456"
+              />
+            </div>
+
 
             {/* Descuento */}
             <div className="mb-4">

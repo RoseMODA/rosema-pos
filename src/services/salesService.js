@@ -184,6 +184,7 @@ export const processSale = async (saleData) => {
       total,
       customerName,
       clientId,
+      dni,
       cardName,
       installments,
       commission,
@@ -262,6 +263,7 @@ export const processSale = async (saleData) => {
       netAmount, // 💰 Guardar neto calculado
       customerName: customerName || '',
       clientId: clientId || null,
+      dni: saleData.dni || null,
       // Campos adicionales para crédito
       cardName: cardName || null,
       installments: installments || null,
