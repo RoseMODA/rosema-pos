@@ -191,7 +191,7 @@ export const getProductByBarcode = async (barcode) => {
  * Obtener producto por ID (mantener compatibilidad)
  */
 export const getProductById = async (productId) => {
-  const productRef = doc(db, articulos, productId);
+  const productRef = doc(db, COLLECTION_NAME, productId);
   const snap = await getDoc(productRef);
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 };
