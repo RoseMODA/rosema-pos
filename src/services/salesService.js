@@ -647,15 +647,28 @@ export const getSalesStats = async (period = 'today') => {
 
 /**
  * Generar datos para recibo
+ * ✅ Ajustado para reflejar productos en oferta y descuento solo en normales
  */
 export const generateReceiptData = (sale) => {
   return {
     saleId: sale.id,
     date: sale.saleDate || new Date(),
-    items: sale.items || [],
+    items: (sale.items || []).map(item => ({
+      ...item,
+      // Etiqueta clara para productos en oferta
+      displayName: item.isOffer 
+        ? `${item.name || item.articulo} (Oferta)` 
+        : (item.name || item.articulo)
+    })),
+    // Subtotal siempre incluye ofertas + normales
     subtotal: sale.subtotal || 0,
-    discount: sale.discount || 0,
+
+    // Descuento aplicado solo a productos normales
+    discount: sale.discountValue ?? sale.discount ?? 0,
+
+    // Total ya calculado correctamente (ofertas sin descuento + normales con descuento)
     total: sale.total || 0,
+
     paymentMethod: sale.paymentMethod || 'Efectivo',
     customerName: sale.customerName || '',
     storeInfo: {
@@ -666,3 +679,4 @@ export const generateReceiptData = (sale) => {
     }
   };
 };
+

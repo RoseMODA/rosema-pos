@@ -135,10 +135,22 @@ export const useSales = () => {
   // Calcular totales de una sesión con redondeo a múltiplos de 500
   const calculateSessionTotals = useCallback((session) => {
     if (!session) return { subtotal: 0, discountValue: 0, total: 0, change: 0, itemCount: 0 };
-    
-    const subtotal = session.items.reduce((sum, item) => sum + (item.price * item.qty), 0);
-    const discountValue = subtotal * (session.discountPercent / 100);
-    const totalBeforeRounding = subtotal - discountValue;
+
+    // Subtotal de ofertas
+    const subtotalOfertas = session.items
+      .filter(item => item.isOffer)
+      .reduce((sum, item) => sum + (item.price * item.qty), 0);
+
+    // Subtotal de productos normales (aplican descuento)
+    const subtotalNormales = session.items
+      .filter(item => !item.isOffer)
+      .reduce((sum, item) => sum + (item.price * item.qty), 0);
+
+    // Descuento solo sobre normales
+    const discountValue = subtotalNormales * (session.discountPercent / 100);
+
+    const subtotal = subtotalOfertas + subtotalNormales;
+    const totalBeforeRounding = subtotalOfertas + (subtotalNormales - discountValue);
     const total = roundToNearest500(Math.max(0, totalBeforeRounding));
     const change = Math.max(0, session.cashReceived - total);
 
@@ -150,6 +162,7 @@ export const useSales = () => {
       itemCount: session.items.reduce((sum, item) => sum + item.qty, 0)
     };
   }, [roundToNearest500]);
+
 
   // Actualizar estado y persistir
   const updateSalesState = useCallback((updater) => {
@@ -746,6 +759,35 @@ export const useSales = () => {
     });
   }, [salesState.activeSessionId, updateSalesState]);
 
+  const updateCartItemOffer = useCallback((lineId, isOffer) => {
+    if (!salesState.activeSessionId) return;
+
+    updateSalesState(prevState => {
+      const session = prevState.sessions[prevState.activeSessionId];
+      if (!session) return prevState;
+
+      const updatedItems = session.items.map(item =>
+        item.lineId === lineId
+          ? { ...item, isOffer }
+          : item
+      );
+
+      return {
+        ...prevState,
+        sessions: {
+          ...prevState.sessions,
+          [prevState.activeSessionId]: {
+            ...session,
+            items: updatedItems,
+            updatedAt: new Date().toISOString()
+          }
+        }
+      };
+    });
+  }, [salesState.activeSessionId, updateSalesState]);
+
+
+
 
 
   const removeFromCart = useCallback((lineId) => {
@@ -814,6 +856,7 @@ export const useSales = () => {
     // Funciones de compatibilidad
     addToCart,
     updateCartItemQuantity,
+    updateCartItemOffer,
     removeFromCart,
     updateCartItemPrice, 
     completeSale: () => salesState.activeSessionId && finalizeSession(salesState.activeSessionId),

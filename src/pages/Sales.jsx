@@ -71,6 +71,7 @@ const Sales = () => {
     updateCartItemQuantity,
     removeFromCart,
     updateCartItemPrice,
+    updateCartItemOffer,
     finalizeSession,
     setPaymentMethod,
     setDiscountPercent,
@@ -361,7 +362,12 @@ const Sales = () => {
             onUpdateQuantity={updateCartItemQuantity}
             onRemoveItem={removeFromCart}
             onEditPrice={(item) => openModal("editPrice", item)}
+            onToggleOffer={(itemId, isOffer) => {
+              // Este lo provee tu hook useSales (si no está, lo armamos fácil)
+              updateCartItemOffer(itemId, isOffer);
+            }}
           />
+
 
           <div className="bg-gray-50 rounded-lg p-4">
             <h3 className="text-lg font-semibold text-gray-900 flex items-center mb-4">

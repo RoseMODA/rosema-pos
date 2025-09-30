@@ -118,18 +118,19 @@ const PaymentForm = ({
       {totals.subtotal > 0 && (
         <div className="border-t border-gray-200 pt-4 space-y-2">
           <div className="grid grid-cols-2 text-lm">
-            <span>Subtotal:</span>
+            <span>Subtotal (incluye ofertas):</span>
             <span className="text-right text-2xl">{formatPrice(totals.subtotal)}</span>
           </div>
 
           {totals.discountValue > 0 && (
             <div className="grid grid-cols-2 text-lm text-red-600">
-              <span>Descuento ({discountPercent}%):</span>
+              <span>Descuento aplicado a productos NO oferta ({discountPercent}%):</span>
               <span className="text-right">-{formatPrice(totals.discountValue)}</span>
             </div>
           )}
         </div>
       )}
+
 
       {/* Campos específicos por método de pago */}
       {paymentMethod === 'Efectivo' && (

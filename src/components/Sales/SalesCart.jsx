@@ -11,17 +11,24 @@ const SalesCart = ({
   onCustomerNameChange,
   onUpdateQuantity,
   onRemoveItem,
-  onEditPrice
+  onEditPrice,
+  onToggleOffer,
 }) => {
   // Estado local para controlar qué items tienen oferta marcada
   const [offers, setOffers] = useState({});
 
+
+
   const toggleOffer = (itemId) => {
-    setOffers((prev) => ({
-      ...prev,
-      [itemId]: !prev[itemId],
-    }));
+    const updatedCart = cart.map((item) =>
+      (item.lineId || item.id) === itemId
+        ? { ...item, isOffer: !item.isOffer }
+        : item
+    );
+    // acá llamás a una función que venga desde el hook para actualizar carrito
+    onUpdateCart(updatedCart);
   };
+
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -74,12 +81,11 @@ const SalesCart = ({
                 const quantity = item.qty || item.quantity || 1;
                 const unitPrice = item.customPrice ?? item.price;
                 const totalPrice = unitPrice * quantity;
-                const isOffer = offers[itemId] || false;
 
                 return (
                   <tr
                     key={itemId}
-                    className={`transition-colors ${isOffer ? "bg-pink-50" : "hover:bg-gray-50"
+                    className={`transition-colors ${item.isOffer ? "bg-pink-100" : "hover:bg-gray-50"
                       }`}
                   >
                     <td className="px-4 py-3 text-gray-600">{item.productId}</td>
@@ -124,7 +130,7 @@ const SalesCart = ({
                     <td className="px-8 py-3 text-center">
                       <button
                         onClick={() => onRemoveItem(itemId)}
-                        className="w-8 h-8 bg-red-500 hover:bg-red-600 text-white  rounded-full flex items-center justify-center "
+                        className="w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center"
                         title="Eliminar producto"
                       >
                         ×
@@ -133,8 +139,10 @@ const SalesCart = ({
                     <td className="px-4 py-3 text-center">
                       <input
                         type="checkbox"
-                        checked={isOffer}
-                        onChange={() => toggleOffer(itemId)}
+                        checked={!!item.isOffer}
+                        onChange={(e) =>
+                          onToggleOffer(item.lineId || item.id, e.target.checked)
+                        }
                         className="w-5 h-5 accent-pink-500 cursor-pointer"
                       />
                     </td>
@@ -142,6 +150,7 @@ const SalesCart = ({
                 );
               })}
             </tbody>
+
             <tfoot>
               <tr>
                 <td colSpan={9} className="rounded-b-lg"></td>
