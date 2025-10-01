@@ -81,7 +81,7 @@ const PaymentForm = ({
               key={method.value}
               type="button"
               onClick={() => onPaymentMethodChange(method.value)}
-              className={`px-4 py-2 rounded border text-sm font-bold transition 
+              className={`px-4 py-2 rounded border text-lm font-bold transition 
                 ${paymentMethod === method.value
                   ? 'bg-rose-600 text-white border-rose-600'
                   : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'}`}

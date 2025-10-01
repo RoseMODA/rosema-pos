@@ -115,7 +115,13 @@ const SalesCart = ({
                         >
                           −
                         </button>
-                        <span className="w-6 text-center font-medium">{quantity}</span>
+                        <span
+                          className={`w-6 text-center font-bold text-lg ${quantity > 1 ? "text-red-600" : "text-black"
+                            }`}
+                        >
+                          {quantity}
+                        </span>
+
                         <button
                           onClick={() => onUpdateQuantity(itemId, quantity + 1)}
                           className="w-7 h-7 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-lg font-bold"
