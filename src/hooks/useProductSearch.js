@@ -2,13 +2,24 @@
  * Custom hook para manejar búsqueda de productos en ventas
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { searchProductsWithPriority, canAddProductToCart } from '../utils/salesHelpers.js';
 
 export const useProductSearch = (products, onProductSelect) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [showResults, setShowResults] = useState(false);
+
+   // ✅ Mapa de búsqueda rápida por código de barras
+  const productByBarcode = useMemo(() => {
+    const map = new Map();
+    products.forEach(p => {
+      if (p.codigoBarras) {      // usa la key que tengas en tu modelo
+        map.set(p.codigoBarras, p);
+      }
+    });
+    return map;
+  }, [products]);
 
   // Manejar búsqueda de productos
   const handleSearch = useCallback(async (term) => {
@@ -59,22 +70,15 @@ export const useProductSearch = (products, onProductSelect) => {
   }, []);
 
   // Manejar escaneo de código de barras
-  const handleBarcodeScan = useCallback(async (barcode, getProductByBarcode) => {
-    try {
-      console.log('🔍 Buscando producto por código:', barcode);
-      const product = await getProductByBarcode(barcode);
-      
-      if (!product) {
-        alert('Producto no encontrado');
-        return;
-      }
-
-      handleProductSelect(product);
-    } catch (error) {
-      console.error('Error al buscar producto por código:', error);
-      alert(`Error al buscar producto: ${error.message}`);
+  // ✅ Escaneo usando el mapa
+  const handleBarcodeScan = useCallback(async (barcode) => {
+    const product = productByBarcode.get(barcode);
+    if (!product) {
+      alert('Producto no encontrado');
+      return;
     }
-  }, [handleProductSelect]);
+    handleProductSelect(product);
+  }, [productByBarcode, handleProductSelect]);
 
   return {
     searchTerm,

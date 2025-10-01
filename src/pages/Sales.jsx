@@ -134,14 +134,16 @@ const Sales = () => {
     }
   }
 
+
   const handleVariantSelection = (product, quantity, variants) => {
-    addToCart(product, quantity, variants); // ahora acepta array
+    addToCart(product, quantity, variants); // ✅ ya maneja arrays
     closeModal('productSelection');
-    // ✅ Reenfocar el buscador después de cerrar el modal
-    if (searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
+    if (searchInputRef.current) searchInputRef.current.focus();
   };
+
+
+
+
 
 
 

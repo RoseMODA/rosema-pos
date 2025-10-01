@@ -280,17 +280,31 @@ export const processSale = async (saleData) => {
     const saleRef = await addDoc(collection(db, SALES_COLLECTION), sale);
 
     // Actualizar stock de variantes específicas
+    // 🔄 Agrupar items por producto
+    const productUpdates = {};
+
     for (const item of items) {
-      if (item.productId && !item.isQuickItem) {
-        console.log(`📦 Actualizando stock para producto ${item.productId}`);
-        const productRef = doc(db, PRODUCTS_COLLECTION, item.productId);
-        const productSnap = await getDoc(productRef);
-        
-        if (productSnap.exists()) {
-          const product = productSnap.data();
-          
-          // Actualizar stock de la variante específica
-          const updatedVariantes = product.variantes.map(variante => {
+      if (!item.productId || item.isQuickItem) continue;
+
+      if (!productUpdates[item.productId]) {
+        productUpdates[item.productId] = [];
+      }
+      productUpdates[item.productId].push(item);
+    }
+
+    // 📦 Procesar cada producto solo una vez
+    for (const [productId, productItems] of Object.entries(productUpdates)) {
+      console.log(`📦 Actualizando stock para producto ${productId}`);
+      const productRef = doc(db, PRODUCTS_COLLECTION, productId);
+      const productSnap = await getDoc(productRef);
+
+      if (productSnap.exists()) {
+        const product = productSnap.data();
+        let updatedVariantes = [...product.variantes];
+
+        // Aplicar todos los cambios de stock de las variantes de ese producto
+        for (const item of productItems) {
+          updatedVariantes = updatedVariantes.map(variante => {
             if (variante.talle === item.size && variante.color === item.color) {
               const stockChange = item.isReturn ? item.quantity : -item.quantity;
               console.log(`📊 Stock change para ${variante.talle}/${variante.color}: ${stockChange}`);
@@ -301,16 +315,18 @@ export const processSale = async (saleData) => {
             }
             return variante;
           });
-
-          batch.update(productRef, { 
-            variantes: updatedVariantes,
-            updatedAt: Timestamp.now()
-          });
-        } else {
-          console.warn(`⚠️ Producto ${item.productId} no encontrado para actualizar stock`);
         }
+
+        // ✅ Un solo update por producto
+        batch.update(productRef, { 
+          variantes: updatedVariantes,
+          updatedAt: Timestamp.now()
+        });
+      } else {
+        console.warn(`⚠️ Producto ${productId} no encontrado para actualizar stock`);
       }
     }
+
 
     // Ejecutar todas las actualizaciones
     await batch.commit();

@@ -41,7 +41,17 @@ const SearchBar = forwardRef(({
     if (e.key === 'Escape') {
       handleClear();
     }
+
+    // 🔑 disparar búsqueda al terminar (por ej. escáner)
+    if (e.key === 'Enter') {
+      // ejecuta la búsqueda usando el valor actual
+      // (algunos prefieren llamar a onChange otra vez, otros llaman a un prop onSubmit)
+      if (onChange) {
+        onChange(e.target.value.trim());
+      }
+    }
   };
+
 
   return (
     <div className={`relative ${className}`}>

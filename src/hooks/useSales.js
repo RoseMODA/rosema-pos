@@ -399,68 +399,65 @@ export const useSales = () => {
    * Agregar item a sesión
    * CORREGIDO: Estructura correcta de variant
    */
-  const addItem = useCallback((sessionId, itemData) => {
-    const session = salesState.sessions[sessionId];
-    if (!session) return;
+  // Reemplaza la función addItem por esta en useSales.js
+    const addItem = useCallback((sessionId, itemData) => {
+      // Actualizamos usando el prevState para evitar condiciones de carrera
+      updateSalesState(prevState => {
+        const session = prevState.sessions[sessionId];
+        if (!session) return prevState;
 
-    console.log('🔍 DEBUG: addItem recibió:', itemData);
+        const lineItem = {
+          lineId: itemData.lineId || generateId(),
+          productId: itemData.productId || null,
+          name: itemData.name,
+          nombre: itemData.name, // compatibilidad
+          price: itemData.price,
+          qty: itemData.quantity || 1,
+          variant: {
+            talle: itemData.size || null,
+            color: itemData.color || null
+          },
+          stock: itemData.stock || null,
+          isReturn: itemData.isReturn || false,
+          isQuickItem: itemData.isQuickItem || false
+        };
 
-    const lineItem = {
-      lineId: generateId(),
-      productId: itemData.productId || null,
-      name: itemData.name,
-      nombre: itemData.name, // Para compatibilidad
-      
-      price: itemData.price,
-      qty: itemData.quantity || 1,
-      variant: {
-        talle: itemData.size || null,
-        color: itemData.color || null
-      },
-      stock: itemData.stock || null,
-      isReturn: itemData.isReturn || false,
-      isQuickItem: itemData.isQuickItem || false
-    };
+        // Buscar si existe ítem igual (misma variante)
+        const existingIndex = !lineItem.isQuickItem && lineItem.productId
+          ? session.items.findIndex(item =>
+              item.productId === lineItem.productId &&
+              item.variant?.talle === lineItem.variant?.talle &&
+              item.variant?.color === lineItem.variant?.color &&
+              !item.isReturn &&
+              !item.isQuickItem
+            )
+          : -1;
 
-    console.log('🔍 DEBUG: lineItem creado:', lineItem);
-
-    // Verificar si ya existe un item similar (solo para productos con productId, no para artículos rápidos)
-    const existingIndex = !lineItem.isQuickItem && lineItem.productId ? 
-      session.items.findIndex(item => 
-        item.productId === lineItem.productId &&
-        item.variant?.talle === lineItem.variant?.talle &&
-        item.variant?.color === lineItem.variant?.color &&
-        !item.isReturn &&
-        !item.isQuickItem
-      ) : -1;
-
-    let newItems;
-    if (existingIndex >= 0 && !lineItem.isReturn && !lineItem.isQuickItem) {
-      // Actualizar cantidad del item existente (solo para productos regulares)
-      newItems = [...session.items];
-      newItems[existingIndex] = {
-        ...newItems[existingIndex],
-        qty: newItems[existingIndex].qty + lineItem.qty
-      };
-    } else {
-      // Agregar nuevo item (siempre para artículos rápidos y devoluciones)
-      newItems = [...session.items, lineItem];
-    }
-
-    updateSalesState(prevState => ({
-      ...prevState,
-      sessions: {
-        ...prevState.sessions,
-        [sessionId]: {
-          ...session,
-          items: newItems,
-          updatedAt: new Date().toISOString()
+        let newItems;
+        if (existingIndex >= 0 && !lineItem.isReturn && !lineItem.isQuickItem) {
+          // sumar cantidad al existente
+          newItems = session.items.map((it, idx) =>
+            idx === existingIndex ? { ...it, qty: it.qty + lineItem.qty } : it
+          );
+        } else {
+          // agregar nuevo renglón
+          newItems = [...session.items, lineItem];
         }
-      }
-    }));
 
-    return lineItem.lineId;
-  }, [salesState.sessions, updateSalesState]);
+        return {
+          ...prevState,
+          sessions: {
+            ...prevState.sessions,
+            [sessionId]: {
+              ...session,
+              items: newItems,
+              updatedAt: new Date().toISOString()
+            }
+          }
+        };
+      });
+    }, [updateSalesState]);
+
 
   /**
    * Remover item de sesión
@@ -694,25 +691,18 @@ export const useSales = () => {
       return;
     }
 
-    // Normalizar: si no es array, lo convertimos en array
     const variantsArray = Array.isArray(variants) ? variants : [variants];
 
-    // Recorrer cada variante seleccionada y agregarla al carrito
     variantsArray.forEach(variant => {
       if (variant.stock < quantity) {
         alert(`Stock insuficiente en talle ${variant.talle}. Disponible: ${variant.stock}`);
-        return;
+        return; // ignorar esta variante
       }
 
-      console.log('🔍 DEBUG: addToCart con variante:', {
-        productId: product.id,
-        variant,
-        quantity
-      });
-
+      // Crear un nuevo lineItem sin riesgo de colisión de existingIndex
       addItem(salesState.activeSessionId, {
         productId: product.id,
-        name: product.articulo,
+        name: product.articulo || product.name,
         code: product.id,
         price: variant.precioVenta || product.precioVenta,
         quantity,
@@ -720,10 +710,12 @@ export const useSales = () => {
         color: variant.color,
         stock: variant.stock,
         isReturn: product.isReturn || false,
-        isQuickItem: !product.id
+        isQuickItem: !product.id,
+        lineId: generateId() // ✅ forzar un ID único
       });
     });
   }, [salesState.activeSessionId, addItem]);
+
 
 
 

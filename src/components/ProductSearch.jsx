@@ -65,11 +65,14 @@ const ProductSearch = ({ onAddToCart, disabled = false }) => {
   /**
    * Manejar confirmación desde el modal
    */
-  const handleModalAddToCart = (product, quantity, size, color) => {
-    onAddToCart(product, quantity, size, color);
+  // ✅ Nuevo handleModalAddToCart
+  const handleModalAddToCart = (product, quantity, variantsArray) => {
+    onAddToCart(product, quantity, variantsArray);
     setShowSelectionModal(false);
     setSelectedProduct(null);
   };
+
+
 
 
 

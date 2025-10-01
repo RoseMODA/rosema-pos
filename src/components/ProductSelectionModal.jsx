@@ -28,7 +28,6 @@ const ProductSelectionModal = ({ product, show, onClose, onAddToCart }) => {
       return;
     }
 
-    // Validar stocks y cantidades
     for (let variant of selectedVariants) {
       if (quantity > variant.stock) {
         alert(
@@ -38,10 +37,13 @@ const ProductSelectionModal = ({ product, show, onClose, onAddToCart }) => {
       }
     }
 
-    // 🚀 Mandar TODAS las variantes al carrito
+    // 🚀 Pasamos todas las variantes seleccionadas como array
     onAddToCart(product, quantity, selectedVariants);
+
     handleClose();
   };
+
+
 
   const handleClose = () => {
     setSelectedVariants([]);
@@ -123,10 +125,10 @@ const ProductSelectionModal = ({ product, show, onClose, onAddToCart }) => {
                           key={index}
                           onClick={() => !disabled && toggleVariant(variant)}
                           className={`cursor-pointer transition-colors ${disabled
-                              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                              : isSelected
-                                ? "bg-red-600 text-white"
-                                : "hover:bg-red-50"
+                            ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                            : isSelected
+                              ? "bg-red-600 text-white"
+                              : "hover:bg-red-50"
                             }`}
                         >
                           <td className="px-4 py-2 font-medium">
