@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   getAllProviders,
+  getAllProvidersOfflineFirst,
   getProviderById,
   createProvider,
   updateProvider,
@@ -37,16 +38,18 @@ export const useProviders = () => {
     setLoading(true);
     setError(null);
     try {
-      const providersData = await getAllProviders();
+      const providersData = await getAllProvidersOfflineFirst();
       setProviders(providersData);
       return providersData;
     } catch (err) {
       setError(err.message || 'Error al cargar proveedores');
       console.error('Error loading providers:', err);
+      return [];
     } finally {
       setLoading(false);
     }
   }, []);
+
 
   /**
    * Cargar categorías únicas

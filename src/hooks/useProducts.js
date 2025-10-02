@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   getAllProducts,
+  getAllProductsOfflineFirst,
   searchProducts,
   getProductById,
-  getProductByBarcode,
+  getProductByBarcode as fetchProductByBarcode,
   createProduct,
   updateProduct,
   deleteProduct,
@@ -13,7 +14,8 @@ import {
   createSampleProducts,
   getProductStats,
   checkProductCodeExists,
-  subscribeToProducts
+  subscribeToProducts,
+  
 } from '../services/productsService';
 
 /**
@@ -26,6 +28,9 @@ export const useProducts = () => {
   const [error, setError] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
   const [realtimeProducts, setRealtimeProducts] = useState([]);
+  const [lastDoc, setLastDoc] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
+
 
   /**
    * Cargar todos los productos
@@ -33,19 +38,20 @@ export const useProducts = () => {
   const loadProducts = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
     try {
-      const productsData = await getAllProducts();
+      const productsData = await getAllProductsOfflineFirst();
       setProducts(productsData);
       return productsData;
     } catch (err) {
-      setError(err.message);
-      console.error('Error al cargar productos:', err);
+      setError(err.message || 'Error al cargar productos');
+      console.error("Error al cargar productos:", err);
       return [];
     } finally {
       setLoading(false);
     }
   }, []);
+
+
 
   /**
    * Buscar productos por término
@@ -96,60 +102,60 @@ export const useProducts = () => {
   /**
  * Crear nuevo producto
  */
-const addProduct = useCallback(async (productData) => {
-  setLoading(true);
-  setError(null);
-  
-  try {
-    // 👇 Aseguramos valores por defecto
-    const enrichedData = {
-      ...productData,
-      ecommerce: productData.ecommerce ?? false,
-      deposito: productData.deposito ?? { guardado: false, fila: null, columna: "", lugar: "" }
-    };
+  const addProduct = useCallback(async (productData) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // 👇 Aseguramos valores por defecto
+      const enrichedData = {
+        ...productData,
+        ecommerce: productData.ecommerce ?? false,
+        deposito: productData.deposito ?? { guardado: false, fila: null, columna: "", lugar: "" }
+      };
 
-    const newProduct = await createProduct(enrichedData);
-    setProducts(prev => [newProduct, ...prev]);
-    return newProduct;
-  } catch (err) {
-    setError(err.message);
-    console.error('Error al crear producto:', err);
-    throw err;
-  } finally {
-    setLoading(false);
-  }
-}, []);
+      const newProduct = await createProduct(enrichedData);
+      setProducts(prev => [newProduct, ...prev]);
+      return newProduct;
+    } catch (err) {
+      setError(err.message);
+      console.error('Error al crear producto:', err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-/**
- * Actualizar producto existente
- */
-const updateProductData = useCallback(async (productId, updates) => {
-  setLoading(true);
-  setError(null);
-  
-  try {
-    // 👇 Igual que arriba: valores por defecto
-    const enrichedUpdates = {
-      ...updates,
-      ecommerce: updates.ecommerce ?? false,
-      deposito: updates.deposito ?? { guardado: false, fila: null, columna: "", lugar: "" }
-    };
+  /**
+   * Actualizar producto existente
+   */
+  const updateProductData = useCallback(async (productId, updates) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // 👇 Igual que arriba: valores por defecto
+      const enrichedUpdates = {
+        ...updates,
+        ecommerce: updates.ecommerce ?? false,
+        deposito: updates.deposito ?? { guardado: false, fila: null, columna: "", lugar: "" }
+      };
 
-    const updatedProduct = await updateProduct(productId, enrichedUpdates);
-    setProducts(prev => 
-      prev.map(product => 
-        product.id === productId ? { ...product, ...updatedProduct } : product
-      )
-    );
-    return updatedProduct;
-  } catch (err) {
-    setError(err.message);
-    console.error('Error al actualizar producto:', err);
-    throw err;
-  } finally {
-    setLoading(false);
-  }
-}, []);
+      const updatedProduct = await updateProduct(productId, enrichedUpdates);
+      setProducts(prev => 
+        prev.map(product => 
+          product.id === productId ? { ...product, ...updatedProduct } : product
+        )
+      );
+      return updatedProduct;
+    } catch (err) {
+      setError(err.message);
+      console.error('Error al actualizar producto:', err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
 
   /**
@@ -288,9 +294,8 @@ const updateProductData = useCallback(async (productId, updates) => {
   const getProductByBarcode = useCallback(async (barcode) => {
     setLoading(true);
     setError(null);
-    
     try {
-      const product = await getProductByBarcode(barcode);
+      const product = await fetchProductByBarcode(barcode); // 👈 ahora sí
       return product;
     } catch (err) {
       setError(err.message);
@@ -300,6 +305,7 @@ const updateProductData = useCallback(async (productId, updates) => {
       setLoading(false);
     }
   }, []);
+
 
   /**
    * Actualizar stock de variante específica (descontar)
@@ -377,25 +383,26 @@ const updateProductData = useCallback(async (productId, updates) => {
     }
   }, []);
 
-  // Suscripción en tiempo real a productos
+      // Suscripción en tiempo real a productos
   useEffect(() => {
+    if (!navigator.onLine) {
+      console.log("📴 Modo offline → no iniciar suscripción onSnapshot, usar cache");
+      return; // 👈 evitamos que onSnapshot bloquee
+    }
+
     console.log('🔄 Iniciando suscripción en tiempo real a productos...');
-    
-    const unsubscribe = subscribeToProducts((products) => {
-      console.log('📡 Productos actualizados en tiempo real:', products.length);
-      setRealtimeProducts(products);
-      
+
+    const unsubscribe = subscribeToProducts((productsData) => {
+      console.log('📡 Productos actualizados en tiempo real:', productsData.length);
+      setProducts(productsData);
+      setRealtimeProducts(productsData);
+
       // Si estamos en modo búsqueda, actualizar también los resultados
       if (searchResults.length > 0) {
         const updatedResults = searchResults.map(result => 
-          products.find(p => p.id === result.id) || result
+          productsData.find(p => p.id === result.id) || result
         ).filter(Boolean);
         setSearchResults(updatedResults);
-      }
-      
-      // Si tenemos productos cargados, actualizarlos también
-      if (products.length > 0) {
-        setProducts(products);
       }
     });
 
@@ -404,6 +411,8 @@ const updateProductData = useCallback(async (productId, updates) => {
       unsubscribe();
     };
   }, [searchResults]);
+
+
 
   return {
     // Estado

@@ -13,6 +13,7 @@ import {
   limit,
   writeBatch,
   onSnapshot,
+  getDocsFromCache
   
 } from 'firebase/firestore';
 import { db } from './firebase';
@@ -23,6 +24,40 @@ import { db } from './firebase';
  */
 
 const COLLECTION_NAME = 'articulos';
+
+
+
+// 🔄 Cargar productos usando primero el cache local
+export const getAllProductsOfflineFirst = async () => {
+  try {
+    console.log("📥 Intentando leer cache de productos...");
+    const querySnapshot = await getDocsFromCache(collection(db, 'articulos'));
+
+    if (!querySnapshot.empty) {
+      console.log("✅ Productos obtenidos del cache:", querySnapshot.size);
+      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    }
+
+    if (!navigator.onLine) {
+      console.log("📴 Offline y cache vacío → devolviendo []");
+      return [];
+    }
+
+    console.log("🌐 Online → consultando red...");
+    return await getAllProducts();
+
+  } catch (e) {
+    console.warn("⚠️ Error al leer cache de productos:", e);
+
+    if (!navigator.onLine) {
+      console.log("📴 Sin internet, devolviendo []");
+      return [];
+    }
+
+    return await getAllProducts();
+  }
+};
+
 
 /**
  * Obtener todos los productos de la colección 'articulos'
@@ -87,7 +122,10 @@ export const searchProducts = async (searchTerm) => {
     }
 
     const term = searchTerm.toLowerCase().trim();
-    const allProducts = await getAllProducts();
+    const allProducts = navigator.onLine
+      ? await getAllProducts()
+      : await getAllProductsOfflineFirst();
+
     
     // Separar productos por tipo de coincidencia
     const exactIdMatches = [];
@@ -156,6 +194,18 @@ export const searchProducts = async (searchTerm) => {
  */
 export const getProductByBarcode = async (barcode) => {
   try {
+
+    if (!navigator.onLine) {
+      // Buscar localmente en cache
+      const products = await getAllProductsOfflineFirst();
+      const local = products.find(
+        p => p.id === barcode || p.codigo === barcode
+      );
+      if (local) return local;
+      throw new Error("Producto no encontrado en cache");
+    }
+
+
     console.log("🔎 Buscando producto en Firestore por campo id:", barcode);
 
     const q = query(collection(db, COLLECTION_NAME), where("id", "==", barcode));
@@ -191,10 +241,16 @@ export const getProductByBarcode = async (barcode) => {
  * Obtener producto por ID (mantener compatibilidad)
  */
 export const getProductById = async (productId) => {
+  if (!navigator.onLine) {
+    const products = await getAllProductsOfflineFirst();
+    return products.find(p => p.id === productId) || null;
+  }
+
   const productRef = doc(db, COLLECTION_NAME, productId);
   const snap = await getDoc(productRef);
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 };
+
 
 /**
  * Verificar si existe un producto con el mismo código
@@ -420,6 +476,11 @@ export const createSampleProducts = async () => {
  * Suscribirse a cambios en tiempo real de productos
  */
 export const subscribeToProducts = (callback) => {
+  if (!navigator.onLine) {
+    console.log("📴 Offline: usando cache en vez de snapshot");
+    getAllProductsOfflineFirst().then(callback);
+    return () => {}; // unsubscribe vacío
+  }
   const q = collection(db, COLLECTION_NAME);
   return onSnapshot(q, (querySnapshot) => {
     const products = querySnapshot.docs.map(doc => {
@@ -524,7 +585,10 @@ export const incrementVariantStock = async (productId, variantToUpdate, quantity
  */
 export const getProductStats = async () => {
   try {
-    const products = await getAllProducts();
+    const products = navigator.onLine
+      ? await getAllProducts()
+      : await getAllProductsOfflineFirst();
+
     
     console.log('🔍 DEBUG: Analizando productos para estadísticas...');
     console.log('📊 Total productos encontrados:', products.length);

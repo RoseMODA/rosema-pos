@@ -8,7 +8,8 @@ import {
   deleteDoc, 
   query, 
   orderBy,
-  where 
+  where,
+  getDocsFromCache
 } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -19,6 +20,37 @@ import { db } from './firebase';
  */
 
 const COLLECTION_NAME = 'proveedores';
+
+
+export const getAllProvidersOfflineFirst = async () => {
+  try {
+    console.log("📥 Intentando leer cache de proveedores...");
+    const snapshot = await getDocsFromCache(collection(db, "proveedores"));
+
+    if (!snapshot.empty) {
+      console.log("✅ Proveedores obtenidos del cache:", snapshot.size);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    }
+
+    console.log("⚠️ Cache vacío → probando red...");
+    const onlineSnapshot = await getDocs(collection(db, "proveedores"));
+    return onlineSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+  } catch (err) {
+    console.error("⚠️ Error al leer cache de proveedores:", err);
+
+    // Si el error es que no hay cache y tampoco hay red → devolvemos []
+    if (err.code === "unavailable") {
+      console.log("📴 Sin internet y sin cache → devolviendo []");
+      return [];
+    }
+
+    // Si no fue problema de conexión, probamos con red
+    const onlineSnapshot = await getDocs(collection(db, "proveedores"));
+    return onlineSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  }
+};
+
 
 /**
  * Obtener todos los proveedores
@@ -278,7 +310,9 @@ export const deleteProvider = async (providerId) => {
  */
 export const getProviderStats = async () => {
   try {
-    const providers = await getAllProviders();
+    const providers = navigator.onLine 
+      ? await getAllProviders()
+      : await getAllProvidersOfflineFirst();
     
     const stats = {
       totalProviders: providers.length,
@@ -333,7 +367,9 @@ export const searchProviders = async (searchTerm) => {
       return [];
     }
 
-    const providers = await getAllProviders();
+    const providers = navigator.onLine 
+      ? await getAllProviders()
+      : await getAllProvidersOfflineFirst();
     const term = searchTerm.toLowerCase().trim();
     
     return providers.filter(provider => {
@@ -378,7 +414,9 @@ export const searchProviders = async (searchTerm) => {
  */
 export const getProvidersByCategory = async (categoria) => {
   try {
-    const providers = await getAllProviders();
+    const providers = navigator.onLine 
+      ? await getAllProviders()
+      : await getAllProvidersOfflineFirst();
     return providers.filter(provider => provider.categoria === categoria);
   } catch (error) {
     console.error('Error al filtrar por categoría:', error);
@@ -391,7 +429,9 @@ export const getProvidersByCategory = async (categoria) => {
  */
 export const getProvidersByArea = async (area) => {
   try {
-    const providers = await getAllProviders();
+    const providers = navigator.onLine 
+      ? await getAllProviders()
+      : await getAllProvidersOfflineFirst();
     return providers.filter(provider => 
       provider.locales && provider.locales.some(local => local.area === area)
     );
@@ -406,7 +446,9 @@ export const getProvidersByArea = async (area) => {
  */
 export const getProvidersByGallery = async (galeria) => {
   try {
-    const providers = await getAllProviders();
+    const providers = navigator.onLine 
+      ? await getAllProviders()
+      : await getAllProvidersOfflineFirst();
     return providers.filter(provider => 
       provider.locales && provider.locales.some(local => local.galeria === galeria)
     );
@@ -524,7 +566,9 @@ export const getProviderProductStats = async (providerId) => {
  */
 export const getUniqueCategories = async () => {
   try {
-    const providers = await getAllProviders();
+    const providers = navigator.onLine 
+      ? await getAllProviders()
+      : await getAllProvidersOfflineFirst();
     const categories = new Set();
     
     providers.forEach(provider => {
@@ -545,7 +589,9 @@ export const getUniqueCategories = async () => {
  */
 export const getUniqueAreas = async () => {
   try {
-    const providers = await getAllProviders();
+    const providers = navigator.onLine 
+      ? await getAllProviders()
+      : await getAllProvidersOfflineFirst();
     const areas = new Set();
     
     providers.forEach(provider => {
@@ -570,7 +616,9 @@ export const getUniqueAreas = async () => {
  */
 export const getUniqueGalleries = async () => {
   try {
-    const providers = await getAllProviders();
+    const providers = navigator.onLine 
+      ? await getAllProviders()
+      : await getAllProvidersOfflineFirst();
     const galleries = new Set();
     
     providers.forEach(provider => {
@@ -600,7 +648,10 @@ export const getProvidersWithFilters = async (filters = {}) => {
     
     console.log('🔍 Aplicando filtros:', filters);
     
-    let providers = await getAllProviders();
+    let providers = navigator.onLine
+      ? await getAllProviders()
+      : await getAllProvidersOfflineFirst();
+
     console.log('📊 Total proveedores antes de filtrar:', providers.length);
     
     // Aplicar filtro de búsqueda por término
