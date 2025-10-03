@@ -132,7 +132,7 @@ const QuickItemModal = ({ isOpen, onClose, onAddItem }) => {
                 ref={nameInputRef}
                 type="text"
                 value={itemData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
+                onChange={(e) => handleInputChange('name', e.target.value.toUpperCase())}
                 className={`w-full input-rosema ${errors.name ? 'border-red-500' : ''}`}
                 placeholder="Ej: Remera básica"
                 maxLength={100}
@@ -192,7 +192,7 @@ const QuickItemModal = ({ isOpen, onClose, onAddItem }) => {
               <input
                 type="text"
                 value={itemData.size}
-                onChange={(e) => handleInputChange('size', e.target.value)}
+                onChange={(e) => handleInputChange('size', e.target.value.toUpperCase())}
                 className="w-full input-rosema"
                 placeholder="Ej: M, L, XL, 38, 40"
                 maxLength={10}

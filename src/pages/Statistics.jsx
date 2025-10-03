@@ -13,14 +13,87 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import 'dayjs/locale/es';
-import { DateRangePicker } from 'react-date-range';
+import { DateRangePicker, defaultStaticRanges } from 'react-date-range';
 import { es } from 'date-fns/locale';
+import weekOfYear from 'dayjs/plugin/weekOfYear';
+dayjs.extend(weekOfYear);
+
 
 // configurar dayjs
 dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.locale('es');
 dayjs.tz.setDefault('America/Argentina/Buenos_Aires');
+
+const monthColors = [
+  '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728',
+  '#9467bd', '#8c564b', '#e377c2', '#7f7f7f',
+  '#a082f5ff', '#17becf', '#ff9896', '#c5b0d5'
+];
+// tus rangos personalizados
+const customRanges = [
+  {
+    label: '📆 Esta semana',
+    range: () => ({
+      startDate: dayjs().tz().startOf('week').toDate(),
+      endDate: dayjs().tz().endOf('week').toDate(),
+    }),
+    isSelected: (range) => {
+      const start = dayjs(range.startDate);
+      const end = dayjs(range.endDate);
+      return (
+        start.isSame(dayjs().startOf('week'), 'day') &&
+        end.isSame(dayjs().endOf('week'), 'day')
+      );
+    },
+  },
+  {
+    label: '📅 Este año',
+    range: () => ({
+      startDate: dayjs().tz().startOf('year').toDate(),
+      endDate: dayjs().tz().endOf('year').toDate(),
+    }),
+    isSelected: (range) => {
+      const start = dayjs(range.startDate);
+      const end = dayjs(range.endDate);
+      return (
+        start.isSame(dayjs().startOf('year'), 'day') &&
+        end.isSame(dayjs().endOf('year'), 'day')
+      );
+    },
+  },
+  {
+    label: '📆 Últimos 2 meses',
+    range: () => ({
+      startDate: dayjs().tz().subtract(1, 'month').startOf('month').toDate(), // mes pasado inicio
+      endDate: dayjs().tz().endOf('month').toDate(),                          // fin mes actual
+    }),
+    isSelected: (range) => {
+      const start = dayjs(range.startDate);
+      const end = dayjs(range.endDate);
+      return (
+        start.isSame(dayjs().subtract(1, 'month').startOf('month'), 'day') &&
+        end.isSame(dayjs().endOf('month'), 'day')
+      );
+    },
+  },
+  {
+    label: '📆 Este mes',
+    range: () => ({
+      startDate: dayjs().tz().startOf('month').toDate(),
+      endDate: dayjs().tz().endOf('month').toDate(),
+    }),
+    isSelected: (range) => {
+      const start = dayjs(range.startDate);
+      const end = dayjs(range.endDate);
+      return (
+        start.isSame(dayjs().startOf('month'), 'day') &&
+        end.isSame(dayjs().endOf('month'), 'day')
+      );
+    },
+  },
+
+];
 
 /* Convierte sale.saleDate (puede ser Date o Firestore Timestamp) -> Date usable por dayjs */
 function normalizeSaleDate(sale) {
@@ -113,10 +186,16 @@ const Statistics = () => {
   // estado para rango
   const [showCalendar, setShowCalendar] = useState(false);
   const [dateRange, setDateRange] = useState([{
-    startDate: dayjs().tz('America/Argentina/Buenos_Aires').startOf('month').toDate(),
-    endDate: dayjs().tz('America/Argentina/Buenos_Aires').endOf('month').toDate(),
+    startDate: dayjs().tz('America/Argentina/Buenos_Aires')
+      .subtract(1, 'month')
+      .startOf('month')
+      .toDate(), // inicio del mes pasado
+    endDate: dayjs().tz('America/Argentina/Buenos_Aires')
+      .endOf('month')
+      .toDate(), // fin del mes actual
     key: 'selection'
   }]);
+
 
   // resumen
   const [todayStats, setTodayStats] = useState({ total: 0, count: 0 });
@@ -195,7 +274,7 @@ const Statistics = () => {
     <div className="p-6">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900">📊 Estadísticas</h1>
-        <p className="text-gray-600 mt-2">Reportes y análisis de ventas (hora local: Argentina)</p>
+        <p className="text-gray-600 mt-2">Reportes y análisis de ventas </p>
       </div>
 
       {/* resumen cards */}
@@ -253,8 +332,11 @@ const Statistics = () => {
               ranges={dateRange}
               onChange={(item) => setDateRange([item.selection])}
               locale={es}
-              rangeColors={["#dc2626"]}
+              rangeColors={['#dc2626']}
+              staticRanges={customRanges}      // 👈 aquí tus rangos
+              inputRanges={[]}                 // 👈 desactiva los rangos tipo “últimos X días”
             />
+
           </div>
         )}
 
@@ -267,16 +349,47 @@ const Statistics = () => {
             padding={0.25}                  // más delgadas y con espacio entre barras
             valueScale={{ type: 'linear' }}
             indexScale={{ type: 'band', round: true }}
-            colors={['#797bf0ff']}            // azul vibrante (indigo-600)
+
+            colors={({ indexValue }) => {
+              if (period === 'year') {
+                // asignar color por año
+                const year = parseInt(indexValue, 10);
+                const yearColors = {
+                  2027: '#feb2b2ff', // rojo
+                  2026: '#9aebf4ff', // azul
+                  2025: '#d6baf8ff', // verde
+                };
+                return yearColors[year] || '#6b7280'; // gris por defecto
+              }
+
+              // meses como antes
+              const monthIndex = parseInt(indexValue.split('-')[1], 10) - 1;
+              return monthColors[monthIndex % monthColors.length];
+            }}
+
             borderRadius={4}                // esquinas redondeadas
             borderColor={{ from: 'color', modifiers: [['darker', 0.6]] }}
             enableGridY={true}              // líneas horizontales de referencia
             gridYValues={5}
+
+            // 👇 aquí personalizamos el label
+            label={(d) => `$${d.value.toLocaleString('es-AR')}`}
+
+
+            labelTextColor="#111"
             axisBottom={{
               tickRotation: -30,
               legend: 'Periodo',
               legendOffset: 40,
-              legendPosition: 'middle'
+              legendPosition: 'middle',
+              format: (value) => {
+                const d = dayjs(value).tz('America/Argentina/Buenos_Aires');
+                if (period === 'month') return d.format('MMM');
+                if (period === 'day') return d.format('DD MMM');
+                if (period === 'week') return `Sem ${d.week()}`;
+                if (period === 'year') return d.format('YYYY');
+                return value;
+              }
             }}
             axisLeft={{
               legend: 'Ventas ($)',
@@ -313,6 +426,12 @@ const Statistics = () => {
                   borderRadius: 6,
                   boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
                 }
+              },
+              labels: {
+                text: {
+                  fontSize: 14,      // un poquito más grande
+                  fontWeight: 700,   // negrita
+                }
               }
             }}
             tooltip={({ value, indexValue }) => (
@@ -320,8 +439,9 @@ const Statistics = () => {
                 <strong>{indexValue}</strong>: ${value.toLocaleString('es-AR')}
               </div>
             )}
-            labelSkipHeight={18}             // no mostrar etiqueta si barra es muy baja
-            labelTextColor={{ from: 'color', modifiers: [['darker', 1.8]] }}
+            // no mostrar etiqueta si barra es muy baja
+            labelSkipHeight={18}
+
             animate={true}                   // animaciones suaves
             motionConfig="gentle"            // tipo de animación
           />
