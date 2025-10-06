@@ -25,6 +25,11 @@ dayjs.extend(timezone);
 dayjs.locale('es');
 dayjs.tz.setDefault('America/Argentina/Buenos_Aires');
 
+
+
+
+
+
 const monthColors = [
   '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728',
   '#9467bd', '#8c564b', '#e377c2', '#7f7f7f',
@@ -172,6 +177,10 @@ function groupItemsBySupplier(sales) {
 const Statistics = () => {
   const { products } = useProducts();
   const { loadCustomers } = useCustomers();
+  const topSellingSizes = ['M', 'L']; // demo, deberías calcularlo en base a ventas
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+
 
   // stock por categoria
   const stockData = useMemo(() => getStockByCategoryAndSize(products), [products]);
@@ -187,14 +196,14 @@ const Statistics = () => {
   const [showCalendar, setShowCalendar] = useState(false);
   const [dateRange, setDateRange] = useState([{
     startDate: dayjs().tz('America/Argentina/Buenos_Aires')
-      .subtract(1, 'month')
       .startOf('month')
-      .toDate(), // inicio del mes pasado
+      .toDate(), // inicio del mes actual
     endDate: dayjs().tz('America/Argentina/Buenos_Aires')
       .endOf('month')
       .toDate(), // fin del mes actual
     key: 'selection'
   }]);
+
 
 
   // resumen
@@ -345,6 +354,7 @@ const Statistics = () => {
             data={chartData.map(d => ({ period: d.period, ventas: d.ventas }))}
             keys={['ventas']}
             indexBy="period"
+            layout="vertical"
             margin={{ top: 30, right: 30, bottom: 50, left: 70 }}
             padding={0.25}                  // más delgadas y con espacio entre barras
             valueScale={{ type: 'linear' }}
@@ -442,8 +452,9 @@ const Statistics = () => {
             // no mostrar etiqueta si barra es muy baja
             labelSkipHeight={18}
 
-            animate={true}                   // animaciones suaves
-            motionConfig="gentle"            // tipo de animación
+            animate={true}
+            motionConfig="slow"
+            motionStagger={15}
           />
 
 
@@ -471,15 +482,66 @@ const Statistics = () => {
 
       </div>
 
-      {/* stock tables */}
-      <h2 className="text-2xl font-semibold text-gray-900 mb-4">📦 Stock por Categoría y Talle</h2>
 
-      <div className="grid grid-cols-1 sm:grid-cols-4 lg:grid-cols-4 gap-4">
+
+      {/* --- Gráficos por categoría --- */}
+      <h2 className="text-2xl font-semibold text-gray-900 mb-4">📊 Gráficos de Stock</h2>
+      <div className="grid grid-cols-1  gap-6 mt-8">
         {categories.map(cat => {
           const sizes = Object.keys(stockData[cat]).sort(sortSizes);
           return (
-            <div key={cat} className="bg-white shadow rounded-lg p-3 border border-gray-200">
-              <h3 className="text-md font-semibold text-gray-900 mb-2 text-center">{cat}</h3>
+            <div key={cat} className="bg-white shadow rounded-lg p-4 border border-gray-200">
+              <h3 className="text-md font-semibold text-gray-900 mb-4 text-center">{cat}</h3>
+              <div style={{ height: 450 }}>
+                <ResponsiveBar
+                  data={sizes.map(size => ({
+                    talle: size,
+                    stock: stockData[cat][size] || 0
+                  }))}
+
+                  keys={['stock']}
+                  indexBy="talle"
+                  layout="vertical"
+                  margin={{ top: 20, right: 30, bottom: 30, left: 60 }}
+                  padding={0.3}
+
+                  // 🎨 Colores personalizados
+                  colors={({ data }) => {
+                    // Prioridades:
+                    if (data.stock <= 5) return '#dc2626';                  // rojo stock bajo
+                    if (topSellingSizes.includes(data.talle)) return '#16a34a'; // verde talles top
+
+                    // Color base según categoría
+                    if (cat.toLowerCase() === 'mujer') return '#f472b6';          // rosa
+                    if (cat.toLowerCase() === 'hombre') return '#3b82f6';         // azul
+                    if (cat.toLowerCase() === 'niños-bebes' || cat.toLowerCase() === 'ninos-bebes') return '#93c5fd'; // celeste pastel
+                    return '#c4b5fd'; // violeta pastel (para "otros" u otras categorías)
+                  }}
+
+                  borderRadius={4}
+                  label={d => d.value}
+                  labelSkipWidth={12}
+                  labelTextColor="#111"
+                  enableGridX={true}
+                  animate={true}
+                  motionStagger={15}
+                />
+
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+
+      {/* --- Tablas por categoría --- */}
+      <h2 className="text-2xl font-semibold text-gray-900 mt-12 mb-4">📦 Tablas de Stock</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
+        {categories.map(cat => {
+          const sizes = Object.keys(stockData[cat]).sort(sortSizes);
+          return (
+            <div key={cat} className="bg-white shadow rounded-lg p-4 border border-gray-200">
+              <h3 className="text-md font-semibold text-gray-900 mb-4 text-center">{cat}</h3>
               <div className="overflow-x-auto">
                 <table className="w-full border border-gray-200 text-sm">
                   <thead className="bg-gray-100">
@@ -492,7 +554,13 @@ const Statistics = () => {
                     {sizes.map(size => (
                       <tr key={size}>
                         <td className="px-2 py-1 border text-center font-medium">{size}</td>
-                        <td className={`px-2 py-1 border text-center bg-blue-50 font-bold ${stockData[cat][size] <= 5 ? 'text-red-600' : ''}`}>
+                        <td
+                          className={`
+                      px-2 py-1 border text-center font-bold
+                      ${stockData[cat][size] <= 5 ? 'text-red-600' : ''}
+                      ${topSellingSizes.includes(size) ? 'bg-green-100 text-green-800' : ''}
+                    `}
+                        >
                           {stockData[cat][size]}
                         </td>
                       </tr>
@@ -504,6 +572,11 @@ const Statistics = () => {
           );
         })}
       </div>
+
+
+
+
+
     </div>
   );
 };
