@@ -14,31 +14,140 @@
 ---
 
 ## 📁 1. MAPA GENERAL DEL PROYECTO
-
-### Estructura de Carpetas
+### Estructura Completa
 
 ```
-rosema-pos/
-├── public/                     # Archivos estáticos
-│   ├── index.html             # HTML base
-│   ├── rosemalognegro.png     # Logo negro
-│   └── rosemalogysubwhite.png # Logo blanco
-├── scripts/                   # Scripts de importación
-│   ├── importData.js          # Importar datos de prueba
-│   └── importProviders.js     # Importar proveedores
-├── src/
-│   ├── components/            # Componentes React
-│   │   ├── common/           # Componentes reutilizables
-│   │   ├── Products/         # Componentes de productos
-│   │   └── Sales/           # Componentes de ventas
-│   ├── hooks/               # Custom hooks
-│   ├── pages/               # Páginas principales
-│   ├── services/            # Servicios Firebase
-│   └── utils/               # Utilidades y helpers
-├── firebase.json              # Configuración Firebase
-├── firestore.rules           # Reglas de seguridad
-└── package.json              # Dependencias
+📁 rosema-pos
+├── 📁 public                     # Archivos estáticos y PWA
+│   ├── index.html                 # HTML base
+│   ├── pwa-192x192.png            # Icono PWA 192x192
+│   ├── pwa-512x512.png            # Icono PWA 512x512
+│   ├── rosemalognegro.png         # Logo negro
+│   └── rosemalogysubwhite.png     # Logo blanco
+│
+├── 📁 scripts                     # Scripts de importación
+│   ├── importData.js
+│   └── importProviders.js
+│
+├── 📁 server
+│   └── index.js                   # Servidor backend (si aplica)
+│
+├── 📁 src                          # Código principal de la app
+│   ├── 📁 components               # Componentes React
+│   │   ├── 📁 common               # Componentes reutilizables
+│   │   │   ├── ErrorMessage.jsx
+│   │   │   ├── IconButton.jsx
+│   │   │   ├── index.js
+│   │   │   ├── LoadingSpinner.jsx
+│   │   │   ├── Modal.jsx
+│   │   │   ├── SearchBar.jsx
+│   │   │   └── StatsCard.jsx
+│   │   │
+│   │   ├── 📁 Products             # Componentes relacionados con productos
+│   │   │   ├── ProductDetailsModal.jsx
+│   │   │   ├── ProductsFilters.jsx
+│   │   │   ├── ProductsStats.jsx
+│   │   │   └── ProductsTable.jsx
+│   │   │
+│   │   └── 📁 Sales                # Componentes relacionados con ventas
+│   │       ├── DailyStats.jsx
+│   │       ├── EditPriceModal.jsx
+│   │       ├── PaymentForm.jsx
+│   │       ├── ProductSearch.jsx
+│   │       ├── SalesCart.jsx
+│   │       └── SessionTabs.jsx
+│   │
+│   │   # Otros componentes principales
+│   │   ├── BarcodeModal.jsx
+│   │   ├── BarcodePrinter.jsx
+│   │   ├── CustomerDetails.jsx
+│   │   ├── CustomerForm.jsx
+│   │   ├── ExpenseModal.jsx
+│   │   ├── FirestoreDebug.jsx
+│   │   ├── GoalModal.jsx
+│   │   ├── Layout.jsx
+│   │   ├── MobileHeader.jsx
+│   │   ├── PendingSales.jsx
+│   │   ├── PrintReceiptModal.jsx
+│   │   ├── ProductForm.jsx
+│   │   ├── ProductSearch.jsx
+│   │   ├── ProductSelectionModal.jsx
+│   │   ├── ProviderDetails.jsx
+│   │   ├── ProviderForm.jsx
+│   │   ├── ProvidersDebug.jsx
+│   │   ├── QuickItemModal.jsx
+│   │   ├── QuickProduct.jsx
+│   │   ├── Receipt.jsx
+│   │   ├── ReturnModal.jsx
+│   │   ├── ReturnProductModal.jsx
+│   │   ├── SalesHistory.jsx
+│   │   ├── SalesHistoryModal.jsx
+│   │   ├── SalesInterface.jsx
+│   │   └── Sidebar.jsx
+│   │
+│   ├── 📁 hooks                     # Custom hooks
+│   │   ├── useAuth.js
+│   │   ├── useCustomers.js
+│   │   ├── useFormValidation.js
+│   │   ├── useModal.js
+│   │   ├── useProductFilters.js
+│   │   ├── useProducts.js
+│   │   ├── useProductSearch.js
+│   │   ├── useProviders.js
+│   │   └── useSales.js
+│   │
+│   ├── 📁 pages                     # Páginas principales
+│   │   ├── Customers.jsx
+│   │   ├── Goals.jsx
+│   │   ├── Home.jsx
+│   │   ├── Invoices.jsx
+│   │   ├── Login.jsx
+│   │   ├── Products.jsx
+│   │   ├── Sales.jsx
+│   │   ├── SalesNew.jsx
+│   │   ├── Statistics.jsx
+│   │   └── Suppliers.jsx
+│   │
+│   ├── 📁 services                  # Conexión con Firebase / API
+│   │   ├── arcaService.js
+│   │   ├── customersService.js
+│   │   ├── firebase.js
+│   │   ├── productsService.js
+│   │   ├── providersService.js
+│   │   └── salesService.js
+│   │
+│   ├── 📁 utils                     # Helpers y utilidades
+│   │   ├── calculations.js
+│   │   ├── constants.js
+│   │   ├── dateHelpers.js
+│   │   ├── formatters.js
+│   │   ├── iconMapping.js
+│   │   ├── index.js
+│   │   ├── productHelpers.js
+│   │   ├── salesHelpers.js
+│   │   ├── sizeMapping.js
+│   │   ├── sizeOrder.js
+│   │   └── validators.js
+│   │
+│   ├── App.jsx                       # Componente raíz
+│   ├── main.jsx                      # Punto de entrada
+│   └── style.css                      # Estilos globales
+│
+├── .firebaserc                        # Configuración Firebase
+├── .gitignore                         # Archivos ignorados por Git
+├── firebase.json                      # Configuración Firebase Hosting
+├── firestore.indexes.json              # Índices Firestore
+├── firestore.rules                     # Reglas de seguridad Firestore
+├── index.html                           # HTML raíz (Vite)
+├── package-lock.json
+├── package.json                         # Dependencias
+├── postcss.config.js                    # Configuración PostCSS
+├── storage.rules                        # Reglas de almacenamiento
+├── tailwind.config.js                   # Configuración TailwindCSS
+└── vite.config.js                        # Configuración de Vite
+
 ```
+
 
 ### Descripción de Carpetas
 

@@ -12,6 +12,7 @@ import Customers from './pages/Customers';
 import Suppliers from './pages/Suppliers';
 import Goals from './pages/Goals';
 import Invoices from './pages/Invoices';
+import Compras from './pages/Compras';
 
 /**
  * Componente principal de la aplicación Rosema POS
@@ -62,6 +63,7 @@ function App() {
             <Route path="products" element={<Products />} />
             <Route path="customers" element={<Customers />} />
             <Route path="suppliers" element={<Suppliers />} />
+            <Route path="compras" element={<Compras />} />
             <Route path="goals" element={<Goals />} />
             <Route path="invoices" element={<Invoices />} />
           </Route>

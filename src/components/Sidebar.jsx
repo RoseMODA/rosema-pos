@@ -72,6 +72,12 @@ const Sidebar = ({ onMobileClose }) => {
 
     },
     {
+      name: 'Compras',
+      path: '/compras',
+      icon: '🛒',
+
+    },
+    {
       name: 'Metas',
       path: '/goals',
       icon: '🎯',
